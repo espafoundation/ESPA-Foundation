@@ -53,7 +53,17 @@ const StripeCheckout = () => {
       });
       const data = await response.json();
       if (data.url) {
-        window.location.href = data.url;
+        // If we are in an iframe (like AI Studio preview), Stripe will block it. Open in new tab.
+        if (window.top !== window.self) {
+          window.open(data.url, '_blank');
+        } else {
+          window.location.href = data.url;
+        }
+        
+        // Reset loading state after a short delay so the button doesn't stay stuck
+        setTimeout(() => {
+          setLoading(false);
+        }, 1500);
       } else {
         toast.error(data.error || 'Failed to initiate checkout');
         setLoading(false);

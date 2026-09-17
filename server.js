@@ -60,6 +60,51 @@ async function verifyRecaptcha(token) {
     return false;
   }
 }
+import Stripe from "stripe";
+let stripeClient = null;
+function getStripe() {
+  if (!stripeClient) {
+    const key = process.env.STRIPE_SECRET_KEY;
+    if (!key) {
+      throw new Error("STRIPE_SECRET_KEY environment variable is required");
+    }
+    stripeClient = new Stripe(key, { apiVersion: "2023-10-16" });
+  }
+  return stripeClient;
+}
+app.post("/api/create-checkout-session", apiLimiter, async (req, res) => {
+  try {
+    const stripe = getStripe();
+    const { amount } = req.body;
+    if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
+      return res.status(400).json({ error: "Valid amount is required" });
+    }
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      line_items: [
+        {
+          price_data: {
+            currency: "usd",
+            product_data: {
+              name: "ESPA Foundation Donation",
+              description: "Thank you for supporting our mission."
+            },
+            unit_amount: Math.round(Number(amount) * 100)
+            // Stripe expects amounts in cents
+          },
+          quantity: 1
+        }
+      ],
+      mode: "payment",
+      success_url: `${req.headers.origin || "http://localhost:3000"}/donate?success=true`,
+      cancel_url: `${req.headers.origin || "http://localhost:3000"}/donate?canceled=true`
+    });
+    res.json({ url: session.url });
+  } catch (error) {
+    console.error("Stripe error:", error.message);
+    res.status(500).json({ error: error.message || "Failed to create checkout session" });
+  }
+});
 app.post("/api/contact", apiLimiter, async (req, res) => {
   const { name, email, message, recaptchaToken } = req.body;
   if (!name || !email || !message || !recaptchaToken) return res.status(400).json({ error: "All fields are required" });
@@ -510,3 +555,6 @@ if (process.env.NODE_ENV !== "production") {
 app.listen(Number(port), "0.0.0.0", () => {
   console.log(`Server is running on port ${port}`);
 });
+export {
+  getStripe
+};
