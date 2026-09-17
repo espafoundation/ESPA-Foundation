@@ -45,18 +45,35 @@ const StripeCheckout = () => {
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    console.log('[Stripe Checkout] Initiating checkout for amount:', amount);
+    
     try {
+      console.log('[Stripe Checkout] Sending POST request to /api/create-checkout-session...');
       const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ amount: Number(amount) }),
       });
-      const data = await response.json();
-      if (data.url) {
+      
+      console.log('[Stripe Checkout] Received response with status:', response.status);
+      
+      let data;
+      try {
+        data = await response.json();
+        console.log('[Stripe Checkout] Response JSON payload:', data);
+      } catch (parseError) {
+        console.error('[Stripe Checkout] Failed to parse JSON response:', parseError);
+        throw new Error('Invalid response from server');
+      }
+
+      if (response.ok && data.url) {
+        console.log('[Stripe Checkout] Success! Redirecting to Stripe URL:', data.url);
         // If we are in an iframe (like AI Studio preview), Stripe will block it. Open in new tab.
         if (window.top !== window.self) {
+          console.log('[Stripe Checkout] Detected iframe environment. Opening in a new tab.');
           window.open(data.url, '_blank');
         } else {
+          console.log('[Stripe Checkout] Detected top-level window. Redirecting in same tab.');
           window.location.href = data.url;
         }
         
@@ -65,11 +82,14 @@ const StripeCheckout = () => {
           setLoading(false);
         }, 1500);
       } else {
-        toast.error(data.error || 'Failed to initiate checkout');
+        const errorMessage = data.error || `Server returned status ${response.status}`;
+        console.error('[Stripe Checkout] API Error:', errorMessage);
+        toast.error(`Payment Initiation Failed: ${errorMessage}`);
         setLoading(false);
       }
-    } catch (error) {
-      toast.error('An error occurred. Please try again.');
+    } catch (error: any) {
+      console.error('[Stripe Checkout] Network or Execution Error:', error);
+      toast.error(`Error: ${error.message || 'An unexpected error occurred. Please try again.'}`);
       setLoading(false);
     }
   };
@@ -125,6 +145,15 @@ export default function Donate() {
   const location = useLocation();
 
   useEffect(() => {
+    // Debugging check to verify if the VITE_STRIPE_PUBLISHABLE_KEY is loaded correctly by Vite
+    // @ts-ignore
+  const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+    if (publishableKey) {
+      console.log('[Stripe Setup] Publishable key found (starts with):', publishableKey.substring(0, 8) + '...');
+    } else {
+      console.warn('[Stripe Setup] VITE_STRIPE_PUBLISHABLE_KEY is missing or undefined in the environment variables.');
+    }
+
     const params = new URLSearchParams(location.search);
     if (params.get('success')) {
       toast.success('Thank you for your generous donation!', { duration: 5000 });

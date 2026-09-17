@@ -25,10 +25,13 @@ export default function UsersView({
     if (currentUser.role === 'Admin') return true;
     
     const getLvl = (r) => {
-        if (r === 'Admin') return 4;
-        if (r === 'In-Country Coordinator') return 3;
-        if (r === 'Deputy Lead Coordinator') return 2;
-        if (r === 'Intern' || r === 'Camper') return 1;
+        if (r === 'Admin') return 10;
+        if (r === 'President') return 9;
+        if (r === 'Vice President') return 8;
+        if (['General Secretary', 'Joint Secretary', 'Treasurer'].includes(r)) return 7;
+        if (r === 'Executive Member') return 6;
+        if (['General Member', 'Donor', 'Partner'].includes(r)) return 5;
+        if (['Ambassador', 'Volunteer'].includes(r)) return 4;
         return 0;
     };
     
@@ -66,10 +69,18 @@ export default function UsersView({
   };
   
   const roleOrder = useMemo(() => ({
-    'In-Country Coordinator': 1,
-    'Deputy Lead Coordinator': 2,
-    'Intern': 3,
-    'Camper': 4
+    'Admin': 0,
+    'President': 1,
+    'Vice President': 2,
+    'General Secretary': 3,
+    'Joint Secretary': 4,
+    'Treasurer': 5,
+    'Executive Member': 6,
+    'General Member': 7,
+    'Donor': 8,
+    'Partner': 9,
+    'Ambassador': 10,
+    'Volunteer': 11
   }), []);
 
   const filteredUsers = useMemo(() => {
@@ -140,7 +151,7 @@ export default function UsersView({
     <div className="space-y-8 tracking-tight">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-semibold text-stone-900">Users</h1>
+          <h1 className="text-3xl font-semibold text-black">Users</h1>
           <p className="text-stone-500 text-sm mt-2 font-medium">Manage Participant Profiles and Account Details.</p>
         </div>
         {selectedIds.length > 0 ? (
@@ -155,16 +166,16 @@ export default function UsersView({
             
             <button 
               onClick={() => { setNewUser({}); setIsEditingUser(false); setIsModalOpen(true); }}
-              className="bg-[#004B36] text-[#FDFCFB] px-5 py-2.5 rounded-full text-sm font-medium hover:bg-[#003828] transition-colors shadow-sm flex items-center gap-2"
+              className="px-5 py-2.5 bg-[#004B36] text-white rounded-full text-sm font-medium tracking-wide hover:bg-[#003828] transition-colors flex items-center gap-2"
             >
-              <Plus size={16} className="text-[#FDFCFB]" /> Add User
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg> Add
             </button>
           </div>
         )}
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#004B36]" size={18} strokeWidth={1.5} />
+      <div className="relative mb-6">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18} strokeWidth={1.5} />
         <input
           type="text"
           placeholder="Search users..."
@@ -176,6 +187,12 @@ export default function UsersView({
 
       <div className="flex-1 bg-white rounded-2xl border border-stone-200/60 shadow-sm flex flex-col overflow-hidden">
         <div className="w-full overflow-x-auto pb-16">
+          {filteredUsers.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-center py-20 bg-white rounded-2xl">
+              <h3 className="text-xl font-bold text-stone-900 mb-2">No Users Found</h3>
+              <p className="text-stone-500 font-medium">There are currently no items to display in this section.</p>
+            </div>
+          ) : (
           <table className="w-full text-left border-collapse min-w-[900px]">
             <thead>
               <tr className="border-b border-stone-100 text-stone-400 text-xs tracking-wider bg-stone-50/50 rounded-t-2xl">
@@ -225,11 +242,9 @@ export default function UsersView({
                   </tr>
                 );
               })}
-              {filteredUsers.length === 0 && (
-                <tr><td colSpan="3" className="py-20 text-center text-sm text-stone-500">No Data Available.</td></tr>
-              )}
             </tbody>
           </table>
+          )}
         </div>
       </div>
 
@@ -239,7 +254,7 @@ export default function UsersView({
           <DraggableModal className="bg-white rounded-3xl p-8 max-w-2xl max-h-[90vh] w-full shadow-2xl flex flex-col animate-in zoom-in-95 pointer-events-auto" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-xl font-bold text-stone-900 mb-6 border-b border-stone-100 pb-4 flex items-center gap-3 drag-handle cursor-grab shrink-0">
               <User className="text-[#004B36] pointer-events-none" size={24} /> 
-              <span className="pointer-events-none font-medium">{isEditingUser ? "Edit User" : "Add User"}</span>
+              <span className="pointer-events-none font-medium">{isEditingUser ? "Edit User" : "Add"}</span>
             </h3>
             
             <form onSubmit={handleAddUser} className="flex-1 min-h-0 overflow-y-auto space-y-4 p-1 -mx-1 px-2">
@@ -278,7 +293,8 @@ export default function UsersView({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="col-span-1 relative">
                   <label className="block text-xs font-normal text-stone-500 mb-1 uppercase tracking-wider">PASSWORD<span className="text-red-500 font-medium">*</span></label>
-                  <div className="relative">
+                  <div className="relative mb-6">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18} strokeWidth={1.5} />
                     <input required={!isEditingUser} type={showPassword ? 'text' : 'password'} placeholder={isEditingUser ? "Leave blank to keep unchanged" : "Enter Password"} value={newUser.password || ''} onChange={e => setNewUser({...newUser, password: e.target.value})} className="w-full px-4 py-2.5 bg-white border border-stone-200 rounded-xl focus:ring-1 focus:ring-[#004B36] outline-none text-sm font-medium text-stone-800 pr-10" />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 focus:outline-none">
                       {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -287,7 +303,8 @@ export default function UsersView({
                 </div>
                 <div className="col-span-1 relative">
                   <label className="block text-xs font-normal text-stone-500 mb-1 uppercase tracking-wider">CONFIRM PASSWORD<span className="text-red-500 font-medium">*</span></label>
-                  <div className="relative">
+                  <div className="relative mb-6">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18} strokeWidth={1.5} />
                     <input required={!isEditingUser && newUser.password} type={showConfirmPassword ? 'text' : 'password'} placeholder={isEditingUser ? "Leave blank to keep unchanged" : "Confirm Password"} value={newUser.confirmPassword || ''} onChange={e => setNewUser({...newUser, confirmPassword: e.target.value})} className="w-full px-4 py-2.5 bg-white border border-stone-200 rounded-xl focus:ring-1 focus:ring-[#004B36] outline-none text-sm font-medium text-stone-800 pr-10" />
                     <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 focus:outline-none">
                       {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -459,7 +476,7 @@ export default function UsersView({
 
               <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-stone-100 shrink-0">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-5 py-2.5 rounded-full font-semibold text-stone-600 bg-stone-100 hover:bg-stone-200 transition-colors">Cancel</button>
-                <button type="submit" className="px-5 py-2.5 rounded-full font-semibold text-white bg-[#004B36] hover:bg-[#003828] transition-colors">{isEditingUser ? 'Save Changes' : 'Add User'}</button>
+                <button type="submit" className="px-5 py-2.5 rounded-full font-semibold text-white bg-[#004B36] hover:bg-[#003828] transition-colors">{isEditingUser ? 'Save Changes' : 'Add'}</button>
               </div>
             </form>
           </DraggableModal>

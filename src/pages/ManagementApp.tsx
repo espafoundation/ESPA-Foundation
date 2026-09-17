@@ -1,5 +1,5 @@
 import React from 'react';
-import App from '../components/ManagementPortal';
+import App from '../components/ManagementPortal.jsx';
 
 export default function ManagementApp() {
   return (

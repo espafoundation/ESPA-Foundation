@@ -1,19 +1,15 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { FileText, Plus, History, X, Search } from 'lucide-react';
-import { ActionMenu } from './SharedComponents';
-import DraggableModal from './DraggableModal';
+import { FileText, Plus, History, X, Search, ArrowLeft, Printer, ArrowRightLeft, Send, CheckSquare } from 'lucide-react';
+import { ActionMenu, ConfirmModal, SignaturePad, UserLink } from '../components/SharedComponents';
+import DraggableModal from '../components/DraggableModal';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 
-const Portal = ({ children }) => {
-  return createPortal(children, document.body);
-};
-
 export default function GeneralAgreementsView({ agreements, setAgreements, currentUser, users, showToast, addLog, setActiveTab }) {
   const canAdd = currentUser && ['Admin', 'In-Country Coordinator', 'Deputy Lead Coordinator', 'Lead Coordinator'].includes(currentUser.role);
-  const isParticipant = currentUser && ['Intern', 'Camper'].includes(currentUser.role);
-  const cohortAgreements = agreements ? agreements.filter(a => a.isCohort).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)) : [];
+  const isParticipant = currentUser && ['Volunteer', 'Ambassador', 'General Member'].includes(currentUser.role);
+  const cohortAgreements = agreements ? agreements.filter(a => a.isCohort).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) : [];
   
   const [searchTerm, setSearchTerm] = useState('');
   const [activeDropdown, setActiveDropdown] = useState(null);
@@ -34,7 +30,7 @@ export default function GeneralAgreementsView({ agreements, setAgreements, curre
 
   const relevantParticipants = users ? users.filter(u => {
       if (!activeAgreement) return false;
-      const matchesRole = ['Intern', 'Camper'].includes(u.role);
+      const matchesRole = ['Volunteer', 'Ambassador', 'General Member'].includes(u.role);
       const matchesBatch = activeAgreement.batch ? u.batch === activeAgreement.batch : true;
       const matchesHost = activeAgreement.hostId ? u.hostId === activeAgreement.hostId : true;
       return matchesRole && matchesBatch && matchesHost;
@@ -119,16 +115,17 @@ export default function GeneralAgreementsView({ agreements, setAgreements, curre
     <div className="space-y-8 h-full flex flex-col tracking-tight relative">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-semibold text-stone-900 flex items-center gap-2">In-House Agreement
+          <h1 className="text-3xl font-semibold text-stone-900 flex items-center gap-2">
+            <FileText className="text-[#004B36]" size={28} /> In-House Agreement
           </h1>
           <p className="text-stone-500 text-sm mt-2 font-medium">View and manage admin-wide agreements.</p>
         </div>
         {canAdd && (
           <div className="flex items-center gap-3">
-            <button onClick={() => setShowRevisions(!showRevisions)} className="bg-white border border-stone-200 text-stone-700 px-5 py-2.5 rounded-full text-sm font-medium hover:bg-stone-50 transition-colors shadow-sm flex items-center gap-2">
+            <button onClick={() => setShowRevisions(!showRevisions)} className="bg-white border border-stone-200 text-stone-700 px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-stone-50 transition-colors shadow-sm flex items-center gap-2">
               <History size={16} className="text-stone-500" /> {showRevisions ? 'Back to Active' : 'Revisions'}
             </button>
-            <button onClick={() => setIsDraftModalOpen(true)} className="bg-[#004B36] text-[#FDFCFB] px-5 py-2.5 rounded-full text-sm font-medium hover:bg-[#003828] transition-colors shadow-sm flex items-center gap-2">
+            <button onClick={() => setIsDraftModalOpen(true)} className="bg-[#004B36] text-[#FDFCFB] px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-[#003828] transition-colors shadow-sm flex items-center gap-2">
               <Plus size={16} className="text-[#FDFCFB]" /> Draft
             </button>
           </div>
@@ -176,7 +173,7 @@ export default function GeneralAgreementsView({ agreements, setAgreements, curre
                                         onChange={(e) => setSignatureName(e.target.value)}
                                         className="w-full px-4 py-3 bg-white border border-stone-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#004B36] font-medium text-stone-900 text-center"
                                     />
-                                    <button onClick={handleSign} className="w-full px-8 py-3 bg-[#004B36] text-white rounded-full font-bold hover:bg-[#003828] transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed" disabled={!signatureName.trim()}>
+                                    <button onClick={handleSign} className="w-full px-8 py-3 bg-[#004B36] text-white rounded-xl font-bold hover:bg-[#003828] transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed" disabled={!signatureName.trim()}>
                                         I Acknowledge and Sign
                                     </button>
                                 </div>
@@ -251,152 +248,81 @@ export default function GeneralAgreementsView({ agreements, setAgreements, curre
         </div>
       )}
 
-      {isDraftModalOpen && (
-        <Portal>
-            <>
-                <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-[190] animate-in fade-in duration-200" aria-hidden="true" onClick={() => setIsDraftModalOpen(false)} />
-                <div className="fixed inset-0 flex items-center justify-center z-[200] p-4 pointer-events-none">
-                    <DraggableModal className="bg-white rounded-3xl p-8 max-w-4xl w-full max-h-[90vh] shadow-2xl flex flex-col animate-in zoom-in-95 duration-200 pointer-events-auto" onClick={e => e.stopPropagation()}>
-                        <div className="flex justify-between items-start mb-6 border-b border-stone-100 pb-4 drag-handle cursor-grab active:cursor-grabbing touch-none shrink-0">
-                            <h3 className="text-xl font-bold text-stone-900 flex items-center gap-3">
-                                <FileText className="text-[#004B36] pointer-events-none" size={24} /> 
-                                <span className="pointer-events-none">Draft Agreement</span>
-                            </h3>
-                            <button type="button" onClick={() => setIsDraftModalOpen(false)} className="text-stone-400 hover:text-stone-600 transition-colors p-1">
-                                <X size={20} />
-                            </button>
+      {isDraftModalOpen && createPortal(
+        <>
+            <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-[190] animate-in fade-in duration-200" aria-hidden="true" onClick={() => setIsDraftModalOpen(false)} />
+            <div className="fixed inset-0 flex items-center justify-center z-[200] p-4 pointer-events-none">
+                <DraggableModal className="bg-white rounded-3xl p-8 max-w-4xl w-full max-h-[90vh] shadow-2xl flex flex-col animate-in zoom-in-95 duration-200 pointer-events-auto" onClick={e => e.stopPropagation()}>
+                    <div className="flex justify-between items-start mb-6 border-b border-stone-100 pb-4 drag-handle cursor-grab active:cursor-grabbing touch-none shrink-0">
+                        <h3 className="text-xl font-bold text-stone-900 flex items-center gap-3">
+                            <FileText className="text-[#004B36] pointer-events-none" size={24} /> 
+                            <span className="pointer-events-none">Draft Agreement</span>
+                        </h3>
+                        <button type="button" onClick={() => setIsDraftModalOpen(false)} className="text-stone-400 hover:text-stone-600 transition-colors p-1">
+                            <X size={20} />
+                        </button>
+                    </div>
+                    <form onSubmit={handleDraftSubmit} className="flex flex-col gap-6 flex-1 min-h-0">
+                        <div className="shrink-0">
+                            <label className="block text-xs font-medium text-stone-500 mb-2 uppercase tracking-wider">Agreement Title<span className="text-red-500">*</span></label>
+                            <input 
+                                required 
+                                value={draftTitle}
+                                onChange={(e) => setDraftTitle(e.target.value)}
+                                placeholder="Enter title..." 
+                                className="w-full px-4 py-3 bg-white border border-stone-200 rounded-xl focus:ring-1 focus:ring-[#004B36] focus:border-[#004B36] outline-none text-sm font-normal text-stone-800" 
+                            />
                         </div>
-                        <form onSubmit={handleDraftSubmit} className="flex flex-col gap-6 flex-1 min-h-0">
-                            <div className="shrink-0">
-                                <label className="block text-xs font-medium text-stone-500 mb-2 uppercase tracking-wider">Agreement Title<span className="text-red-500">*</span></label>
-                                <input 
-                                    required 
-                                    value={draftTitle}
-                                    onChange={(e) => setDraftTitle(e.target.value)}
-                                    placeholder="Enter title..." 
-                                    className="w-full px-4 py-3 bg-white border border-stone-200 rounded-xl focus:ring-1 focus:ring-[#004B36] focus:border-[#004B36] outline-none text-sm font-normal text-stone-800" 
+                        <div className="flex-1 flex flex-col min-h-[300px]">
+                            <label className="block text-xs font-medium text-stone-500 mb-2 uppercase tracking-wider shrink-0">Agreement Text<span className="text-red-500">*</span></label>
+                            <div className="flex-1 border border-stone-200 rounded-xl overflow-hidden bg-white">
+                                <ReactQuill 
+                                    theme="snow" 
+                                    value={draftText} 
+                                    onChange={setDraftText} 
+                                    modules={modulesForQuill}
+                                    className="h-full flex flex-col [&_.ql-container]:flex-1 [&_.ql-editor]:h-full [&_.ql-editor]:min-h-[200px]"
                                 />
                             </div>
-                            <div className="flex-1 flex flex-col min-h-[300px]">
-                                <label className="block text-xs font-medium text-stone-500 mb-2 uppercase tracking-wider shrink-0">Agreement Text<span className="text-red-500">*</span></label>
-                                <div className="flex-1 border border-stone-200 rounded-xl overflow-hidden bg-white">
-                                    <ReactQuill 
-                                        theme="snow" 
-                                        value={draftText} 
-                                        onChange={setDraftText} 
-                                        modules={modulesForQuill}
-                                        className="h-full flex flex-col [&_.ql-container]:flex-1 [&_.ql-editor]:h-full [&_.ql-editor]:min-h-[200px]"
-                                    />
-                                </div>
-                            </div>
-                            <div className="flex justify-end gap-3 pt-4 border-t border-stone-100 shrink-0">
-                                <button type="button" onClick={() => setIsDraftModalOpen(false)} className="px-5 py-2.5 bg-stone-100 text-stone-700 hover:bg-stone-200 shadow-sm font-medium rounded-full transition-colors shrink-0">Cancel</button>
-                                <button type="submit" className="px-5 py-2.5 bg-[#004B36] text-[#FDFCFB] hover:bg-[#003828] shadow-sm font-medium rounded-full transition-colors shrink-0">Save Draft</button>
-                            </div>
-                        </form>
-                    </DraggableModal>
-                </div>
-            </>
-        </Portal>
+                        </div>
+                        <div className="flex justify-end gap-3 pt-4 border-t border-stone-100 shrink-0">
+                            <button type="button" onClick={() => setIsDraftModalOpen(false)} className="px-5 py-2.5 bg-stone-100 text-stone-700 hover:bg-stone-200 shadow-sm font-medium rounded-xl transition-colors shrink-0">Cancel</button>
+                            <button type="submit" className="px-5 py-2.5 bg-[#004B36] text-[#FDFCFB] hover:bg-[#003828] shadow-sm font-medium rounded-xl transition-colors shrink-0">Save Draft</button>
+                        </div>
+                    </form>
+                </DraggableModal>
+            </div>
+        </>,
+        document.body
       )}
 
-      {selectedRevision && (
-        <Portal>
-            <>
-                <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-[190] animate-in fade-in duration-200" aria-hidden="true" onClick={() => setSelectedRevision(null)} />
-                <div className="fixed inset-0 flex items-center justify-center z-[200] p-4 pointer-events-none">
-                    <DraggableModal className="bg-white rounded-3xl p-8 max-w-4xl w-full max-h-[90vh] shadow-2xl flex flex-col animate-in zoom-in-95 duration-200 pointer-events-auto" onClick={e => e.stopPropagation()}>
-                        <div className="flex justify-between items-start mb-6 border-b border-stone-100 pb-4 drag-handle cursor-grab active:cursor-grabbing touch-none shrink-0">
-                            <h3 className="text-xl font-bold text-stone-900 flex items-center gap-3">
-                                <History className="text-[#004B36] pointer-events-none" size={24} /> 
-                                <span className="pointer-events-none">{selectedRevision.title || 'Agreement Revision'}</span>
-                            </h3>
-                            <button type="button" onClick={() => setSelectedRevision(null)} className="text-stone-400 hover:text-stone-600 transition-colors p-1">
-                                <X size={20} />
-                            </button>
+      {selectedRevision && createPortal(
+        <>
+            <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-[190] animate-in fade-in duration-200" aria-hidden="true" onClick={() => setSelectedRevision(null)} />
+            <div className="fixed inset-0 flex items-center justify-center z-[200] p-4 pointer-events-none">
+                <DraggableModal className="bg-white rounded-3xl p-8 max-w-4xl w-full max-h-[90vh] shadow-2xl flex flex-col animate-in zoom-in-95 duration-200 pointer-events-auto" onClick={e => e.stopPropagation()}>
+                    <div className="flex justify-between items-start mb-6 border-b border-stone-100 pb-4 drag-handle cursor-grab active:cursor-grabbing touch-none shrink-0">
+                        <h3 className="text-xl font-bold text-stone-900 flex items-center gap-3">
+                            <History className="text-[#004B36] pointer-events-none" size={24} /> 
+                            <span className="pointer-events-none">{selectedRevision.title || 'Agreement Revision'}</span>
+                        </h3>
+                        <button type="button" onClick={() => setSelectedRevision(null)} className="text-stone-400 hover:text-stone-600 transition-colors p-1">
+                            <X size={20} />
+                        </button>
+                    </div>
+                    <div className="flex-1 overflow-y-auto">
+                        <div className="prose prose-sm max-w-none text-stone-700 quill-content" dangerouslySetInnerHTML={{ __html: selectedRevision.rules[0]?.text || '' }}>
                         </div>
-                        <div className="flex-1 overflow-y-auto">
-                            <div className="prose prose-sm max-w-none text-stone-700 quill-content" dangerouslySetInnerHTML={{ __html: selectedRevision.rules[0]?.text || '' }}>
-                            </div>
-                        </div>
-                        <div className="flex justify-end gap-3 pt-6 border-t border-stone-100 shrink-0 mt-6">
-                            <button type="button" onClick={() => setSelectedRevision(null)} className="px-5 py-2.5 bg-stone-100 text-stone-700 hover:bg-stone-200 shadow-sm font-medium rounded-full transition-colors shrink-0">Close</button>
-                        </div>
-                    </DraggableModal>
-                </div>
-            </>
-        </Portal>
+                    </div>
+                    <div className="flex justify-end gap-3 pt-6 border-t border-stone-100 shrink-0 mt-6">
+                        <button type="button" onClick={() => setSelectedRevision(null)} className="px-5 py-2.5 bg-stone-100 text-stone-700 hover:bg-stone-200 shadow-sm font-medium rounded-xl transition-colors shrink-0">Close</button>
+                    </div>
+                </DraggableModal>
+            </div>
+        </>,
+        document.body
       )}
       
-      {showSignaturesModal && (
-        <Portal>
-            <>
-                <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-[190] animate-in fade-in duration-200" aria-hidden="true" onClick={() => setShowSignaturesModal(false)} />
-                <div className="fixed inset-0 flex items-center justify-center z-[200] p-4 pointer-events-none">
-                    <DraggableModal className="bg-white rounded-3xl p-8 max-w-2xl w-full max-h-[90vh] shadow-2xl flex flex-col animate-in zoom-in-95 duration-200 pointer-events-auto" onClick={e => e.stopPropagation()}>
-                        <div className="flex justify-between items-start mb-6 shrink-0">
-                            <div>
-                                <h2 className="text-2xl font-bold text-stone-900">Acknowledgements</h2>
-                                <p className="text-stone-500 text-sm mt-1">Users who have digitally signed this agreement</p>
-                            </div>
-                            <button onClick={() => setShowSignaturesModal(false)} className="p-2 hover:bg-stone-100 rounded-full transition-colors">
-                                <X size={20} className="text-stone-500" />
-                            </button>
-                        </div>
-                        <div className="flex-1 overflow-y-auto pr-2 min-h-0">
-                            {!activeAgreement?.signatures?.length ? (
-                                <p className="text-stone-500 text-center py-8">No Data Available.</p>
-                            ) : (
-                                <div className="space-y-3">
-                                    {activeAgreement.signatures.map((sig, i) => {
-                                        const u = users ? users.find(user => user.id === sig.userId) : null;
-                                        return (
-                                            <div key={i} className="flex items-center justify-between p-4 bg-stone-50 border border-stone-200 rounded-xl">
-                                                <div>
-                                                    <p className="font-semibold text-stone-900">{sig.signatureName || u?.name || 'Unknown User'}</p>
-                                                    <p className="text-xs text-stone-500">
-                                                        {u?.role} {u?.batch ? `• ${u.batch}` : ''}
-                                                    </p>
-                                                </div>
-                                                <div className="text-right">
-                                                    <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#ECFDF5] text-[#047857] border border-[#A7F3D0] rounded-lg text-xs font-semibold">
-                                                        ✓ Signed
-                                                    </div>
-                                                    <p className="text-[11px] text-stone-400 mt-1">
-                                                        {new Date(sig.date).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            )}
-                        </div>
-                    </DraggableModal>
-                </div>
-            </>
-        </Portal>
-      )}
-    </div>
-  );
-}
-
-export function GlobalUserModal({ isOpen, onClose, user, showToast }) {
-  if (!isOpen || !user) return null;
-  return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-      <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl z-10 relative">
-        <h3 className="text-xl font-bold text-stone-900 mb-4">User Details</h3>
-        <div className="space-y-3 text-sm">
-          <p><strong className="text-stone-500">Name:</strong> {user.name}</p>
-          <p><strong className="text-stone-500">Email:</strong> {user.email}</p>
-          <p><strong className="text-stone-500">Role:</strong> {user.role}</p>
-        </div>
-        <div className="mt-6 flex justify-end">
-          <button onClick={onClose} className="px-5 py-2.5 rounded-full font-semibold bg-stone-100 text-stone-600 hover:bg-stone-200">Close</button>
-        </div>
-      </div>
     </div>
   );
 }

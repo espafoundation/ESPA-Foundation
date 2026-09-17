@@ -99,10 +99,10 @@ export default function MemberListView({ title, description, icon: Icon, members
 
   if (isAddModalOpen) {
     return (
-      <div className="space-y-8 h-full flex flex-col tracking-tight relative overflow-hidden">
-        <div className="shrink-0 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+      <div className="space-y-0 h-full flex flex-col tracking-tight relative overflow-hidden">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-6 shrink-0">
           <div>
-            <h1 className="text-3xl font-semibold text-stone-900">Add {title.endsWith('s') ? title.slice(0, -1) : title}</h1>
+            <h1 className="text-3xl font-semibold text-black">Add</h1>
             <p className="text-stone-500 text-base mt-2 font-medium">Fill in the details below to add a new record.</p>
           </div>
           <div className="flex items-center gap-2">
@@ -268,38 +268,30 @@ export default function MemberListView({ title, description, icon: Icon, members
     );
   }
   return (
-    <div className="space-y-8 h-full flex flex-col tracking-tight relative overflow-hidden">
-      <div className="shrink-0 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+    <div className="space-y-0 h-full flex flex-col tracking-tight relative overflow-hidden">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-6 shrink-0">
         <div>
-          <h1 className="text-3xl font-semibold text-stone-900 flex items-center gap-2">{title}
-          </h1>
+          <h1 className="text-3xl font-semibold text-black">{title}</h1>
           <p className="text-stone-500 text-base mt-2 font-medium">{description}</p>
         </div>
-        <div className="flex items-center gap-2">
-          
-          <button 
-            onClick={() => setIsAddModalOpen(true)}
-            className="px-4 py-2 bg-[#004B36] hover:bg-[#003828] text-white rounded-full font-semibold text-sm transition-colors flex items-center gap-2 shadow-sm"
-          >
-            <Plus size={16} /> Add
-          </button>
-        </div>
+        <button onClick={() => setIsAddModalOpen(true)} className="px-5 py-2.5 bg-[#004B36] text-white rounded-full text-sm font-medium tracking-wide hover:bg-[#003828] transition-colors flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+          Add
+        </button>
+      </div>
+
+      <div className="relative mb-6">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18} strokeWidth={1.5} />
+        <input 
+          type="text" 
+          placeholder={`Search ${title.toLowerCase()}...`}
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full pl-11 pr-4 py-3 bg-white border border-stone-200/80 rounded-xl focus:outline-none focus:border-[#004B36] focus:ring-1 focus:ring-[#004B36] transition-all text-sm shadow-sm"
+        />
       </div>
 
       <div className="bg-white rounded-2xl border border-stone-200/60 shadow-sm flex flex-col overflow-hidden min-h-0 flex-1">
-        <div className="p-4 border-b border-stone-100 shrink-0">
-          <div className="relative w-full max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" size={18} />
-            <input 
-              type="text" 
-              placeholder={`Search ${title.toLowerCase()}...`}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004B36] text-sm"
-            />
-          </div>
-        </div>
-
         <div className="flex-1 overflow-auto">
           {filteredMembers.length > 0 ? (
             <table className="w-full text-left border-collapse">
@@ -343,9 +335,9 @@ export default function MemberListView({ title, description, icon: Icon, members
               </tbody>
             </table>
           ) : (
-            <div className="p-12 text-center text-stone-500 flex flex-col items-center">
-              <FileText size={48} className="text-stone-300 mb-4" />
-              <p className="font-medium text-stone-600">No records found</p>
+            <div className="flex flex-col items-center justify-center h-full text-center py-20 bg-white rounded-2xl">
+              <h3 className="text-xl font-bold text-stone-900 mb-2">No {title} Found</h3>
+              <p className="text-stone-500 font-medium">There are currently no items to display in this section.</p>
             </div>
           )}
         </div>

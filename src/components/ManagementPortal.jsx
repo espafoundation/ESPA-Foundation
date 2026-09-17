@@ -18,6 +18,7 @@ import UsersView from './UsersView';
 import SettingsView from "./SettingsView";
 import ArchivesView from "./ArchivesView";
 import GeneralAgreementsView from "./GeneralAgreementsView";
+import ApplicationsView from "./ApplicationsView";
 import { Banknote, Heart, HandCoins, ArrowDownRight, ArrowUpRight,  
   ArrowLeft, BookOpen, Users, LayoutDashboard, Search, ArrowRightLeft, 
   Settings, LogOut, Menu, Plus, Filter, AlertCircle, X,
@@ -265,10 +266,13 @@ export const UserLink = ({ userId, users, onUserClick, currentUser }) => {
   let canView = true;
   if (currentUser && user) {
     const getLvl = (r) => {
-        if (r === 'Admin') return 4;
-        if (r === 'In-Country Coordinator') return 3;
-        if (r === 'Deputy Lead Coordinator') return 2;
-        if (r === 'Intern' || r === 'Camper') return 1;
+        if (r === 'Admin') return 10;
+        if (r === 'President') return 9;
+        if (r === 'Vice President') return 8;
+        if (['General Secretary', 'Joint Secretary', 'Treasurer'].includes(r)) return 7;
+        if (r === 'Executive Member') return 6;
+        if (['General Member', 'Donor', 'Partner'].includes(r)) return 5;
+        if (['Ambassador', 'Volunteer'].includes(r)) return 4;
         return 0;
     };
     const cLvl = getLvl(currentUser.role);
@@ -736,17 +740,17 @@ export default function App() {
 
   const [users, setUsers] = useLocalStorage("ain_users", [
     { id: 'A01', name: 'Admin', email: 'admin@ainmanagement.com', role: 'Admin', username: 'admin', password: '12345', active: true, dateAdded: new Date().toISOString() },
-    { id: 'P01', name: 'Dummy President', email: 'president@espa.com', role: 'President', username: 'president', password: '12345', active: true, dateAdded: new Date().toISOString() },
-    { id: 'VP01', name: 'Dummy VP', email: 'vp@espa.com', role: 'Vice President', username: 'vp', password: '12345', active: true, dateAdded: new Date().toISOString() },
-    { id: 'GS01', name: 'Dummy Gen Sec', email: 'gensec@espa.com', role: 'General Secretary', username: 'gensec', password: '12345', active: true, dateAdded: new Date().toISOString() },
-    { id: 'JS01', name: 'Dummy Joint Sec', email: 'jointsec@espa.com', role: 'Joint Secretary', username: 'jointsec', password: '12345', active: true, dateAdded: new Date().toISOString() },
-    { id: 'T01', name: 'Dummy Treasurer', email: 'treasurer@espa.com', role: 'Treasurer', username: 'treasurer', password: '12345', active: true, dateAdded: new Date().toISOString() },
-    { id: 'EM01', name: 'Dummy Exec Member', email: 'exec@espa.com', role: 'Executive Member', username: 'exec', password: '12345', active: true, dateAdded: new Date().toISOString() },
-    { id: 'GM01', name: 'Dummy Gen Member', email: 'genmember@espa.com', role: 'General Member', username: 'genmember', password: '12345', active: true, dateAdded: new Date().toISOString() },
-    { id: 'V01', name: 'Dummy Volunteer', email: 'volunteer@espa.com', role: 'Volunteer', username: 'volunteer', password: '12345', active: true, dateAdded: new Date().toISOString() },
-    { id: 'AM01', name: 'Dummy Ambassador', email: 'ambassador@espa.com', role: 'Ambassador', username: 'ambassador', password: '12345', active: true, dateAdded: new Date().toISOString() },
-    { id: 'PA01', name: 'Dummy Partner', email: 'partner@espa.com', role: 'Partner', username: 'partner', password: '12345', active: true, dateAdded: new Date().toISOString() },
-    { id: 'D01', name: 'Dummy Donor', email: 'donor@espa.com', role: 'Donor', username: 'donor', password: '12345', active: true, dateAdded: new Date().toISOString() }
+    { id: 'P01', name: 'Tariq Mahmood', email: 'president@espa.com', role: 'President', username: 'president', password: '12345', active: true, dateAdded: new Date().toISOString() },
+    { id: 'VP01', name: 'Fatima Ali', email: 'vp@espa.com', role: 'Vice President', username: 'vp', password: '12345', active: true, dateAdded: new Date().toISOString() },
+    { id: 'GS01', name: 'Usama Khan', email: 'gensec@espa.com', role: 'General Secretary', username: 'gensec', password: '12345', active: true, dateAdded: new Date().toISOString() },
+    { id: 'JS01', name: 'Ayesha Malik', email: 'jointsec@espa.com', role: 'Joint Secretary', username: 'jointsec', password: '12345', active: true, dateAdded: new Date().toISOString() },
+    { id: 'T01', name: 'Bilal Ahmed', email: 'treasurer@espa.com', role: 'Treasurer', username: 'treasurer', password: '12345', active: true, dateAdded: new Date().toISOString() },
+    { id: 'EM01', name: 'Sana Rizvi', email: 'exec@espa.com', role: 'Executive Member', username: 'exec', password: '12345', active: true, dateAdded: new Date().toISOString() },
+    { id: 'GM01', name: 'Omar Farooq', email: 'genmember@espa.com', role: 'General Member', username: 'genmember', password: '12345', active: true, dateAdded: new Date().toISOString() },
+    { id: 'V01', name: 'Zainab Abbas', email: 'volunteer@espa.com', role: 'Volunteer', username: 'volunteer', password: '12345', active: true, dateAdded: new Date().toISOString() },
+    { id: 'AM01', name: 'Hamza Saeed', email: 'ambassador@espa.com', role: 'Ambassador', username: 'ambassador', password: '12345', active: true, dateAdded: new Date().toISOString() },
+    { id: 'PA01', name: 'TechCorp Solutions', email: 'partner@espa.com', role: 'Partner', username: 'partner', password: '12345', active: true, dateAdded: new Date().toISOString() },
+    { id: 'D01', name: 'Zafar Iqbal', email: 'donor@espa.com', role: 'Donor', username: 'donor', password: '12345', active: true, dateAdded: new Date().toISOString() }
   ]);
   const [hosts, setHosts] = useLocalStorage("ain_hosts", [{ id: 'H01', name: 'Sheraton Grand', type: 'Hotel', location: 'Dubai, UAE', status: 'Active', contact: 'manager@sheraton.com', dateAdded: new Date().toISOString() }]);
   const [batches, setBatches] = useLocalStorage("ain_batches", [{ id: 'B01', name: 'Winter 2026 Batch', status: 'Upcoming', startDate: '2026-11-01', endDate: '2026-11-15', participants: 45, dateAdded: new Date().toISOString() }]);
@@ -761,6 +765,39 @@ export default function App() {
   const [archivedForms, setArchivedForms] = useLocalStorage("ain_archivedForms", []);
   const [agreements, setAgreements] = useLocalStorage("ain_agreements", [{ id: 'AG01', title: 'Non-Disclosure Agreement', parties: 'ESPA & TechCorp', status: 'Signed', validUntil: '2028-01-01', dateAdded: new Date().toISOString() }]);
   const [flights, setFlights] = useLocalStorage("ain_flights", [{ id: 'FL01', airline: 'Emirates', flightNumber: 'EK202', origin: 'JFK', destination: 'DXB', departure: '2026-10-10T15:30', arrival: '2026-10-11T12:00', status: 'Scheduled' }]);
+  
+  // New applications state
+  const [applications, setApplications] = useLocalStorage("ain_applications", []);
+
+  // Effect to clean up existing dummy names for users who already have them cached
+  useEffect(() => {
+    if (users) {
+      let changed = false;
+      const updatedUsers = users.map(u => {
+        if (u.name.startsWith('Dummy ')) {
+          changed = true;
+          switch (u.role) {
+            case 'President': return { ...u, name: 'Tariq Mahmood' };
+            case 'Vice President': return { ...u, name: 'Fatima Ali' };
+            case 'General Secretary': return { ...u, name: 'Usama Khan' };
+            case 'Joint Secretary': return { ...u, name: 'Ayesha Malik' };
+            case 'Treasurer': return { ...u, name: 'Bilal Ahmed' };
+            case 'Executive Member': return { ...u, name: 'Sana Rizvi' };
+            case 'General Member': return { ...u, name: 'Omar Farooq' };
+            case 'Volunteer': return { ...u, name: 'Zainab Abbas' };
+            case 'Ambassador': return { ...u, name: 'Hamza Saeed' };
+            case 'Partner': return { ...u, name: 'TechCorp Solutions' };
+            case 'Donor': return { ...u, name: 'Zafar Iqbal' };
+            default: return { ...u, name: u.role };
+          }
+        }
+        return u;
+      });
+      if (changed) {
+        setUsers(updatedUsers);
+      }
+    }
+  }, [users, setUsers]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [globalUser, setGlobalUser] = useState(null); 
 
@@ -1012,6 +1049,7 @@ export default function App() {
     { id: 'General Member' },
     { id: 'Volunteer' },
     { id: 'Ambassador' },
+    { id: 'Donor' },
     { id: 'Partner' }
   ];
 
@@ -1027,21 +1065,22 @@ export default function App() {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard': return <SummaryDashboard funds={funds} currentUser={currentUser} />;
-      case 'general': return <MemberListView key="General Committee" title="General Committee" description="Registered members of the NGO other than the Office bearers." icon={Users} members={users.filter(u => u.role === 'General Member')} onUpdateRole={handleUpdateRole} />;
+      case 'general': return <MemberListView key="General Committee" title="Committee & Board" description="Core office bearers and registered general members of the NGO." icon={Users} members={users.filter(u => ['President', 'Vice President', 'General Secretary', 'Joint Secretary', 'Treasurer', 'Executive Member', 'General Member'].includes(u.role))} onUpdateRole={handleUpdateRole} />;
       case 'volunteers': return <MemberListView key="Volunteers" title="Volunteers" description="List of all the Volunteers." icon={HeartHandshake} members={users.filter(u => u.role === 'Volunteer')} onUpdateRole={handleUpdateRole} />;
       case 'ambassadors': return <MemberListView key="Ambassadors" title="Ambassadors" description="List of all the Ambassadors." icon={Globe} members={users.filter(u => u.role === 'Ambassador')} onUpdateRole={handleUpdateRole} />;
       case 'partners': return <MemberListView key="Partners" title="Partners" description="List of all the Partners." icon={Briefcase} members={users.filter(u => u.role === 'Partner')} onUpdateRole={handleUpdateRole} />;
       case 'donors': return <MemberListView key="Donors" title="Donors" description="List of all the Donors." icon={HandCoins} members={users.filter(u => u.role === 'Donor')} onUpdateRole={handleUpdateRole} />;
       case 'funds': return <FundsView key="funds" funds={funds} setFunds={setFunds} addLog={addLog} showToast={showToast} />;
       case 'settings': return <SettingsView key="settings" currentUser={currentUser} setCurrentUser={setCurrentUser} globalUsers={users} setUsers={setUsers} showToast={showToast} addLog={addLog} twoFactorConfig={twoFactorConfig} setTwoFactorConfig={setTwoFactorConfig} setActiveTab={setActiveTab} funds={funds} setFunds={setFunds} />;
+      case 'applications': return <ApplicationsView key="applications" applications={applications} setApplications={setApplications} showToast={showToast} addLog={addLog} />;
       case 'activity': return (
-          <div className="space-y-8 h-full flex flex-col tracking-tight relative overflow-hidden">
-            <div className="flex items-center gap-4">
+          <div className="space-y-0 h-full flex flex-col tracking-tight relative overflow-hidden">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-6 shrink-0">
               <button onClick={() => handleTabChange('settings')} className="p-2 bg-white border border-stone-200 text-stone-600 hover:bg-stone-50 rounded-full transition-colors shadow-sm">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
               </button>
               <div>
-                <h1 className="text-3xl font-semibold text-stone-900 flex items-center gap-2">Activity Log</h1>
+                <h1 className="text-3xl font-semibold text-black flex items-center gap-2">Activity Log</h1>
               <p className="text-stone-500 text-base mt-2 font-medium">System-wide audit trail of all actions.</p>
             </div>
             </div>
@@ -1087,29 +1126,34 @@ export default function App() {
           </div>
         );
       case 'archives': return <ArchivesView archivedHosts={archivedHosts} setArchivedHosts={setArchivedHosts} setHosts={setHosts} hosts={hosts} archivedUsers={archivedUsers} setArchivedUsers={setArchivedUsers} setUsers={setUsers} users={users} archivedBatches={archivedBatches} setArchivedBatches={setArchivedBatches} setBatches={setBatches} batches={batches} archivedRooms={archivedRooms} setArchivedRooms={setArchivedRooms} setRooms={setRooms} rooms={rooms} showToast={showToast} addLog={addLog} setActiveTab={setActiveTab} />;
-      case 'roles': return <UsersView users={users} setUsers={setUsers} showToast={showToast} addLog={addLog} setActiveTab={setActiveTab} />;
+      case 'roles': return <UsersView roles={roles} globalUsers={users} currentUser={currentUser} users={users} setUsers={setUsers} showToast={showToast} addLog={addLog} setActiveTab={setActiveTab} />;
       default: return <SummaryDashboard funds={funds} currentUser={currentUser} />;
     }
   };
 
   
-  const mgmtRoles = ['Admin', 'President', 'Vice President', 'General Secretary', 'Joint Secretary', 'Treasurer', 'Executive Member'];
-  
+  const allRoles = ['Admin', 'President', 'Vice President', 'General Secretary', 'Joint Secretary', 'Treasurer', 'Executive Member', 'General Member', 'Volunteer', 'Ambassador', 'Donor', 'Partner'];
+  const topExecRoles = ['Admin', 'President', 'Vice President'];
+  const financeRoles = [...topExecRoles, 'Treasurer'];
+  const hrRoles = [...topExecRoles, 'General Secretary', 'Joint Secretary'];
+  const mgmtRoles = [...topExecRoles, 'General Secretary', 'Joint Secretary', 'Treasurer', 'Executive Member'];
+  const basicCommitteeRoles = [...mgmtRoles, 'General Member'];
+
   const navItems = [
-    { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['Admin', 'President', 'Vice President', 'General Secretary', 'Joint Secretary', 'Treasurer', 'Executive Member', 'General Member', 'Volunteer', 'Ambassador', 'Partner'] },
-    { id: 'general', icon: Users, label: 'General Committee', roles: mgmtRoles },
+    { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: allRoles },
+    { id: 'general', icon: Users, label: 'Committee & Board', roles: basicCommitteeRoles },
     { id: 'volunteers', icon: HeartHandshake, label: 'Volunteers', roles: mgmtRoles },
     { id: 'ambassadors', icon: Globe, label: 'Ambassadors', roles: mgmtRoles },
     { id: 'partners', icon: Briefcase, label: 'Partners', roles: mgmtRoles },
-    { id: 'donors', icon: HandCoins, label: 'Donors', roles: mgmtRoles },
-    { id: 'funds', icon: Wallet, label: 'Funds', roles: mgmtRoles },
-    { id: 'roles', icon: Shield, label: 'Roles', roles: mgmtRoles },
+    { id: 'donors', icon: HandCoins, label: 'Donors', roles: financeRoles },
+    { id: 'applications', icon: FileText, label: 'Applications', roles: mgmtRoles },
+    { id: 'funds', icon: Wallet, label: 'Funds', roles: financeRoles },
+    { id: 'roles', icon: Shield, label: 'System Users', roles: topExecRoles },
   ];
 
   const adminItems = [
-    { id: 'settings', icon: Settings, label: 'Settings', roles: ['Admin', 'President', 'Vice President', 'General Secretary', 'Joint Secretary', 'Treasurer', 'Executive Member', 'General Member', 'Volunteer', 'Ambassador', 'Partner'] }
+    { id: 'settings', icon: Settings, label: 'Settings', roles: allRoles }
   ];
-
 
   return (
     <div className="flex h-full bg-[#FDFCFB] overflow-hidden text-stone-800">
@@ -1172,7 +1216,7 @@ export default function App() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col h-full overflow-hidden bg-stone-50/50 pt-16 lg:pt-0 relative z-10">
         <div className="flex-1 overflow-y-auto no-scrollbar scroll-smooth">
-          <div className="h-full">
+          <div className="h-full p-4 sm:p-6 md:p-8 lg:p-10 max-w-7xl mx-auto">
              {renderContent()}
           </div>
         </div>

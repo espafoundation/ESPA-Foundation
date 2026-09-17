@@ -27,14 +27,16 @@ export default function ArchivesView({
   };
 
   return (
-    <div className="space-y-8 h-full flex flex-col tracking-tight relative overflow-hidden">
-      <div className="flex items-center gap-4">
-        <button onClick={() => setActiveTab('settings')} className="p-2 bg-white border border-stone-200 text-stone-600 hover:bg-stone-50 rounded-full transition-colors shadow-sm">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-        </button>
-        <div>
-          <h1 className="text-3xl font-semibold text-stone-900 flex items-center gap-2">System Archives</h1>
-          <p className="text-stone-500 text-base mt-2 font-medium">Restore previously archived data.</p>
+    <div className="space-y-0 h-full flex flex-col tracking-tight relative overflow-hidden">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-6 shrink-0">
+        <div className="flex items-center gap-4">
+          <button onClick={() => setActiveTab('settings')} className="p-2 bg-white border border-stone-200 text-stone-600 hover:bg-stone-50 rounded-full transition-colors shadow-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+          </button>
+          <div>
+            <h1 className="text-3xl font-semibold text-black flex items-center gap-2">System Archives</h1>
+            <p className="text-stone-500 text-base mt-2 font-medium">Restore previously archived data.</p>
+          </div>
         </div>
       </div>
 
@@ -42,6 +44,12 @@ export default function ArchivesView({
         <div className="p-6 border-b border-stone-100">
           <h2 className="text-lg font-bold text-stone-800">Archived Users</h2>
         </div>
+        {(!archivedUsers || archivedUsers.length === 0) ? (
+            <div className="flex flex-col items-center justify-center h-full text-center py-20 bg-white rounded-2xl">
+              <h3 className="text-xl font-bold text-stone-900 mb-2">No Archives Found</h3>
+              <p className="text-stone-500 font-medium">There are currently no items to display in this section.</p>
+            </div>
+          ) : (
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-stone-100 text-stone-400 text-xs tracking-wider bg-stone-50/50">
@@ -60,11 +68,9 @@ export default function ArchivesView({
                 </td>
               </tr>
             ))}
-            {(!archivedUsers || archivedUsers.length === 0) && (
-              <tr><td colSpan="2" className="px-6 py-8 text-center text-stone-500 text-sm">No Data Available.</td></tr>
-            )}
           </tbody>
         </table>
+        )}
       </div>
     </div>
   );

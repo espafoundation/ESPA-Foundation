@@ -124,7 +124,7 @@ export default function FormsView({ forms, setForms, currentUser, globalUsers, a
     <div className="space-y-8 tracking-tight h-full flex flex-col relative">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shrink-0">
         <div>
-          <h1 className="text-3xl font-semibold text-stone-900">Forms</h1>
+          <h1 className="text-3xl font-semibold text-black">Forms</h1>
           <p className="text-stone-500 text-sm mt-2 font-medium">Manage Customizable Forms, Collect Information, and Monitor Responses.</p>
         </div>
         {selectedIds.length > 0 ? (
@@ -140,13 +140,19 @@ export default function FormsView({ forms, setForms, currentUser, globalUsers, a
         )}
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#004B36]" size={18} strokeWidth={1.5} />
+      <div className="relative mb-6">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18} strokeWidth={1.5} />
         <input type="text" placeholder="Search forms by title or description..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-11 pr-4 py-3 bg-white border border-stone-200/80 rounded-xl focus:outline-none focus:border-[#004B36] focus:ring-1 focus:ring-[#004B36] transition-all text-sm shadow-sm" />
       </div>
 
       <div className="flex-1 bg-white rounded-2xl border border-stone-200/60 shadow-sm flex flex-col overflow-hidden">
         <div className="w-full overflow-x-auto pb-16">
+          {filteredForms.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-center py-20 bg-white rounded-2xl">
+              <h3 className="text-xl font-bold text-stone-900 mb-2">No Forms Found</h3>
+              <p className="text-stone-500 font-medium">There are currently no items to display in this section.</p>
+            </div>
+          ) : (
           <table className="w-full text-left border-collapse min-w-[900px]">
             <thead>
               <tr className="border-b border-stone-100 text-stone-400 text-xs tracking-wider bg-stone-50/50 rounded-t-2xl">
@@ -189,11 +195,9 @@ export default function FormsView({ forms, setForms, currentUser, globalUsers, a
                   </tr>
                 );
               })}
-              {forms.length === 0 && (
-                <tr><td colSpan={4} className="py-20 text-center text-sm text-stone-500">No Data Available.</td></tr>
-              )}
             </tbody>
           </table>
+          )}
         </div>
       </div>
 

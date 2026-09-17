@@ -146,7 +146,7 @@ export default function ItineraryView({ users, setUsers, globalUsers, showToast,
     <div className="space-y-8 h-full flex flex-col tracking-tight relative">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-semibold text-stone-900">Itinerary</h1>
+          <h1 className="text-3xl font-semibold text-black">Itinerary</h1>
           <p className="text-stone-500 text-sm mt-2 font-medium">Manage Comprehensive Travel Timeline, Including Arrivals and Departures of All Participants.</p>
         </div>
         {selectedIds.length > 0 && (
@@ -156,8 +156,8 @@ export default function ItineraryView({ users, setUsers, globalUsers, showToast,
         )}
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#004B36]" size={18} strokeWidth={1.5} />
+      <div className="relative mb-6">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18} strokeWidth={1.5} />
         <input 
           type="text" 
           placeholder="Search Participants by Name or Email..." 
@@ -169,6 +169,12 @@ export default function ItineraryView({ users, setUsers, globalUsers, showToast,
 
       <div className="flex-1 bg-white rounded-2xl border border-stone-200/60 shadow-sm flex flex-col overflow-hidden">
         <div className="w-full overflow-x-auto pb-16">
+          {filteredUsers.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-center py-20 bg-white rounded-2xl">
+              <h3 className="text-xl font-bold text-stone-900 mb-2">No Itinerary Found</h3>
+              <p className="text-stone-500 font-medium">There are currently no items to display in this section.</p>
+            </div>
+          ) : (
           <table className="w-full text-left border-collapse min-w-[700px]">
             <thead>
               <tr className="border-b border-stone-100 text-stone-400 text-xs tracking-wider bg-stone-50/50 rounded-t-2xl">
@@ -180,10 +186,8 @@ export default function ItineraryView({ users, setUsers, globalUsers, showToast,
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100">
-              {filteredUsers.length === 0 ? (
-                <tr><td colSpan={5} className="py-20 text-center text-sm text-stone-500">No Data Available.</td></tr>
-              ) : (
-                filteredUsers.map(user => (
+              {filteredUsers.map(user => (
+
                   <tr key={user.id} className="hover:bg-[#FDFCFB] transition-colors group">
                     <td className="pl-12 pr-6 py-4 align-middle">
                       <div className="flex items-center gap-3">
@@ -222,10 +226,10 @@ export default function ItineraryView({ users, setUsers, globalUsers, showToast,
                       </ActionMenu>
                     </td>
                   </tr>
-                ))
-              )}
+                ))}
             </tbody>
           </table>
+          )}
         </div>
       </div>
 

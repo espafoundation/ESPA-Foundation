@@ -200,10 +200,10 @@ export default function FundsView({ funds, setFunds, addLog, showToast }) {
 
   if (isAdding || isAllocating) {
     return (
-      <div className="space-y-8 h-full flex flex-col tracking-tight relative overflow-hidden">
-        <div className="shrink-0 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+      <div className="space-y-0 h-full flex flex-col tracking-tight relative overflow-hidden">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-6 shrink-0">
           <div>
-            <h1 className="text-3xl font-semibold text-stone-900">{isAdding ? 'Add Funds' : 'Allocate Funds'}</h1>
+            <h1 className="text-3xl font-semibold text-black">{isAdding ? 'Add Funds' : 'Allocate Funds'}</h1>
             <p className="text-stone-500 text-base mt-2 font-medium">Fill in the details below to {isAdding ? 'record a new donation' : 'allocate funds'}.</p>
           </div>
           <div className="flex items-center gap-2">
@@ -286,23 +286,23 @@ export default function FundsView({ funds, setFunds, addLog, showToast }) {
     );
   }
   return (
-    <div className="space-y-8 h-full flex flex-col tracking-tight relative overflow-hidden">
-      <div className="shrink-0 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+    <div className="space-y-0 h-full flex flex-col tracking-tight relative overflow-hidden">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-6 shrink-0">
         <div>
-          <h1 className="text-3xl font-semibold text-stone-900 flex items-center gap-2">Funds & Allocations
+          <h1 className="text-3xl font-semibold text-black flex items-center gap-2">Funds & Allocations
           </h1>
           <p className="text-stone-500 text-base mt-2 font-medium">Manage incoming donations and outgoing allocations.</p>
         </div>
         <div className="flex gap-2">
           <button 
             onClick={() => { setIsAdding(true); setAmountPKR(''); setAmountUSD(''); setIsInsufficientFunds(false); }}
-            className="px-4 py-2 bg-[#004B36] hover:bg-[#003828] text-white rounded-full font-semibold text-sm transition-colors flex items-center gap-2 shadow-sm"
+            className="px-5 py-2.5 bg-[#004B36] text-white rounded-full text-sm font-medium tracking-wide hover:bg-[#003828] transition-colors flex items-center gap-2"
           >
             <ArrowDownRight size={16} /> Add Funds
           </button>
           <button 
             onClick={() => { setIsAllocating(true); setAmountPKR(''); setAmountUSD(''); setIsInsufficientFunds(false); }}
-            className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-full font-semibold text-sm transition-colors flex items-center gap-2 border border-stone-200 shadow-sm"
+            className="px-5 py-2.5 bg-stone-100 text-stone-700 rounded-full text-sm font-medium tracking-wide hover:bg-stone-200 transition-colors flex items-center gap-2 border border-stone-200"
           >
             <ArrowUpRight size={16} /> Allocate Funds
           </button>

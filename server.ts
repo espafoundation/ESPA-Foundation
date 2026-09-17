@@ -138,7 +138,7 @@ app.post('/api/contact', apiLimiter, async (req, res) => {
       if (dbError) console.error('Supabase error (contact):', dbError);
     }
 
-    await transporter.sendMail({
+    transporter.sendMail({
       from: '"ESPA Website" <foundationespa@gmail.com>',
       to: 'foundationespa@gmail.com',
       replyTo: email,
@@ -232,7 +232,7 @@ app.post('/api/volunteer', apiLimiter, async (req, res) => {
       if (dbError) console.error('Supabase error (volunteer):', dbError);
     }
 
-    await transporter.sendMail({
+    transporter.sendMail({
       from: '"ESPA Website" <foundationespa@gmail.com>',
       to: 'foundationespa@gmail.com',
       replyTo: email,
@@ -290,7 +290,7 @@ app.post('/api/partner', apiLimiter, async (req, res) => {
       if (dbError) console.error('Supabase error (partner):', dbError);
     }
 
-    await transporter.sendMail({
+    transporter.sendMail({
       from: '"ESPA Website" <foundationespa@gmail.com>',
       to: 'foundationespa@gmail.com',
       replyTo: email,
@@ -348,7 +348,7 @@ app.post('/api/ambassador', apiLimiter, async (req, res) => {
       if (dbError) console.error('Supabase error (ambassador):', dbError);
     }
 
-    await transporter.sendMail({
+    transporter.sendMail({
       from: '"ESPA Website" <foundationespa@gmail.com>',
       to: 'foundationespa@gmail.com',
       replyTo: email,
@@ -431,7 +431,7 @@ app.post('/api/election', apiLimiter, async (req, res) => {
       return res.status(500).json({ error: 'Supabase credentials missing on server' });
     }
 
-    await transporter.sendMail({
+    transporter.sendMail({
       from: '"ESPA Website" <foundationespa@gmail.com>',
       to: 'foundationespa@gmail.com',
       subject: `New Election Ballot Submitted by ${voterName}`,
@@ -498,7 +498,7 @@ app.post('/api/send-otp', apiLimiter, async (req, res) => {
   }
 
   try {
-    await transporter.sendMail({
+    transporter.sendMail({
       from: '"ESPA Library" <foundationespa@gmail.com>',
       to: email,
       subject: `Your Library Verification Code: ${otp}`,

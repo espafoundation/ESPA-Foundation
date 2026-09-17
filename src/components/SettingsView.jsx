@@ -57,10 +57,10 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
   };
 
   return (
-    <div className="space-y-8 h-full flex flex-col tracking-tight relative pb-10 max-w-4xl mx-auto">
-      <div className="flex flex-col gap-6">
+    <div className="space-y-0 h-full flex flex-col tracking-tight relative pb-10 max-w-4xl mx-auto">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-6 shrink-0">
         <div>
-          <h1 className="text-3xl font-semibold text-stone-900 flex items-center gap-2">Settings</h1>
+          <h1 className="text-3xl font-semibold text-black flex items-center gap-2">Settings</h1>
           <p className="text-stone-500 text-base mt-2 font-medium">Manage Profile Settings, User Preferences, and Authentication.</p>
         </div>
       </div>
