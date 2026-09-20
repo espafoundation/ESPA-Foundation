@@ -16,10 +16,11 @@ export default async function handler(req, res) {
   const { name, email, message, recaptchaToken } = req.body;
   
   try {
+    const recaptchaSecret = process.env.RECAPTCHA_SECRET || '6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe';
     const verifyRes = await fetch('https://www.google.com/recaptcha/api/siteverify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `secret=6LfwCZYtAAAAAE8SIlpjwy7rLKMSekesYdxK9asA&response=${recaptchaToken}`,
+      body: `secret=${recaptchaSecret}&response=${recaptchaToken}`,
     });
     const verifyData = await verifyRes.json();
     

@@ -3,7 +3,7 @@ import EditableText from './EditableText';
 
 export default function About() {
   return (
-    <section id="about" className="bg-[#004B36] py-16 md:py-24 transition-colors duration-300">
+    <section id="about" className="bg-[#003828] py-16 md:py-24 transition-colors duration-300">
       <div className="max-w-6xl mx-auto px-4 md:px-16">
         <div className="text-center mb-10 md:mb-16">
           <h2 className="font-display text-3xl md:text-5xl font-bold text-white tracking-tight">

@@ -90,7 +90,7 @@ export default function BookReader({ book }) {
     }
 
     return (
-      <div className="w-full h-full flex flex-col bg-white text-[#004B36]">
+      <div className="w-full h-full flex flex-col bg-white text-[#003828]">
         <div className="flex justify-between items-center p-3 border-b border-stone-200 bg-white">
           <div className="text-sm font-medium text-stone-500">
             {numPages ? (
@@ -119,14 +119,14 @@ export default function BookReader({ book }) {
             <div className="flex gap-2 bg-stone-100 p-1 rounded-lg">
               <button 
                 onClick={() => { setTwoPageView(false); setPageNumber(p => Math.max(1, p - (p % 2 === 0 ? 1 : 0))); }}
-                className={`p-1.5 rounded-full transition-colors ${!twoPageView ? 'bg-white shadow-sm text-[#004B36]' : 'text-stone-400 hover:text-stone-600'}`}
+                className={`p-1.5 rounded-full transition-colors ${!twoPageView ? 'bg-white shadow-sm text-[#003828]' : 'text-stone-400 hover:text-stone-600'}`}
                 title="Single Page View"
               >
                 <Columns size={18} />
               </button>
               <button 
                 onClick={() => { setTwoPageView(true); setPageNumber(p => p % 2 === 0 ? Math.max(1, p - 1) : p); }}
-                className={`p-1.5 rounded-full transition-colors ${twoPageView ? 'bg-white shadow-sm text-[#004B36]' : 'text-stone-400 hover:text-stone-600'}`}
+                className={`p-1.5 rounded-full transition-colors ${twoPageView ? 'bg-white shadow-sm text-[#003828]' : 'text-stone-400 hover:text-stone-600'}`}
                 title="Two Page View"
               >
                 <Columns2 size={18} />
@@ -219,7 +219,7 @@ export default function BookReader({ book }) {
   };
 
   return (
-    <div className="w-full h-full flex flex-col bg-white text-[#004B36]">
+    <div className="w-full h-full flex flex-col bg-white text-[#003828]">
       <div className="flex justify-between items-center p-3 border-b border-stone-200 bg-white">
         <div className="text-sm font-medium text-stone-500">
           Page {currentTextPage + 1} {twoPageView && currentTextPage + 1 < pages.length && `- ${currentTextPage + 2}`} of {pages.length}
@@ -227,14 +227,14 @@ export default function BookReader({ book }) {
         <div className="flex gap-2 bg-stone-100 p-1 rounded-lg">
           <button 
             onClick={() => { setTwoPageView(false); setCurrentTextPage(Math.floor(currentTextPage/2)*2); }}
-            className={`p-1.5 rounded-full transition-colors ${!twoPageView ? 'bg-white shadow-sm text-[#004B36]' : 'text-stone-400 hover:text-stone-600'}`}
+            className={`p-1.5 rounded-full transition-colors ${!twoPageView ? 'bg-white shadow-sm text-[#003828]' : 'text-stone-400 hover:text-stone-600'}`}
             title="Single Page View"
           >
             <Columns size={18} />
           </button>
           <button 
             onClick={() => setTwoPageView(true)}
-            className={`p-1.5 rounded-full transition-colors ${twoPageView ? 'bg-white shadow-sm text-[#004B36]' : 'text-stone-400 hover:text-stone-600'}`}
+            className={`p-1.5 rounded-full transition-colors ${twoPageView ? 'bg-white shadow-sm text-[#003828]' : 'text-stone-400 hover:text-stone-600'}`}
             title="Two Page View"
           >
             <Columns2 size={18} />
@@ -246,7 +246,7 @@ export default function BookReader({ book }) {
         <div className={`w-full max-w-5xl flex gap-8 h-full`}>
           {/* Page 1 */}
           <div className="flex-1 bg-white shadow-md p-8 md:p-12 rounded-lg relative min-h-[60vh] flex flex-col">
-             <p className="text-justify leading-relaxed text-lg font-serif whitespace-pre-wrap text-[#004B36]">
+             <p className="text-justify leading-relaxed text-lg font-serif whitespace-pre-wrap text-[#003828]">
                 {pages[currentTextPage]}
              </p>
              <div className="absolute bottom-4 left-0 right-0 text-center text-xs text-stone-400">
@@ -259,7 +259,7 @@ export default function BookReader({ book }) {
             <div className="flex-1 bg-white shadow-md p-8 md:p-12 rounded-lg relative min-h-[60vh] flex flex-col hidden md:flex">
               {currentTextPage + 1 < pages.length ? (
                 <>
-                  <p className="text-justify leading-relaxed text-lg font-serif whitespace-pre-wrap text-[#004B36]">
+                  <p className="text-justify leading-relaxed text-lg font-serif whitespace-pre-wrap text-[#003828]">
                     {pages[currentTextPage + 1]}
                   </p>
                   <div className="absolute bottom-4 left-0 right-0 text-center text-xs text-stone-400">

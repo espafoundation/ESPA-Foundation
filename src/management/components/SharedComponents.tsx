@@ -51,7 +51,7 @@ export const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message, confi
           </button>
           <button 
             onClick={() => { onConfirm(); onClose(); }} 
-            className={`px-5 py-2.5 rounded-xl font-semibold text-white transition-colors ${type === 'danger' ? 'bg-red-500 hover:bg-red-600' : 'bg-[#004B36] hover:bg-[#003828]'}`}
+            className={`px-5 py-2.5 rounded-xl font-semibold text-white transition-colors ${type === 'danger' ? 'bg-red-500 hover:bg-red-600' : 'bg-[#003828] border border-[#003828] hover:bg-white hover:text-[#003828] hover:border-[#003828]'}`}
           >
             {confirmText}
           </button>
@@ -66,7 +66,7 @@ export const ToggleSwitch = ({ enabled, onChange }) => (
   <button
     type="button"
     onClick={() => onChange(!enabled)}
-    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${enabled ? 'bg-[#004B36]' : 'bg-stone-200'}`}
+    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${enabled ? 'bg-[#003828]' : 'bg-stone-200'}`}
   >
     <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${enabled ? 'translate-x-5' : 'translate-x-0'}`} />
   </button>
@@ -78,7 +78,7 @@ export const UserLink = ({ userId, users, onUserClick }) => {
   return (
     <button 
       onClick={() => onUserClick(user)}
-      className="text-stone-900 font-semibold hover:text-stone-900 hover:text-[#004B36] transition-colors"
+      className="text-stone-900 font-semibold hover:text-stone-900 hover:text-[#003828] transition-colors"
     >
       {user.name}
     </button>
@@ -100,7 +100,7 @@ export const DataModal = ({ isOpen, onClose, title, data, onImport, dateField, s
             value={importDataStr}
             onChange={(e) => setImportDataStr(e.target.value)}
             placeholder="Paste JSON data here..."
-            className="w-full h-64 p-4 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#004B36] font-mono text-sm"
+            className="w-full h-64 p-4 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#003828] font-mono text-sm"
           />
         </div>
         <div className="flex justify-end gap-3 shrink-0">
@@ -115,7 +115,7 @@ export const DataModal = ({ isOpen, onClose, title, data, onImport, dateField, s
                 showToast('Invalid JSON data', 'error');
               }
             }} 
-            className="px-5 py-2.5 rounded-xl font-semibold text-white bg-[#004B36] hover:bg-[#003828]"
+            className="px-5 py-2.5 rounded-xl font-semibold text-white bg-[#003828] border border-[#003828] hover:bg-white hover:text-[#003828] hover:border-[#003828]"
           >
             Import
           </button>
@@ -130,7 +130,7 @@ export const SignaturePad = ({ onSign }) => {
   return (
     <div className="mt-4 p-4 border border-stone-200 rounded-xl bg-stone-50">
       <p className="text-sm text-stone-500 mb-2">Click below to digitally sign</p>
-      <button onClick={() => onSign("Signed digitally")} className="px-4 py-2 bg-[#004B36] text-white rounded-lg font-medium">
+      <button onClick={() => onSign("Signed digitally")} className="px-4 py-2 bg-[#003828] text-white rounded-lg font-medium">
         Sign Agreement
       </button>
     </div>

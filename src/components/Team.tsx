@@ -15,27 +15,35 @@ const teamMembers = [
 export default function Team() {
   const { t } = useLanguage();
   return (
-    <section id="team" className="bg-[#004B36] py-16 md:py-24 transition-colors duration-300">
+    <section id="team" className="bg-[#003828] py-16 md:py-24 transition-colors duration-300">
       <div className="max-w-6xl mx-auto px-4 md:px-16">
         <div className="text-center mb-12 md:mb-20">
           <h2 className="font-display text-3xl md:text-5xl font-bold tracking-tight mb-2 md:mb-3 text-white">Meet the Founding Members</h2>
-          <p className="text-justify font-sans text-xl text-white/80 max-w-3xl mx-auto">The dedicated individuals behind ESPA Foundation's mission.</p>
+          <p className="text-center font-sans text-xl text-white/80 max-w-3xl mx-auto">The dedicated individuals behind ESPA Foundation's mission.</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {teamMembers.map((member, i) => (
             <div
               key={i}
-              className={`bg-[#003828] rounded-3xl p-8 border border-white/5 shadow-sm hover:shadow-md transition-all duration-300 group ${
+              className={`bg-[#00261B] rounded-3xl p-8 border border-white/5 shadow-sm hover:shadow-md transition-all duration-300 group ${
                 i === 0
                   ? 'md:col-span-2 lg:col-span-3 flex flex-col sm:flex-row items-center gap-4 md:gap-6 max-w-6xl mx-auto w-full'
                   : 'flex flex-col items-center text-center'
               }`}
             >
-              <div className={`flex overflow-hidden items-center justify-center rounded-full shrink-0 bg-neutral-200 border-4 border-[#004B36] shadow-sm ${i === 0 ? 'w-40 h-40 md:w-56 md:h-56' : 'w-40 h-40 mb-4 md:mb-6'}`}>
+              <div className={`flex overflow-hidden items-center justify-center rounded-full shrink-0 bg-neutral-200 border-4 border-[#003828] shadow-sm ${i === 0 ? 'w-40 h-40 md:w-56 md:h-56' : 'w-40 h-40 mb-4 md:mb-6'}`}>
                 {member.image ? (
-                  <img src={member.image} alt={member.name} className="w-full h-full object-cover" />
+                  <img 
+                    src={member.image} 
+                    alt={member.name} 
+                    loading="lazy"
+                    decoding="async"
+                    width={i === 0 ? 224 : 160}
+                    height={i === 0 ? 224 : 160}
+                    className="w-full h-full object-cover" 
+                  />
                 ) : (
-                  <User className="text-[#004B36]/30 w-1/2 h-1/2" />
+                  <User className="text-[#003828]/30 w-1/2 h-1/2" />
                 )}
               </div>
               <div className={i === 0 ? 'text-center sm:text-left flex-1' : 'flex flex-col items-center'}>

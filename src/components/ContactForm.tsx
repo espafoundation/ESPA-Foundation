@@ -3,6 +3,7 @@ import { Send, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../contexts/LanguageContext';
 import ReCAPTCHA from "react-google-recaptcha";
+import { RECAPTCHA_SITE_KEY } from "../config/recaptcha";
 
 export default function ContactForm() {
   const { t } = useLanguage();
@@ -63,7 +64,7 @@ export default function ContactForm() {
         {status === 'success' ? (
           <div
             key="success"
-            className="bg-[#003828] border border-[#004B36]/20 p-6 rounded-2xl flex flex-col items-center justify-center text-center gap-3"
+            className="bg-[#00261B] border border-[#003828]/20 p-6 rounded-2xl flex flex-col items-center justify-center text-center gap-3"
           >
             <CheckCircle className="text-white w-8 h-8" />
             <p className="text-white font-medium">Message sent successfully!</p>
@@ -105,17 +106,17 @@ export default function ContactForm() {
             <div className="flex justify-center my-1 scale-90 origin-left">
               <ReCAPTCHA
                 ref={recaptchaRef}
-                sitekey="6LfwCZYtAAAAAJfP8Lp_sa-rZjiIEFbC8SIhi0EW"
+                sitekey={RECAPTCHA_SITE_KEY}
                 theme="dark"
               />
             </div>
             <button
               type="submit"
               disabled={status === 'submitting'}
-              className="w-full bg-white text-[#004B36] font-bold text-sm rounded-full px-4 py-3 hover:bg-neutral-100 transition-colors flex items-center justify-center gap-2 disabled:opacity-70"
+              className="w-full bg-white text-[#003828] border border-white font-bold text-sm rounded-full px-4 py-3 hover:bg-[#003828] hover:text-white hover:border-[#003828] transition-all flex items-center justify-center gap-2 disabled:opacity-70 cursor-pointer shadow-sm"
             >
               {status === 'submitting' ? (
-                <div className="w-5 h-5 border-2 border-[#004B36]/30 border-t-[#004B36] rounded-full animate-spin" />
+                <div className="w-5 h-5 border-2 border-[#003828]/30 border-t-[#003828] rounded-full animate-spin" />
               ) : (
                 <>
                   Send Message

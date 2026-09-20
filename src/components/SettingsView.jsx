@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings, Save, Archive, Shield, Key, Info, CheckCircle2, AlertCircle, Mail, Smartphone, QrCode, Globe, User, Upload, Activity, Wallet, Trash2 } from 'lucide-react';
+import { Settings, Save, Archive, Shield, Key, Info, CheckCircle2, AlertCircle, Mail, Smartphone, QrCode, Globe, User, Upload, Activity, Wallet, Trash2, Lock, Check } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { verifyTOTP } from './ManagementPortal';
 import { ToggleSwitch } from './SharedComponents';
@@ -70,7 +70,7 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
           <button 
             key={tab}
             onClick={() => setSettingsTab(tab)}
-            className={`px-5 py-2.5 font-semibold text-sm rounded-full transition-colors whitespace-nowrap ${settingsTab === tab ? 'bg-[#004B36] text-white shadow-sm' : 'bg-stone-100 text-stone-600 hover:text-stone-900 hover:bg-stone-200'}`}
+            className={`px-5 py-2.5 font-semibold text-sm rounded-full transition-colors whitespace-nowrap ${settingsTab === tab ? 'bg-[#003828] text-white shadow-sm' : 'bg-stone-100 text-stone-600 hover:text-stone-900 hover:bg-stone-200'}`}
           >
             {tab === 'profile' ? 'Profile Info' : tab === 'security' ? 'Security' : tab === 'data' ? 'Data' : tab === 'funds' ? 'Funds' : 'System Actions'}
           </button>
@@ -82,11 +82,11 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
           <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
           <div className="bg-white rounded-3xl border border-stone-200/60 shadow-sm p-8 flex flex-col h-full">
             <h2 className="text-lg font-bold text-stone-900 mb-6 border-b border-stone-100 pb-4 flex items-center gap-2">
-                <User size={20} className="text-[#004B36]" /> Profile
+                <User size={20} className="text-[#003828]" /> Profile
             </h2>
             <div className="flex-1 flex flex-col gap-6">
                 <div className="flex flex-col sm:flex-row items-center gap-6">
-                    <div className="w-24 h-24 rounded-full bg-[#004B36] text-white flex items-center justify-center font-bold text-3xl shadow-sm border-4 border-stone-50 shrink-0 relative overflow-hidden group">
+                    <div className="w-24 h-24 rounded-full bg-[#003828] text-white flex items-center justify-center font-bold text-3xl shadow-sm border-4 border-stone-50 shrink-0 relative overflow-hidden group">
                         {currentUser.avatar ? (
                             <img src={currentUser.avatar} alt="Profile" className="w-full h-full object-cover" />
                         ) : (
@@ -129,9 +129,69 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
                         </div>
                     </div>
                     <div className="flex-1 text-center sm:text-left w-full">
-                        <label className="text-xs font-bold text-stone-500 uppercase tracking-wider mb-1 block">Full Name</label>
-                        <input type="text" value={currentUser.name} disabled className="w-full px-4 py-2.5 rounded-xl border border-stone-200 bg-stone-50 text-stone-500 cursor-not-allowed font-medium" />
-                        <p className="text-[10px] text-stone-400 mt-1">Name changes are not permitted.</p>
+                        {(() => {
+                            const isMasterAdmin = currentUser?.role === 'Admin' || currentUser?.username === 'admin' || currentUser?.id === 'A01';
+                            if (isMasterAdmin) {
+                                return (
+                                    <div>
+                                        <label className="text-xs font-bold text-stone-500 uppercase tracking-wider block mb-1">Full Name</label>
+                                        <input 
+                                            type="text" 
+                                            defaultValue={currentUser.name} 
+                                            onBlur={(e) => {
+                                                const newName = e.target.value.trim();
+                                                if (newName && newName !== currentUser.name) {
+                                                    const updatedUsers = (globalUsers || []).map(u => u.id === currentUser.id ? { ...u, name: newName } : u);
+                                                    setUsers(updatedUsers);
+                                                    if (setCurrentUser) setCurrentUser({ ...currentUser, name: newName });
+                                                    try {
+                                                        const authStored = localStorage.getItem('ain_auth_user');
+                                                        if (authStored) {
+                                                            const parsed = JSON.parse(authStored);
+                                                            localStorage.setItem('ain_auth_user', JSON.stringify({ ...parsed, name: newName }));
+                                                        }
+                                                        localStorage.setItem('ain_currentUser', JSON.stringify({ ...currentUser, name: newName }));
+                                                        window.dispatchEvent(new CustomEvent('ain_user_changed'));
+                                                    } catch (err) {}
+                                                    showToast('Master Admin name updated successfully', 'success');
+                                                    addLog(`Master Admin changed name to ${newName}`);
+                                                }
+                                            }}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    e.currentTarget.blur();
+                                                }
+                                            }}
+                                            className="w-full px-4 py-2.5 rounded-xl border border-[#003828]/40 focus:outline-none focus:ring-2 focus:ring-[#003828] font-semibold text-stone-900 bg-white" 
+                                            placeholder="Enter full name"
+                                        />
+                                        <p className="text-[11px] text-[#003828] font-medium mt-1">
+                                            Master Admin privilege: You are authorized to change your name.
+                                        </p>
+                                    </div>
+                                );
+                            }
+                            return (
+                                <div>
+                                    <div className="flex items-center justify-between mb-1">
+                                        <label className="text-xs font-bold text-stone-500 uppercase tracking-wider block">Full Name</label>
+                                        <span className="text-[10px] font-semibold text-stone-400 flex items-center gap-1">
+                                            <Lock size={11} /> Locked
+                                        </span>
+                                    </div>
+                                    <input 
+                                        type="text" 
+                                        value={currentUser.name} 
+                                        disabled 
+                                        className="w-full px-4 py-2.5 rounded-xl border border-stone-200 bg-stone-50 text-stone-500 cursor-not-allowed font-medium select-none" 
+                                    />
+                                    <p className="text-[11px] text-stone-500 mt-1 font-medium flex items-center gap-1.5">
+                                        <AlertCircle size={13} className="text-amber-600 shrink-0" />
+                                        Name change is only permitted to the Master Admin. Other than the Master Admin, no one can change their name.
+                                    </p>
+                                </div>
+                            );
+                        })()}
                     </div>
                 </div>
                 
@@ -146,7 +206,7 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
                                 showToast('Email address updated', 'success');
                                 addLog(`Email updated for ${currentUser.name}`);
                             }
-                        }} className="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#004B36] font-medium text-stone-800" placeholder="Enter email address" />
+                        }} className="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#003828] font-medium text-stone-800" placeholder="Enter email address" />
                     </div>
                     <div>
                         <label className="text-xs font-bold text-stone-500 uppercase tracking-wider mb-1 block">Phone Number</label>
@@ -158,7 +218,7 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
                                 showToast('Phone number updated', 'success');
                                 addLog(`Phone number updated for ${currentUser.name}`);
                             }
-                        }} className="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#004B36] font-medium text-stone-800" placeholder="+1 (555) 000-0000" />
+                        }} className="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#003828] font-medium text-stone-800" placeholder="+1 (555) 000-0000" />
                     </div>
                 </div>
             </div>
@@ -170,7 +230,7 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
           <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
           <div className="bg-white rounded-3xl border border-stone-200/60 shadow-sm p-8 flex flex-col h-full">
             <h2 className="text-lg font-bold text-stone-900 mb-6 border-b border-stone-100 pb-4 flex items-center gap-2">
-                <Shield size={20} className="text-[#004B36]" /> Security
+                <Shield size={20} className="text-[#003828]" /> Security
             </h2>
             <div className="space-y-4 flex-1">
                 <div>
@@ -183,7 +243,7 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
                   <div className="space-y-3 pl-6 border-l-2 border-stone-100">
                     <div className="flex items-center justify-between p-3 rounded-xl border border-stone-100 bg-stone-50/50">
                       <div className="flex items-center gap-3">
-                        <Mail size={18} className={twoFactorConfig.emailEnabled ? "text-[#004B36]" : "text-stone-400"} />
+                        <Mail size={18} className={twoFactorConfig.emailEnabled ? "text-[#003828]" : "text-stone-400"} />
                         <div>
                           <p className="font-semibold text-sm text-stone-800">Email Verification</p>
                           <p className="text-xs text-stone-500">Receive codes via email</p>
@@ -204,7 +264,7 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
                     </div>
                     <div className="flex items-center justify-between p-3 rounded-xl border border-stone-100 bg-stone-50/50">
                       <div className="flex items-center gap-3">
-                        <Smartphone size={18} className={twoFactorConfig.authEnabled ? "text-[#004B36]" : "text-stone-400"} />
+                        <Smartphone size={18} className={twoFactorConfig.authEnabled ? "text-[#003828]" : "text-stone-400"} />
                         <div>
                           <p className="font-semibold text-sm text-stone-800">Authenticator App</p>
                           <p className="text-xs text-stone-500">Use Google/Microsoft Authenticator</p>
@@ -241,7 +301,7 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
                     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 pointer-events-none">
                       <DraggableModal className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl flex flex-col animate-in zoom-in-95 duration-200 pointer-events-auto" onClick={e => e.stopPropagation()}>
                         <h3 className="text-xl font-bold text-stone-900 mb-6 flex items-center gap-2">
-                          <Shield className="text-[#004B36]" size={24} /> Change Password
+                          <Shield className="text-[#003828]" size={24} /> Change Password
                         </h3>
                         
                         <div className="space-y-4">
@@ -251,7 +311,7 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
                               type="password" 
                               value={oldPassword}
                               onChange={(e) => setOldPassword(e.target.value)}
-                              className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#004B36]"
+                              className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#003828]"
                               placeholder="Enter current password"
                             />
                           </div>
@@ -261,7 +321,7 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
                               type="password" 
                               value={newPassword}
                               onChange={(e) => setNewPassword(e.target.value)}
-                              className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#004B36]"
+                              className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#003828]"
                               placeholder="Enter new password"
                             />
                           </div>
@@ -271,7 +331,7 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
                               type="password" 
                               value={confirmPassword}
                               onChange={(e) => setConfirmPassword(e.target.value)}
-                              className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#004B36]"
+                              className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#003828]"
                               placeholder="Confirm new password"
                             />
                           </div>
@@ -284,7 +344,7 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
                                 handlePasswordChange();
                                 setIsChangingPassword(false);
                             }} 
-                            className="px-6 py-2.5 bg-[#004B36] hover:bg-[#003828] text-white rounded-full font-semibold flex items-center gap-2 transition-colors text-sm"
+                            className="px-6 py-2.5 bg-[#003828] border border-[#003828] hover:bg-white hover:text-[#003828] hover:border-[#003828] text-white rounded-full font-semibold flex items-center gap-2 transition-colors text-sm"
                           >
                             <Save size={16} /> Update
                           </button>
@@ -303,7 +363,7 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
           <div className="bg-white rounded-3xl p-8 shadow-sm border border-stone-200 col-span-1 lg:col-span-2">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 rounded-full bg-stone-100 flex items-center justify-center">
-                <Archive className="text-[#004B36]" size={20} />
+                <Archive className="text-[#003828]" size={20} />
               </div>
               <div>
                 <h2 className="text-xl font-bold text-stone-900">Universal Data Management</h2>
@@ -314,7 +374,7 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <label className="text-xs font-bold text-stone-500 uppercase tracking-wider block">Data Section</label>
-                <select id="data-section-select" className="w-full px-4 py-2.5 rounded-full border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#004B36] font-medium text-stone-800 bg-white">
+                <select id="data-section-select" className="w-full px-4 py-2.5 rounded-full border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#003828] font-medium text-stone-800 bg-white">
                   <option value="entire">Entire System Data (All Sections)</option>
                   <option value="ain_users">All Members</option>
                   <option value="role_General Member">General Committee</option>
@@ -402,7 +462,7 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
                   <Archive size={18} /> Export
                 </button>
                 
-                <label className="px-6 py-2.5 bg-[#004B36] hover:bg-[#003828] text-white rounded-full font-semibold transition-colors flex items-center justify-center gap-2 cursor-pointer flex-1">
+                <label className="px-6 py-2.5 bg-[#003828] border border-[#003828] hover:bg-white hover:text-[#003828] hover:border-[#003828] text-white rounded-full font-semibold transition-colors flex items-center justify-center gap-2 cursor-pointer flex-1">
                   <Upload size={18} /> Import
                   <input type="file" className="hidden" accept=".csv,.json" onChange={(e) => {
                       const file = e.target.files[0];
@@ -517,7 +577,7 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
           <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
           <div className="bg-white rounded-3xl border border-stone-200/60 shadow-sm p-8 col-span-1 lg:col-span-2">
             <h2 className="text-lg font-bold text-stone-900 mb-6 border-b border-stone-100 pb-4 flex items-center gap-2">
-                <Wallet size={20} className="text-[#004B36]" /> Funds Management
+                <Wallet size={20} className="text-[#003828]" /> Funds Management
             </h2>
             <p className="text-stone-500 text-sm mb-6">Manage recent transactions and remove accidental entries.</p>
             
@@ -531,7 +591,7 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
                                     <p className="text-xs text-stone-500 mt-1">{new Date(tx.date || tx.timestamp).toLocaleString()}</p>
                                 </div>
                                 <div className="flex items-center gap-4">
-                                    <span className={`font-bold ${tx.type === 'donation' ? 'text-[#004B36]' : 'text-red-600'}`}>
+                                    <span className={`font-bold ${tx.type === 'donation' ? 'text-[#003828]' : 'text-red-600'}`}>
                                         {tx.type === 'donation' ? '+' : '-'}{tx.currency === 'USD' ? '$' : 'Rs'} {(tx.amount || 0).toLocaleString()}
                                     </span>
                                     <button 
@@ -582,16 +642,16 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
         {settingsTab === 'system' && (
           <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div onClick={() => setActiveTab('activity')} className="bg-white rounded-3xl border border-stone-200/60 shadow-sm p-8 flex flex-col hover:border-[#004B36] hover:shadow-md transition-all cursor-pointer group">
-                <div className="w-12 h-12 bg-stone-100 rounded-full flex items-center justify-center mb-6 group-hover:bg-[#004B36]/10 transition-colors">
-                  <Activity size={24} className="text-stone-600 group-hover:text-[#004B36] transition-colors" />
+              <div onClick={() => setActiveTab('activity')} className="bg-white rounded-3xl border border-stone-200/60 shadow-sm p-8 flex flex-col hover:border-[#003828] hover:shadow-md transition-all cursor-pointer group">
+                <div className="w-12 h-12 bg-stone-100 rounded-full flex items-center justify-center mb-6 group-hover:bg-[#003828]/10 transition-colors">
+                  <Activity size={24} className="text-stone-600 group-hover:text-[#003828] transition-colors" />
                 </div>
                 <h3 className="text-xl font-bold text-stone-900 mb-2">Activity Log</h3>
                 <p className="text-sm text-stone-500 font-medium">View a detailed system-wide audit trail of all actions performed by users.</p>
               </div>
-              <div onClick={() => setActiveTab('archives')} className="bg-white rounded-3xl border border-stone-200/60 shadow-sm p-8 flex flex-col hover:border-[#004B36] hover:shadow-md transition-all cursor-pointer group">
-                <div className="w-12 h-12 bg-stone-100 rounded-full flex items-center justify-center mb-6 group-hover:bg-[#004B36]/10 transition-colors">
-                  <Archive size={24} className="text-stone-600 group-hover:text-[#004B36] transition-colors" />
+              <div onClick={() => setActiveTab('archives')} className="bg-white rounded-3xl border border-stone-200/60 shadow-sm p-8 flex flex-col hover:border-[#003828] hover:shadow-md transition-all cursor-pointer group">
+                <div className="w-12 h-12 bg-stone-100 rounded-full flex items-center justify-center mb-6 group-hover:bg-[#003828]/10 transition-colors">
+                  <Archive size={24} className="text-stone-600 group-hover:text-[#003828] transition-colors" />
                 </div>
                 <h3 className="text-xl font-bold text-stone-900 mb-2">System Archives</h3>
                 <p className="text-sm text-stone-500 font-medium">Access and restore previously deleted or archived system records.</p>
@@ -608,8 +668,8 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
             <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 pointer-events-none">
               <DraggableModal className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl flex flex-col animate-in zoom-in-95 duration-200 pointer-events-auto" onClick={e => e.stopPropagation()}>
               <div className="text-center mb-6">
-                <div className="w-16 h-16 bg-[#004B36]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Mail size={32} className="text-[#004B36]" />
+                <div className="w-16 h-16 bg-[#003828]/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Mail size={32} className="text-[#003828]" />
                 </div>
                 <h3 className="text-2xl font-bold text-stone-900">Verify Email</h3>
                 <p className="text-sm text-stone-500 mt-2">Enter the 6-digit session code sent to your email address to activate 2FA.</p>
@@ -621,7 +681,7 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
                   maxLength={6}
                   value={verificationCode}
                   onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
-                  className="w-full px-4 py-3 text-center tracking-[1em] font-mono text-2xl border border-stone-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#004B36]"
+                  className="w-full px-4 py-3 text-center tracking-[1em] font-mono text-2xl border border-stone-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#003828]"
                   placeholder="••••••"
                   autoFocus
                 />
@@ -656,7 +716,7 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
                       setVerificationError('Please enter a valid 6-digit code');
                     }
                   }} 
-                  className="flex-1 px-4 py-3 font-semibold rounded-full transition-colors bg-[#004B36] text-white hover:bg-[#003828]"
+                  className="flex-1 px-4 py-3 font-semibold rounded-full transition-colors bg-[#003828] text-white border border-[#003828] hover:bg-white hover:text-[#003828] hover:border-[#003828]"
                 >
                   Activate
                 </button>
@@ -672,8 +732,8 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
             <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 pointer-events-none">
               <DraggableModal className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl flex flex-col animate-in zoom-in-95 duration-200 pointer-events-auto" onClick={e => e.stopPropagation()}>
               <div className="text-center mb-6">
-                <div className="w-16 h-16 bg-[#004B36]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Smartphone size={32} className="text-[#004B36]" />
+                <div className="w-16 h-16 bg-[#003828]/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Smartphone size={32} className="text-[#003828]" />
                 </div>
                 <h3 className="text-2xl font-bold text-stone-900">Configure Authenticator</h3>
                 <p className="text-sm text-stone-500 mt-2">Scan the QR code below with Google or Microsoft Authenticator, then insert the time-session code to activate 2FA.</p>
@@ -691,7 +751,7 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
                   maxLength={6}
                   value={verificationCode}
                   onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
-                  className="w-full px-4 py-3 text-center tracking-[1em] font-mono text-2xl border border-stone-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#004B36]"
+                  className="w-full px-4 py-3 text-center tracking-[1em] font-mono text-2xl border border-stone-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#003828]"
                   placeholder="••••••"
                 />
                 {verificationError && <p className="text-red-500 text-xs mt-2 text-center">{verificationError}</p>}
@@ -725,7 +785,7 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
                       setVerificationError('Please enter a valid 6-digit code');
                     }
                   }} 
-                  className="flex-1 px-4 py-3 font-semibold rounded-full transition-colors bg-[#004B36] text-white hover:bg-[#003828]"
+                  className="flex-1 px-4 py-3 font-semibold rounded-full transition-colors bg-[#003828] text-white border border-[#003828] hover:bg-white hover:text-[#003828] hover:border-[#003828]"
                 >
                   Activate
                 </button>

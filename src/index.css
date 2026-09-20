@@ -3,8 +3,46 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
+  --color-primary: #003828;
+  --color-primary-hover: #00261B;
+  --color-primary-dark: #00261B;
+  --color-primary-light: #e6f0ec;
   --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Poppins", ui-sans-serif, system-ui, sans-serif;
   --font-urdu: "Noto Nastaliq Urdu", serif;
 }
-html, body { overflow-x: hidden; scrollbar-gutter: stable; }
+
+:root {
+  --primary: #003828;
+  --primary-hover: #00261B;
+}
+
+html {
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  overflow-x: hidden;
+  min-height: 100%;
+}
+
+/* Eliminate 300ms mobile tap delay for instant touch response */
+button, 
+a, 
+input, 
+select, 
+textarea,
+label {
+  touch-action: manipulation;
+}
+
+/* Prevent image layout shifts */
+img {
+  max-width: 100%;
+  height: auto;
+}

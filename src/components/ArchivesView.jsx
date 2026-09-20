@@ -62,7 +62,7 @@ export default function ArchivesView({
               <tr key={user.id} className="hover:bg-stone-50">
                 <td className="px-6 py-4 text-sm font-semibold text-stone-900">{user.name} <span className="text-stone-500 font-medium">({user.email})</span></td>
                 <td className="px-6 py-4 text-right">
-                  <button onClick={() => handleRestore(user, 'user')} className="text-stone-900 hover:text-[#004B36] text-sm font-semibold inline-flex items-center gap-1">
+                  <button onClick={() => handleRestore(user, 'user')} className="text-stone-900 hover:text-[#003828] text-sm font-semibold inline-flex items-center gap-1">
                     <RefreshCcw size={14} /> Restore
                   </button>
                 </td>

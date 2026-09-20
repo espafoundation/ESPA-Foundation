@@ -95,8 +95,8 @@ export default function FlightDetailsForm({
     });
   };
 
-  const inputClass = "w-full px-4 py-2.5 bg-transparent border border-stone-200 rounded-xl focus:ring-1 focus:ring-[#004B36] focus:border-[#004B36] outline-none text-sm font-medium text-stone-800 placeholder-stone-400";
-  const selectClass = "w-full px-4 py-2.5 bg-transparent border border-stone-200 rounded-xl focus:ring-1 focus:ring-[#004B36] focus:border-[#004B36] outline-none text-sm font-medium text-stone-800 appearance-none";
+  const inputClass = "w-full px-4 py-2.5 bg-transparent border border-stone-200 rounded-xl focus:ring-1 focus:ring-[#003828] focus:border-[#003828] outline-none text-sm font-medium text-stone-800 placeholder-stone-400";
+  const selectClass = "w-full px-4 py-2.5 bg-transparent border border-stone-200 rounded-xl focus:ring-1 focus:ring-[#003828] focus:border-[#003828] outline-none text-sm font-medium text-stone-800 appearance-none";
 
   const renderLocationBlock = (type, title) => {
     const prefix = type === 'from' ? fromPrefix : toPrefix;
@@ -110,7 +110,7 @@ export default function FlightDetailsForm({
 
     return (
       <div className="space-y-4">
-        <h5 className="text-sm font-bold text-[#004B36] uppercase tracking-wider flex items-center gap-2">
+        <h5 className="text-sm font-bold text-[#003828] uppercase tracking-wider flex items-center gap-2">
           {getTransportIcon(type)} {title}
         </h5>
         
@@ -153,7 +153,7 @@ export default function FlightDetailsForm({
   return (
     <div className="bg-stone-50 p-6 rounded-2xl border border-stone-200">
       <h4 className="text-lg font-bold text-stone-800 mb-6 flex items-center gap-2">
-        <MapPin className="text-[#004B36]" size={24} />
+        <MapPin className="text-[#003828]" size={24} />
         {title}
       </h4>
       
@@ -183,7 +183,7 @@ export default function FlightDetailsForm({
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h5 className="text-sm font-bold text-stone-800 uppercase tracking-wider">CONNECTION</h5>
-          <button type="button" onClick={addConnectingFlight} className="flex items-center gap-1.5 text-xs font-bold text-[#004B36] bg-[#004B36]/10 px-3 py-1.5 rounded-full hover:bg-[#004B36]/20 transition-colors">
+          <button type="button" onClick={addConnectingFlight} className="flex items-center gap-1.5 text-xs font-bold text-[#003828] bg-[#003828]/10 px-3 py-1.5 rounded-full hover:bg-[#003828]/20 transition-colors">
             <Plus size={14} /> Add Transit/Layover
           </button>
         </div>

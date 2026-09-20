@@ -51,15 +51,15 @@ export default function ServicesPage() {
       </Helmet>
 
       <div className="pt-24 pb-12 bg-white text-center px-4">
-         <h1 className="font-display text-4xl md:text-5xl font-bold tracking-tight text-[#004B36]">Our Services</h1>
+         <h1 className="font-display text-4xl md:text-5xl font-bold tracking-tight text-[#003828]">Our Services</h1>
       </div>
 
       <div className="flex flex-col">
         {services.map((service, idx) => {
           const isGreenBg = idx % 2 !== 0; 
-          const bgColor = isGreenBg ? 'bg-[#004B36]' : 'bg-white';
-          const textColor = isGreenBg ? 'text-white' : 'text-[#004B36]';
-          const descColor = isGreenBg ? 'text-white/80' : 'text-[#004B36]/70';
+          const bgColor = isGreenBg ? 'bg-[#003828]' : 'bg-white';
+          const textColor = isGreenBg ? 'text-white' : 'text-[#003828]';
+          const descColor = isGreenBg ? 'text-white/80' : 'text-[#003828]/70';
           const isReversed = idx % 2 !== 0;
 
           return (
@@ -67,7 +67,7 @@ export default function ServicesPage() {
               <div className="max-w-6xl mx-auto px-4 md:px-16 flex flex-col md:flex-row items-center gap-8 md:gap-16">
                 
                 {/* Image */}
-                <div className={`w-full md:w-1/2 aspect-[4/3] rounded-3xl overflow-hidden shadow-2xl ${isGreenBg ? 'bg-black/20' : 'bg-[#004B36]/5'} transition-all duration-300 relative group cursor-pointer ${isReversed ? 'md:order-2' : ''}`}>
+                <div className={`w-full md:w-1/2 aspect-[4/3] rounded-3xl overflow-hidden shadow-2xl ${isGreenBg ? 'bg-black/20' : 'bg-[#003828]/5'} transition-all duration-300 relative group cursor-pointer ${isReversed ? 'md:order-2' : ''}`}>
                   <img src={service.img} alt={service.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
                 </div>
                 

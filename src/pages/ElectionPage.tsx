@@ -56,7 +56,7 @@ const CustomSelect = ({
   return (
     <div ref={wrapperRef} className="relative w-full">
       <div
-        className={`w-full px-4 py-3 bg-gray-50 border ${isOpen ? 'border-[#004B36] ring-2 ring-[#004B36]/20' : 'border-gray-200'} rounded-xl transition-all duration-300 flex items-center justify-between cursor-text`}
+        className={`w-full px-4 py-3 bg-gray-50 border ${isOpen ? 'border-[#003828] ring-2 ring-[#003828]/20' : 'border-gray-200'} rounded-xl transition-all duration-300 flex items-center justify-between cursor-text`}
         onClick={() => {
           if (!isOpen) {
             setSearch('');
@@ -85,7 +85,7 @@ const CustomSelect = ({
               return (
                 <div
                   key={opt}
-                  className={`px-4 py-3 cursor-pointer transition-colors ${isDisabled ? 'text-gray-300 bg-gray-50 cursor-not-allowed' : 'text-gray-800 hover:bg-[#004B36]/5'}`}
+                  className={`px-4 py-3 cursor-pointer transition-colors ${isDisabled ? 'text-gray-300 bg-gray-50 cursor-not-allowed' : 'text-gray-800 hover:bg-[#003828]/5'}`}
                   onClick={() => {
                     if (!isDisabled) {
                       onChange(opt);
@@ -103,7 +103,7 @@ const CustomSelect = ({
 
           {search.trim() !== '' && !exactMatch && onAddCustom && (
             <div
-              className="px-4 py-3 cursor-pointer text-[#004B36] font-medium hover:bg-[#004B36]/5 border-t border-gray-100 flex items-center"
+              className="px-4 py-3 cursor-pointer text-[#003828] font-medium hover:bg-[#003828]/5 border-t border-gray-100 flex items-center"
               onClick={() => {
                 const newName = search.trim();
                 onAddCustom(newName);
@@ -111,7 +111,7 @@ const CustomSelect = ({
                 setIsOpen(false);
               }}
             >
-              <span className="bg-[#004B36] text-white text-xs px-2 py-1 rounded mr-2 font-bold">ADD</span>
+              <span className="bg-[#003828] text-white text-xs px-2 py-1 rounded mr-2 font-bold">ADD</span>
               {search.trim()}
             </div>
           )}
@@ -206,15 +206,15 @@ export default function ElectionPage() {
     <section className="py-24 bg-white">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
-          <h1 className="font-display text-4xl font-bold text-[#004B36] mb-4">Elections 2026</h1>
+          <h1 className="font-display text-4xl font-bold text-[#003828] mb-4">Elections 2026</h1>
           <p className="text-lg text-gray-600">Cast your vote for the board members.</p>
         </div>
 
         <div className="bg-gray-50 p-8 rounded-2xl shadow-sm border border-gray-100">
           {status === 'success' ? (
             <div className="text-center py-12">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-16 h-16 bg-[#003828]/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-[#003828]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                 </svg>
               </div>
@@ -222,7 +222,7 @@ export default function ElectionPage() {
               <p className="text-gray-600 mb-6">Your vote has been securely recorded.</p>
               <button 
                 onClick={() => setStatus('idle')}
-                className="bg-[#004B36] text-white px-6 py-2 rounded-full font-medium hover:bg-[#003828] transition-colors"
+                className="bg-[#003828] text-white border border-[#003828] px-6 py-2 rounded-full font-medium hover:bg-white hover:text-[#003828] hover:border-[#003828] transition-all cursor-pointer shadow-sm"
               >
                 Submit Another Vote
               </button>
@@ -231,7 +231,7 @@ export default function ElectionPage() {
             <form onSubmit={handleSubmit} className="space-y-6">
               
               <div className="bg-white p-6 rounded-xl border border-gray-200 mb-8 shadow-sm">
-                <label className="block text-sm font-bold text-[#004B36] mb-2 uppercase tracking-wide">
+                <label className="block text-sm font-bold text-[#003828] mb-2 uppercase tracking-wide">
                   Your Name (Voter)
                 </label>
                 <CustomSelect
@@ -270,7 +270,7 @@ export default function ElectionPage() {
               <button
                 type="submit"
                 disabled={status === 'submitting'}
-                className="w-full bg-[#004B36] text-white font-bold py-4 px-8 rounded-full hover:bg-[#003828] transition-all duration-300 shadow-md hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed mt-4 text-lg"
+                className="w-full bg-[#003828] text-white border border-[#003828] font-bold py-4 px-8 rounded-full hover:bg-white hover:text-[#003828] hover:border-[#003828] transition-all duration-300 shadow-md hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed mt-4 text-lg cursor-pointer"
               >
                 {status === 'submitting' ? 'Submitting Votes...' : 'Submit Votes'}
               </button>

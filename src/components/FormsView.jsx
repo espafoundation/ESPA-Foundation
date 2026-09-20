@@ -133,7 +133,7 @@ export default function FormsView({ forms, setForms, currentUser, globalUsers, a
           </button>
         ) : (
           canCreate && (
-            <button onClick={() => { setNewForm({ title: '', description: '', fields: [] }); setIsCreateModalOpen(true); }} className="bg-[#004B36] text-[#FDFCFB] px-5 py-2.5 rounded-full text-sm font-medium hover:bg-[#003828] transition-colors shadow-sm flex items-center gap-2">
+            <button onClick={() => { setNewForm({ title: '', description: '', fields: [] }); setIsCreateModalOpen(true); }} className="bg-[#003828] text-[#FDFCFB] px-5 py-2.5 rounded-full text-sm font-medium border border-[#003828] hover:bg-white hover:text-[#003828] hover:border-[#003828] transition-colors shadow-sm flex items-center gap-2">
               <Plus size={16} className="text-[#FDFCFB]" /> Create Form
             </button>
           )
@@ -142,7 +142,7 @@ export default function FormsView({ forms, setForms, currentUser, globalUsers, a
 
       <div className="relative mb-6">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18} strokeWidth={1.5} />
-        <input type="text" placeholder="Search forms by title or description..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-11 pr-4 py-3 bg-white border border-stone-200/80 rounded-xl focus:outline-none focus:border-[#004B36] focus:ring-1 focus:ring-[#004B36] transition-all text-sm shadow-sm" />
+        <input type="text" placeholder="Search forms by title or description..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-11 pr-4 py-3 bg-white border border-stone-200/80 rounded-xl focus:outline-none focus:border-[#003828] focus:ring-1 focus:ring-[#003828] transition-all text-sm shadow-sm" />
       </div>
 
       <div className="flex-1 bg-white rounded-2xl border border-stone-200/60 shadow-sm flex flex-col overflow-hidden">
@@ -167,12 +167,12 @@ export default function FormsView({ forms, setForms, currentUser, globalUsers, a
                 return (
                   <tr key={form.id} className="hover:bg-[#FDFCFB] transition-colors">
                     <td className="pl-12 pr-6 py-4 text-sm font-medium text-stone-900">
-                      <button onClick={() => { setCurrentForm(form); setResponses({}); setIsRespondModalOpen(true); }} className="text-stone-900 hover:text-[#004B36] font-medium focus:outline-none text-left">
+                      <button onClick={() => { setCurrentForm(form); setResponses({}); setIsRespondModalOpen(true); }} className="text-stone-900 hover:text-[#003828] font-medium focus:outline-none text-left">
                         {form.title}
                       </button>
                     </td>
                     <td className="px-6 py-4 align-middle text-sm font-medium text-stone-900">
-                      <button onClick={() => { if(canCreate) { setCurrentForm(form); setIsResponsesModalOpen(true); } }} className="text-stone-900 hover:text-[#004B36] font-medium focus:outline-none">
+                      <button onClick={() => { if(canCreate) { setCurrentForm(form); setIsResponsesModalOpen(true); } }} className="text-stone-900 hover:text-[#003828] font-medium focus:outline-none">
                         {(form.responses || []).length}
                       </button>
                     </td>
@@ -183,11 +183,11 @@ export default function FormsView({ forms, setForms, currentUser, globalUsers, a
                           disabled={hasResponded && !canCreate}
                           className="w-full text-left px-4 py-2.5 text-sm text-stone-900 hover:bg-stone-50 font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          <Edit size={16} className="text-[#004B36]"/> {hasResponded ? 'View Form' : 'Fill Form'}
+                          <Edit size={16} className="text-[#003828]"/> {hasResponded ? 'View Form' : 'Fill Form'}
                         </button>
                         {canCreate && (
                           <button onClick={() => { setActiveDropdown(null); setCurrentForm(form); setIsResponsesModalOpen(true); }} className="w-full text-left px-4 py-2.5 text-sm text-stone-900 hover:bg-stone-50 font-medium flex items-center gap-2">
-                            <Users size={16} className="text-[#004B36]" /> View Responses
+                            <Users size={16} className="text-[#003828]" /> View Responses
                           </button>
                         )}
                       </ActionMenu>
@@ -209,7 +209,7 @@ export default function FormsView({ forms, setForms, currentUser, globalUsers, a
               <DraggableModal className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-stone-200 w-full max-w-4xl max-h-[90dvh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 pointer-events-auto" onClick={e => e.stopPropagation()}>
                 <div className="px-5 sm:px-8 py-5 sm:py-6 border-b border-stone-100 bg-[#FDFCFB] flex-shrink-0 drag-handle cursor-grab active:cursor-grabbing touch-none flex justify-between items-center">
                   <h3 className="text-xl font-semibold text-stone-900 tracking-tight pointer-events-none flex items-center gap-2">
-                    <ClipboardList size={20} className="text-[#004B36]" /> Create New Form
+                    <ClipboardList size={20} className="text-[#003828]" /> Create New Form
                   </h3>
                   <button onClick={() => setIsCreateModalOpen(false)} className="text-stone-400 hover:text-stone-600 transition-colors pointer-events-auto">
                     <X size={20} />
@@ -219,19 +219,19 @@ export default function FormsView({ forms, setForms, currentUser, globalUsers, a
                 <div className="flex-1 overflow-y-auto p-0 flex flex-col md:flex-row">
                   <div className="md:w-1/3 lg:w-1/4 bg-stone-50 border-r border-stone-200/60 p-5 flex flex-col gap-3 shrink-0">
                     <h3 className="block text-xs font-bold text-stone-500 tracking-wider uppercase mb-2">Add Fields</h3>
-                    <button onClick={() => addField('text')} className="flex items-center gap-3 w-full text-left p-3 rounded-full bg-white border border-stone-200 hover:border-[#004B36] hover:text-[#004B36] transition-all font-medium text-sm text-stone-600 shadow-sm">
+                    <button onClick={() => addField('text')} className="flex items-center gap-3 w-full text-left p-3 rounded-full bg-white border border-stone-200 hover:border-[#003828] hover:text-[#003828] transition-all font-medium text-sm text-stone-600 shadow-sm">
                       <Type size={18} /> Short Text
                     </button>
-                    <button onClick={() => addField('textarea')} className="flex items-center gap-3 w-full text-left p-3 rounded-full bg-white border border-stone-200 hover:border-[#004B36] hover:text-[#004B36] transition-all font-medium text-sm text-stone-600 shadow-sm">
+                    <button onClick={() => addField('textarea')} className="flex items-center gap-3 w-full text-left p-3 rounded-full bg-white border border-stone-200 hover:border-[#003828] hover:text-[#003828] transition-all font-medium text-sm text-stone-600 shadow-sm">
                       <AlignLeft size={18} /> Long Text
                     </button>
-                    <button onClick={() => addField('checkbox')} className="flex items-center gap-3 w-full text-left p-3 rounded-full bg-white border border-stone-200 hover:border-[#004B36] hover:text-[#004B36] transition-all font-medium text-sm text-stone-600 shadow-sm">
+                    <button onClick={() => addField('checkbox')} className="flex items-center gap-3 w-full text-left p-3 rounded-full bg-white border border-stone-200 hover:border-[#003828] hover:text-[#003828] transition-all font-medium text-sm text-stone-600 shadow-sm">
                       <CheckSquare size={18} /> Checkbox
                     </button>
-                    <button onClick={() => addField('select')} className="flex items-center gap-3 w-full text-left p-3 rounded-full bg-white border border-stone-200 hover:border-[#004B36] hover:text-[#004B36] transition-all font-medium text-sm text-stone-600 shadow-sm">
+                    <button onClick={() => addField('select')} className="flex items-center gap-3 w-full text-left p-3 rounded-full bg-white border border-stone-200 hover:border-[#003828] hover:text-[#003828] transition-all font-medium text-sm text-stone-600 shadow-sm">
                       <ClipboardList size={18} /> Dropdown
                     </button>
-                    <button onClick={() => addField('date')} className="flex items-center gap-3 w-full text-left p-3 rounded-full bg-white border border-stone-200 hover:border-[#004B36] hover:text-[#004B36] transition-all font-medium text-sm text-stone-600 shadow-sm">
+                    <button onClick={() => addField('date')} className="flex items-center gap-3 w-full text-left p-3 rounded-full bg-white border border-stone-200 hover:border-[#003828] hover:text-[#003828] transition-all font-medium text-sm text-stone-600 shadow-sm">
                       <FileText size={18} /> Date
                     </button>
                   </div>
@@ -240,11 +240,11 @@ export default function FormsView({ forms, setForms, currentUser, globalUsers, a
                     <div className="space-y-4 border-b border-stone-100 pb-6">
                       <div>
                         <label className="block text-xs font-medium text-stone-500 mb-1 tracking-wider uppercase">Form Title<span className="text-red-500 font-medium">*</span></label>
-                        <input type="text" value={newForm.title} onChange={e => setNewForm({...newForm, title: e.target.value})} className="w-full px-4 py-2.5 bg-transparent border border-stone-200 rounded-xl focus:outline-none focus:border-[#004B36] focus:ring-1 focus:ring-[#004B36] transition-all text-sm font-medium text-stone-800" placeholder="e.g. Activity Waiver" />
+                        <input type="text" value={newForm.title} onChange={e => setNewForm({...newForm, title: e.target.value})} className="w-full px-4 py-2.5 bg-transparent border border-stone-200 rounded-xl focus:outline-none focus:border-[#003828] focus:ring-1 focus:ring-[#003828] transition-all text-sm font-medium text-stone-800" placeholder="e.g. Activity Waiver" />
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-stone-500 mb-1 tracking-wider uppercase">Description</label>
-                        <textarea value={newForm.description} onChange={e => setNewForm({...newForm, description: e.target.value})} className="w-full px-4 py-2.5 bg-transparent border border-stone-200 rounded-xl focus:outline-none focus:border-[#004B36] focus:ring-1 focus:ring-[#004B36] transition-all text-sm font-medium text-stone-800 min-h-[80px]" placeholder="Instructions for the form..."></textarea>
+                        <textarea value={newForm.description} onChange={e => setNewForm({...newForm, description: e.target.value})} className="w-full px-4 py-2.5 bg-transparent border border-stone-200 rounded-xl focus:outline-none focus:border-[#003828] focus:ring-1 focus:ring-[#003828] transition-all text-sm font-medium text-stone-800 min-h-[80px]" placeholder="Instructions for the form..."></textarea>
                       </div>
                     </div>
 
@@ -265,22 +265,22 @@ export default function FormsView({ forms, setForms, currentUser, globalUsers, a
                               </div>
                               <div>
                                 <label className="block text-xs font-medium text-stone-500 mb-1 uppercase">Field Label</label>
-                                <input type="text" value={f.label} onChange={e => updateField(f.id, 'label', e.target.value)} className="w-full px-3 py-2 bg-white border border-stone-200 rounded-lg focus:outline-none focus:border-[#004B36] text-sm font-medium" />
+                                <input type="text" value={f.label} onChange={e => updateField(f.id, 'label', e.target.value)} className="w-full px-3 py-2 bg-white border border-stone-200 rounded-lg focus:outline-none focus:border-[#003828] text-sm font-medium" />
                               </div>
                               {(f.type === 'select' || f.type === 'checkbox') && (
                                 <div>
                                   <label className="block text-xs font-medium text-stone-500 mb-1 uppercase">Options (comma-separated)</label>
-                                  <input type="text" value={f.options || ''} onChange={e => updateField(f.id, 'options', e.target.value)} className="w-full px-3 py-2 bg-white border border-stone-200 rounded-lg focus:outline-none focus:border-[#004B36] text-sm font-medium" placeholder={f.type === 'checkbox' ? "Leave empty for a single yes/no checkbox" : "Option 1, Option 2, Option 3"} />
+                                  <input type="text" value={f.options || ''} onChange={e => updateField(f.id, 'options', e.target.value)} className="w-full px-3 py-2 bg-white border border-stone-200 rounded-lg focus:outline-none focus:border-[#003828] text-sm font-medium" placeholder={f.type === 'checkbox' ? "Leave empty for a single yes/no checkbox" : "Option 1, Option 2, Option 3"} />
                                 </div>
                               )}
                               {f.type === 'checkbox' && f.options && (
                                 <label className="flex items-center gap-2 text-sm font-medium text-stone-600 cursor-pointer w-max">
-                                  <input type="checkbox" checked={f.multiSelect !== false} onChange={e => updateField(f.id, 'multiSelect', e.target.checked)} className="rounded accent-[#004B36] text-[#004B36] focus:ring-[#004B36]" />
+                                  <input type="checkbox" checked={f.multiSelect !== false} onChange={e => updateField(f.id, 'multiSelect', e.target.checked)} className="rounded accent-[#003828] text-[#003828] focus:ring-[#003828]" />
                                   Allow multiple selections
                                 </label>
                               )}
                               <label className="flex items-center gap-2 text-sm font-medium text-stone-600 cursor-pointer w-max">
-                                <input type="checkbox" checked={f.required} onChange={e => updateField(f.id, 'required', e.target.checked)} className="rounded accent-[#004B36] text-[#004B36] focus:ring-[#004B36]" />
+                                <input type="checkbox" checked={f.required} onChange={e => updateField(f.id, 'required', e.target.checked)} className="rounded accent-[#003828] text-[#003828] focus:ring-[#003828]" />
                                 Required Field
                               </label>
                             </div>
@@ -292,8 +292,8 @@ export default function FormsView({ forms, setForms, currentUser, globalUsers, a
                 </div>
                 
                 <div className="px-5 sm:px-8 py-4 sm:py-5 border-t border-stone-100 bg-[#FDFCFB] flex-shrink-0 flex justify-end gap-3 pointer-events-auto">
-                  <button onClick={() => setIsCreateModalOpen(false)} className="px-5 py-2.5 text-sm font-medium text-[#004B36] border border-[#004B36] hover:bg-stone-50 rounded-full transition-colors">Cancel</button>
-                  <button onClick={handleCreateForm} className="bg-[#004B36] text-[#FDFCFB] px-6 py-2.5 rounded-full text-sm font-bold hover:bg-[#003828] transition-colors shadow-sm flex items-center gap-2">
+                  <button onClick={() => setIsCreateModalOpen(false)} className="px-5 py-2.5 text-sm font-medium text-[#003828] border border-[#003828] hover:bg-stone-50 rounded-full transition-colors">Cancel</button>
+                  <button onClick={handleCreateForm} className="bg-[#003828] text-[#FDFCFB] px-6 py-2.5 rounded-full text-sm font-bold border border-[#003828] hover:bg-white hover:text-[#003828] hover:border-[#003828] transition-colors shadow-sm flex items-center gap-2">
                     <Check size={16} /> Save Form
                   </button>
                 </div>
@@ -311,7 +311,7 @@ export default function FormsView({ forms, setForms, currentUser, globalUsers, a
               <DraggableModal className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-stone-200 w-full max-w-2xl max-h-[90dvh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 pointer-events-auto" onClick={e => e.stopPropagation()}>
                 <div className="px-5 sm:px-8 py-5 sm:py-6 border-b border-stone-100 bg-[#FDFCFB] flex-shrink-0 drag-handle cursor-grab active:cursor-grabbing touch-none flex justify-between items-center">
                   <h3 className="text-xl font-semibold text-stone-900 tracking-tight pointer-events-none flex items-center gap-2">
-                    <ClipboardList size={20} className="text-[#004B36]" /> {currentForm.title}
+                    <ClipboardList size={20} className="text-[#003828]" /> {currentForm.title}
                   </h3>
                   <button onClick={() => setIsRespondModalOpen(false)} className="text-stone-400 hover:text-stone-600 transition-colors pointer-events-auto">
                     <X size={20} />
@@ -330,10 +330,10 @@ export default function FormsView({ forms, setForms, currentUser, globalUsers, a
                           {f.label} {f.required && <span className="text-red-500 font-medium">*</span>}
                         </label>
                         {f.type === 'text' && (
-                          <input type="text" value={responses[f.id] || ''} onChange={e => setResponses({...responses, [f.id]: e.target.value})} className="w-full px-4 py-2.5 bg-transparent border border-stone-200 rounded-xl focus:outline-none focus:border-[#004B36] focus:ring-1 focus:ring-[#004B36] transition-all text-sm font-medium text-stone-800" placeholder="Your answer" />
+                          <input type="text" value={responses[f.id] || ''} onChange={e => setResponses({...responses, [f.id]: e.target.value})} className="w-full px-4 py-2.5 bg-transparent border border-stone-200 rounded-xl focus:outline-none focus:border-[#003828] focus:ring-1 focus:ring-[#003828] transition-all text-sm font-medium text-stone-800" placeholder="Your answer" />
                         )}
                         {f.type === 'textarea' && (
-                          <textarea value={responses[f.id] || ''} onChange={e => setResponses({...responses, [f.id]: e.target.value})} className="w-full px-4 py-2.5 bg-transparent border border-stone-200 rounded-xl focus:outline-none focus:border-[#004B36] focus:ring-1 focus:ring-[#004B36] transition-all text-sm font-medium min-h-[100px] text-stone-800" placeholder="Your answer"></textarea>
+                          <textarea value={responses[f.id] || ''} onChange={e => setResponses({...responses, [f.id]: e.target.value})} className="w-full px-4 py-2.5 bg-transparent border border-stone-200 rounded-xl focus:outline-none focus:border-[#003828] focus:ring-1 focus:ring-[#003828] transition-all text-sm font-medium min-h-[100px] text-stone-800" placeholder="Your answer"></textarea>
                         )}
                         {f.type === 'checkbox' && (
                           f.options ? (
@@ -358,7 +358,7 @@ export default function FormsView({ forms, setForms, currentUser, globalUsers, a
                                           setResponses({...responses, [f.id]: e.target.checked ? [...current, optVal] : current.filter(x => x !== optVal)});
                                         }
                                       }} 
-                                      className={`mt-1 text-[#004B36] focus:ring-[#004B36] ${f.multiSelect === false ? '' : 'rounded'}`} 
+                                      className={`mt-1 text-[#003828] focus:ring-[#003828] ${f.multiSelect === false ? '' : 'rounded'}`} 
                                     />
                                     <span className="text-sm font-medium text-stone-700 leading-snug">{optVal}</span>
                                   </label>
@@ -367,16 +367,16 @@ export default function FormsView({ forms, setForms, currentUser, globalUsers, a
                             </div>
                           ) : (
                             <label className="flex items-start gap-3 mt-2 cursor-pointer font-medium">
-                              <input type="checkbox" checked={responses[f.id] || false} onChange={e => setResponses({...responses, [f.id]: e.target.checked})} className="mt-1 rounded accent-[#004B36] text-[#004B36] focus:ring-[#004B36]" />
+                              <input type="checkbox" checked={responses[f.id] || false} onChange={e => setResponses({...responses, [f.id]: e.target.checked})} className="mt-1 rounded accent-[#003828] text-[#003828] focus:ring-[#003828]" />
                               <span className="text-sm font-medium text-stone-700 leading-snug">{f.label}</span>
                             </label>
                           )
                         )}
                         {f.type === 'date' && (
-                          <input type="date" value={responses[f.id] || ''} onChange={e => setResponses({...responses, [f.id]: e.target.value})} className="w-full px-4 py-2.5 bg-transparent border border-stone-200 rounded-xl focus:outline-none focus:border-[#004B36] focus:ring-1 focus:ring-[#004B36] transition-all text-sm font-medium text-stone-800" />
+                          <input type="date" value={responses[f.id] || ''} onChange={e => setResponses({...responses, [f.id]: e.target.value})} className="w-full px-4 py-2.5 bg-transparent border border-stone-200 rounded-xl focus:outline-none focus:border-[#003828] focus:ring-1 focus:ring-[#003828] transition-all text-sm font-medium text-stone-800" />
                         )}
                         {f.type === 'select' && (
-                          <select value={responses[f.id] || ''} onChange={e => setResponses({...responses, [f.id]: e.target.value})} className="w-full px-4 py-2.5 bg-transparent border border-stone-200 rounded-xl focus:outline-none focus:border-[#004B36] focus:ring-1 focus:ring-[#004B36] transition-all text-sm font-medium appearance-none text-stone-800">
+                          <select value={responses[f.id] || ''} onChange={e => setResponses({...responses, [f.id]: e.target.value})} className="w-full px-4 py-2.5 bg-transparent border border-stone-200 rounded-xl focus:outline-none focus:border-[#003828] focus:ring-1 focus:ring-[#003828] transition-all text-sm font-medium appearance-none text-stone-800">
                             <option value="" disabled>Select an option</option>
                             {(f.options || '').split(',').map((opt, i) => (
                               <option key={i} value={opt.trim()}>{opt.trim()}</option>
@@ -389,8 +389,8 @@ export default function FormsView({ forms, setForms, currentUser, globalUsers, a
                 </div>
                 
                 <div className="px-5 sm:px-8 py-4 sm:py-5 border-t border-stone-100 bg-[#FDFCFB] flex-shrink-0 flex justify-end gap-3 pointer-events-auto">
-                  <button onClick={() => setIsRespondModalOpen(false)} className="px-5 py-2.5 text-sm font-medium text-[#004B36] border border-[#004B36] hover:bg-stone-50 rounded-full transition-colors">Cancel</button>
-                  <button onClick={handleSubmitResponse} disabled={(currentForm.responses || []).some(r => r.userId === currentUser.id) && !canCreate} className="bg-[#004B36] text-[#FDFCFB] px-6 py-2.5 rounded-full text-sm font-medium hover:bg-[#003828] transition-colors shadow-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                  <button onClick={() => setIsRespondModalOpen(false)} className="px-5 py-2.5 text-sm font-medium text-[#003828] border border-[#003828] hover:bg-stone-50 rounded-full transition-colors">Cancel</button>
+                  <button onClick={handleSubmitResponse} disabled={(currentForm.responses || []).some(r => r.userId === currentUser.id) && !canCreate} className="bg-[#003828] text-[#FDFCFB] px-6 py-2.5 rounded-full text-sm font-medium border border-[#003828] hover:bg-white hover:text-[#003828] hover:border-[#003828] transition-colors shadow-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                     <Save size={16} /> Submit Response
                   </button>
                 </div>
@@ -409,7 +409,7 @@ export default function FormsView({ forms, setForms, currentUser, globalUsers, a
                 <div className="px-5 sm:px-8 py-5 sm:py-6 border-b border-stone-100 bg-[#FDFCFB] flex-shrink-0 drag-handle cursor-grab active:cursor-grabbing touch-none flex justify-between items-center">
                   <div>
                     <h3 className="text-xl font-semibold text-stone-900 tracking-tight pointer-events-none flex items-center gap-2">
-                      <Users size={20} className="text-[#004B36]" /> {currentForm.title} - Responses
+                      <Users size={20} className="text-[#003828]" /> {currentForm.title} - Responses
                     </h3>
                     <p className="text-sm font-medium text-stone-500 mt-1 pointer-events-none">{(currentForm.responses || []).length} Submissions</p>
                   </div>
@@ -424,7 +424,7 @@ export default function FormsView({ forms, setForms, currentUser, globalUsers, a
                     return (
                       <div key={i} className="bg-stone-50 rounded-2xl border border-stone-200 p-6">
                         <div className="flex items-center gap-3 mb-4 border-b border-stone-200 pb-4">
-                          <div className="w-10 h-10 rounded-full bg-[#004B36] text-white flex items-center justify-center font-medium text-sm shadow-sm">
+                          <div className="w-10 h-10 rounded-full bg-[#003828] text-white flex items-center justify-center font-medium text-sm shadow-sm">
                             {user.name.charAt(0)}
                           </div>
                           <div>

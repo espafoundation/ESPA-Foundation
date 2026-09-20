@@ -6,12 +6,12 @@ export default function AboutPageContent() {
     <section id="about-page-content" className="py-12 md:py-20 bg-white transition-colors duration-300">
       <div className="max-w-4xl mx-auto px-6 md:px-12">
         <div className="text-center mb-10 md:mb-16">
-          <h2 className="font-display text-3xl md:text-5xl font-bold text-[#004B36] tracking-tight">
+          <h2 className="font-display text-3xl md:text-5xl font-bold text-[#003828] tracking-tight">
             <EditableText id="about_page_title" defaultText="About Us" as="span" />
           </h2>
         </div>
         
-        <div className="font-sans text-lg md:text-xl font-normal text-[#004B36]/80 leading-relaxed text-justify flex flex-col gap-8">
+        <div className="font-sans text-lg md:text-xl font-normal text-[#003828]/80 leading-relaxed text-justify flex flex-col gap-8">
           <p>
             <EditableText 
               id="about_page_p1" 

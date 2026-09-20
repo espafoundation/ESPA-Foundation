@@ -29,7 +29,7 @@ export default function ArchivesView({
     <div className="space-y-8 h-full flex flex-col tracking-tight relative">
       <div>
         <h1 className="text-3xl font-semibold text-stone-900 flex items-center gap-2">
-          <Archive className="text-[#004B36]" size={28} /> Archives
+          <Archive className="text-[#003828]" size={28} /> Archives
         </h1>
         <p className="text-stone-500 text-sm mt-2 font-medium">Restore previously archived data.</p>
       </div>
@@ -50,7 +50,7 @@ export default function ArchivesView({
               <tr key={user.id} className="hover:bg-stone-50">
                 <td className="px-6 py-4 text-sm font-semibold text-stone-900">{user.name} <span className="text-stone-500 font-medium">({user.email})</span></td>
                 <td className="px-6 py-4 text-right">
-                  <button onClick={() => handleRestore(user, 'user')} className="text-stone-900 hover:text-[#004B36] text-sm font-semibold inline-flex items-center gap-1">
+                  <button onClick={() => handleRestore(user, 'user')} className="text-stone-900 hover:text-[#003828] text-sm font-semibold inline-flex items-center gap-1">
                     <RefreshCcw size={14} /> Restore
                   </button>
                 </td>

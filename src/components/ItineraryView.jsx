@@ -13,12 +13,12 @@ const Portal = ({ children }) => {
 
   const getTransportIcon = (mode) => {
     switch (mode) {
-      case 'Bus': return <Bus size={18} className="text-[#004B36]" />;
-      case 'Train': return <Train size={18} className="text-[#004B36]" />;
-      case 'Car': return <Car size={18} className="text-[#004B36]" />;
-      case 'Van': return <Car size={18} className="text-[#004B36]" />;
+      case 'Bus': return <Bus size={18} className="text-[#003828]" />;
+      case 'Train': return <Train size={18} className="text-[#003828]" />;
+      case 'Car': return <Car size={18} className="text-[#003828]" />;
+      case 'Van': return <Car size={18} className="text-[#003828]" />;
       case 'Flight':
-      default: return <Plane size={18} className="text-[#004B36]" />;
+      default: return <Plane size={18} className="text-[#003828]" />;
     }
   };
 
@@ -163,7 +163,7 @@ export default function ItineraryView({ users, setUsers, globalUsers, showToast,
           placeholder="Search Participants by Name or Email..." 
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
-          className="w-full pl-11 pr-4 py-3 bg-white border border-stone-200/80 rounded-xl focus:outline-none focus:border-[#004B36] focus:ring-1 focus:ring-[#004B36] transition-all text-sm shadow-sm"
+          className="w-full pl-11 pr-4 py-3 bg-white border border-stone-200/80 rounded-xl focus:outline-none focus:border-[#003828] focus:ring-1 focus:ring-[#003828] transition-all text-sm shadow-sm"
         />
       </div>
 
@@ -192,7 +192,7 @@ export default function ItineraryView({ users, setUsers, globalUsers, showToast,
                     <td className="pl-12 pr-6 py-4 align-middle">
                       <div className="flex items-center gap-3">
                         <div>
-                          <button onClick={() => setViewingUser(user)} className="text-stone-900 font-medium text-sm hover:text-[#004B36] focus:outline-none transition-colors text-left">
+                          <button onClick={() => setViewingUser(user)} className="text-stone-900 font-medium text-sm hover:text-[#003828] focus:outline-none transition-colors text-left">
                             {user.name}
                           </button>
                         </div>
@@ -221,7 +221,7 @@ export default function ItineraryView({ users, setUsers, globalUsers, showToast,
                     <td className="px-6 py-4 pr-12 align-middle text-center">
                       <ActionMenu id={user.id} activeDropdown={activeDropdown} setActiveDropdown={setActiveDropdown}>
                         <button onClick={() => { setActiveDropdown(null); handleEditClick(user); }} className="w-full text-left px-4 py-2.5 text-sm text-stone-900 hover:bg-stone-50 font-medium flex items-center gap-2">
-                           <Edit size={16} className="text-[#004B36]"/> Edit Itinerary
+                           <Edit size={16} className="text-[#003828]"/> Edit Itinerary
                         </button>
                       </ActionMenu>
                     </td>
@@ -238,12 +238,12 @@ export default function ItineraryView({ users, setUsers, globalUsers, showToast,
         <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-[200] animate-in fade-in flex items-center justify-center p-4" onClick={() => setViewingUser(null)}>
           <DraggableModal className="bg-white rounded-3xl p-8 w-full max-w-2xl max-h-[90vh] shadow-2xl flex flex-col animate-in zoom-in-95 duration-200 pointer-events-auto" onClick={e => e.stopPropagation()}>
             <h3 className="text-xl font-bold text-stone-900 mb-6 border-b border-stone-100 pb-4 flex items-center gap-3 drag-handle cursor-grab active:cursor-grabbing touch-none shrink-0">
-               <MapPin className="text-[#004B36] pointer-events-none" size={24} /> <span className="pointer-events-none font-medium">Itinerary Details: {viewingUser.name}</span>
+               <MapPin className="text-[#003828] pointer-events-none" size={24} /> <span className="pointer-events-none font-medium">Itinerary Details: {viewingUser.name}</span>
             </h3>
             <div className="space-y-8 flex-1 overflow-y-auto min-h-0 pr-2 -mr-2">
               {/* Arrival */}
               <div className="space-y-4">
-                <div className="border-l-2 border-[#004B36] pl-3">
+                <div className="border-l-2 border-[#003828] pl-3">
                   <h4 className="text-sm font-bold text-stone-800 uppercase tracking-wider">Arrival Details (Inbound)</h4>
                 </div>
                 {viewingUser.arrivalDate || viewingUser.arrivalFromCountry || viewingUser.arrivalCountry ? (
@@ -252,7 +252,7 @@ export default function ItineraryView({ users, setUsers, globalUsers, showToast,
                       <div className="flex-1">
                         <span className="block text-[10px] font-medium text-stone-500 uppercase tracking-wider mb-1">From</span>
                         <div className="text-sm font-medium text-stone-900 flex flex-col gap-1">
-                          <span className="flex items-center gap-1.5 font-medium"><MapPin size={14} className="text-[#004B36]" /> {viewingUser.arrivalFromCity || '-'}, {viewingUser.arrivalFromCountry || '-'} {viewingUser.arrivalFromAirportCode && <span className="text-stone-400 font-medium">({viewingUser.arrivalFromAirportCode})</span>}</span>
+                          <span className="flex items-center gap-1.5 font-medium"><MapPin size={14} className="text-[#003828]" /> {viewingUser.arrivalFromCity || '-'}, {viewingUser.arrivalFromCountry || '-'} {viewingUser.arrivalFromAirportCode && <span className="text-stone-400 font-medium">({viewingUser.arrivalFromAirportCode})</span>}</span>
                           <span className="flex items-center gap-3 text-stone-500 text-xs font-medium">
                             <span className="flex items-center gap-1 font-medium"><Calendar size={12} /> {viewingUser.arrivalFromDate || '-'}</span>
                             <span className="flex items-center gap-1 font-medium"><Clock size={12} /> {viewingUser.arrivalFromTime || '-'}</span>
@@ -261,7 +261,7 @@ export default function ItineraryView({ users, setUsers, globalUsers, showToast,
                       </div>
 
                       <div className="hidden sm:flex flex-col items-center px-4">
-                        <PlaneLanding className="text-[#004B36] mb-1" size={20} />
+                        <PlaneLanding className="text-[#003828] mb-1" size={20} />
                         <div className="w-16 h-px bg-stone-300"></div>
                         <span className="text-[10px] font-medium text-stone-500 uppercase mt-1">{viewingUser.arrivalFlight || '-'}</span>
                       </div>
@@ -269,7 +269,7 @@ export default function ItineraryView({ users, setUsers, globalUsers, showToast,
                       <div className="flex-1 sm:text-right">
                         <span className="block text-[10px] font-medium text-stone-500 uppercase tracking-wider mb-1">To</span>
                         <div className="text-sm font-medium text-stone-900 flex flex-col gap-1 sm:items-end">
-                          <span className="flex items-center gap-1.5 justify-end font-medium"><MapPin size={14} className="text-[#004B36]" /> {viewingUser.arrivalCity || '-'}, {viewingUser.arrivalCountry || '-'} {viewingUser.arrivalAirportCode && <span className="text-stone-400 font-medium">({viewingUser.arrivalAirportCode})</span>}</span>
+                          <span className="flex items-center gap-1.5 justify-end font-medium"><MapPin size={14} className="text-[#003828]" /> {viewingUser.arrivalCity || '-'}, {viewingUser.arrivalCountry || '-'} {viewingUser.arrivalAirportCode && <span className="text-stone-400 font-medium">({viewingUser.arrivalAirportCode})</span>}</span>
                           <span className="flex items-center gap-3 text-stone-500 text-xs justify-end font-medium">
                             <span className="flex items-center gap-1 font-medium"><Calendar size={12} /> {viewingUser.arrivalDate || '-'}</span>
                             <span className="flex items-center gap-1 font-medium"><Clock size={12} /> {viewingUser.arrivalTime || '-'}</span>
@@ -290,7 +290,7 @@ export default function ItineraryView({ users, setUsers, globalUsers, showToast,
                           <div className="flex-1">
                             <span className="block text-[10px] font-medium text-stone-500 uppercase tracking-wider mb-1">From</span>
                             <div className="text-sm font-medium text-stone-900 flex flex-col gap-1">
-                              <span className="flex items-center gap-1.5 font-medium"><MapPin size={14} className="text-[#004B36]" /> {flight.fromCity || '-'}, {flight.fromCountry || '-'} {flight.fromAirportCode && <span className="text-stone-400 font-medium">({flight.fromAirportCode})</span>}</span>
+                              <span className="flex items-center gap-1.5 font-medium"><MapPin size={14} className="text-[#003828]" /> {flight.fromCity || '-'}, {flight.fromCountry || '-'} {flight.fromAirportCode && <span className="text-stone-400 font-medium">({flight.fromAirportCode})</span>}</span>
                               <span className="flex items-center gap-3 text-stone-500 text-xs font-medium">
                                 <span className="flex items-center gap-1 font-medium"><Calendar size={12} /> {flight.fromDate || '-'}</span>
                                 <span className="flex items-center gap-1 font-medium"><Clock size={12} /> {flight.fromTime || '-'}</span>
@@ -299,7 +299,7 @@ export default function ItineraryView({ users, setUsers, globalUsers, showToast,
                           </div>
 
                           <div className="hidden sm:flex flex-col items-center px-4">
-                            <PlaneLanding className="text-[#004B36] mb-1" size={20} />
+                            <PlaneLanding className="text-[#003828] mb-1" size={20} />
                             <div className="w-16 h-px bg-stone-300"></div>
                             <span className="text-[10px] font-medium text-stone-500 uppercase mt-1">{flight.flightNumber || flight.flight || '-'}</span>
                           </div>
@@ -307,7 +307,7 @@ export default function ItineraryView({ users, setUsers, globalUsers, showToast,
                           <div className="flex-1 sm:text-right">
                             <span className="block text-[10px] font-medium text-stone-500 uppercase tracking-wider mb-1">To</span>
                             <div className="text-sm font-medium text-stone-900 flex flex-col gap-1 sm:items-end">
-                              <span className="flex items-center gap-1.5 justify-end font-medium"><MapPin size={14} className="text-[#004B36]" /> {flight.toCity || '-'}, {flight.toCountry || '-'} {flight.toAirportCode && <span className="text-stone-400 font-medium">({flight.toAirportCode})</span>}</span>
+                              <span className="flex items-center gap-1.5 justify-end font-medium"><MapPin size={14} className="text-[#003828]" /> {flight.toCity || '-'}, {flight.toCountry || '-'} {flight.toAirportCode && <span className="text-stone-400 font-medium">({flight.toAirportCode})</span>}</span>
                               <span className="flex items-center gap-3 text-stone-500 text-xs justify-end font-medium">
                                 <span className="flex items-center gap-1 font-medium"><Calendar size={12} /> {flight.toDate || '-'}</span>
                                 <span className="flex items-center gap-1 font-medium"><Clock size={12} /> {flight.toTime || '-'}</span>
@@ -323,7 +323,7 @@ export default function ItineraryView({ users, setUsers, globalUsers, showToast,
 
               {/* Departure */}
               <div className="space-y-4">
-                <div className="border-l-2 border-[#004B36] pl-3">
+                <div className="border-l-2 border-[#003828] pl-3">
                   <h4 className="text-sm font-bold text-stone-800 uppercase tracking-wider">Departure Details (Outbound)</h4>
                 </div>
                 {viewingUser.departureDate || viewingUser.departureCountry || viewingUser.departureToCountry ? (
@@ -332,7 +332,7 @@ export default function ItineraryView({ users, setUsers, globalUsers, showToast,
                       <div className="flex-1">
                         <span className="block text-[10px] font-medium text-stone-500 uppercase tracking-wider mb-1">From</span>
                         <div className="text-sm font-medium text-stone-900 flex flex-col gap-1">
-                          <span className="flex items-center gap-1.5 font-medium"><MapPin size={14} className="text-[#004B36]" /> {viewingUser.departureCity || '-'}, {viewingUser.departureCountry || '-'} {viewingUser.departureAirportCode && <span className="text-stone-400 font-medium">({viewingUser.departureAirportCode})</span>}</span>
+                          <span className="flex items-center gap-1.5 font-medium"><MapPin size={14} className="text-[#003828]" /> {viewingUser.departureCity || '-'}, {viewingUser.departureCountry || '-'} {viewingUser.departureAirportCode && <span className="text-stone-400 font-medium">({viewingUser.departureAirportCode})</span>}</span>
                           <span className="flex items-center gap-3 text-stone-500 text-xs font-medium">
                             <span className="flex items-center gap-1 font-medium"><Calendar size={12} /> {viewingUser.departureDate || '-'}</span>
                             <span className="flex items-center gap-1 font-medium"><Clock size={12} /> {viewingUser.departureTime || '-'}</span>
@@ -341,7 +341,7 @@ export default function ItineraryView({ users, setUsers, globalUsers, showToast,
                       </div>
 
                       <div className="hidden sm:flex flex-col items-center px-4">
-                        <PlaneTakeoff className="text-[#004B36] mb-1" size={20} />
+                        <PlaneTakeoff className="text-[#003828] mb-1" size={20} />
                         <div className="w-16 h-px bg-stone-300"></div>
                         <span className="text-[10px] font-medium text-stone-500 uppercase mt-1">{viewingUser.departureFlight || '-'}</span>
                       </div>
@@ -349,7 +349,7 @@ export default function ItineraryView({ users, setUsers, globalUsers, showToast,
                       <div className="flex-1 sm:text-right">
                         <span className="block text-[10px] font-medium text-stone-500 uppercase tracking-wider mb-1">To</span>
                         <div className="text-sm font-medium text-stone-900 flex flex-col gap-1 sm:items-end">
-                          <span className="flex items-center gap-1.5 justify-end font-medium"><MapPin size={14} className="text-[#004B36]" /> {viewingUser.departureToCity || '-'}, {viewingUser.departureToCountry || '-'} {viewingUser.departureToAirportCode && <span className="text-stone-400 font-medium">({viewingUser.departureToAirportCode})</span>}</span>
+                          <span className="flex items-center gap-1.5 justify-end font-medium"><MapPin size={14} className="text-[#003828]" /> {viewingUser.departureToCity || '-'}, {viewingUser.departureToCountry || '-'} {viewingUser.departureToAirportCode && <span className="text-stone-400 font-medium">({viewingUser.departureToAirportCode})</span>}</span>
                           <span className="flex items-center gap-3 text-stone-500 text-xs justify-end font-medium">
                             <span className="flex items-center gap-1 font-medium"><Calendar size={12} /> {viewingUser.departureToDate || '-'}</span>
                             <span className="flex items-center gap-1 font-medium"><Clock size={12} /> {viewingUser.departureToTime || '-'}</span>
@@ -370,7 +370,7 @@ export default function ItineraryView({ users, setUsers, globalUsers, showToast,
                           <div className="flex-1">
                             <span className="block text-[10px] font-medium text-stone-500 uppercase tracking-wider mb-1">From</span>
                             <div className="text-sm font-medium text-stone-900 flex flex-col gap-1">
-                              <span className="flex items-center gap-1.5 font-medium"><MapPin size={14} className="text-[#004B36]" /> {flight.fromCity || '-'}, {flight.fromCountry || '-'} {flight.fromAirportCode && <span className="text-stone-400 font-medium">({flight.fromAirportCode})</span>}</span>
+                              <span className="flex items-center gap-1.5 font-medium"><MapPin size={14} className="text-[#003828]" /> {flight.fromCity || '-'}, {flight.fromCountry || '-'} {flight.fromAirportCode && <span className="text-stone-400 font-medium">({flight.fromAirportCode})</span>}</span>
                               <span className="flex items-center gap-3 text-stone-500 text-xs font-medium">
                                 <span className="flex items-center gap-1 font-medium"><Calendar size={12} /> {flight.fromDate || '-'}</span>
                                 <span className="flex items-center gap-1 font-medium"><Clock size={12} /> {flight.fromTime || '-'}</span>
@@ -379,7 +379,7 @@ export default function ItineraryView({ users, setUsers, globalUsers, showToast,
                           </div>
 
                           <div className="hidden sm:flex flex-col items-center px-4">
-                            <PlaneTakeoff className="text-[#004B36] mb-1" size={20} />
+                            <PlaneTakeoff className="text-[#003828] mb-1" size={20} />
                             <div className="w-16 h-px bg-stone-300"></div>
                             <span className="text-[10px] font-medium text-stone-500 uppercase mt-1">{flight.flightNumber || flight.flight || '-'}</span>
                           </div>
@@ -387,7 +387,7 @@ export default function ItineraryView({ users, setUsers, globalUsers, showToast,
                           <div className="flex-1 sm:text-right">
                             <span className="block text-[10px] font-medium text-stone-500 uppercase tracking-wider mb-1">To</span>
                             <div className="text-sm font-medium text-stone-900 flex flex-col gap-1 sm:items-end">
-                              <span className="flex items-center gap-1.5 justify-end font-medium"><MapPin size={14} className="text-[#004B36]" /> {flight.toCity || '-'}, {flight.toCountry || '-'} {flight.toAirportCode && <span className="text-stone-400 font-medium">({flight.toAirportCode})</span>}</span>
+                              <span className="flex items-center gap-1.5 justify-end font-medium"><MapPin size={14} className="text-[#003828]" /> {flight.toCity || '-'}, {flight.toCountry || '-'} {flight.toAirportCode && <span className="text-stone-400 font-medium">({flight.toAirportCode})</span>}</span>
                               <span className="flex items-center gap-3 text-stone-500 text-xs justify-end font-medium">
                                 <span className="flex items-center gap-1 font-medium"><Calendar size={12} /> {flight.toDate || '-'}</span>
                                 <span className="flex items-center gap-1 font-medium"><Clock size={12} /> {flight.toTime || '-'}</span>
@@ -401,7 +401,7 @@ export default function ItineraryView({ users, setUsers, globalUsers, showToast,
                 )}
               </div>
             </div>
-            <button type="button" onClick={() => setViewingUser(null)} className="mt-8 w-full py-3 bg-[#004B36] text-[#FDFCFB] hover:bg-[#003828] shadow-sm font-bold rounded-full transition-colors shrink-0">Close</button>
+            <button type="button" onClick={() => setViewingUser(null)} className="mt-8 w-full py-3 bg-[#003828] text-[#FDFCFB] border border-[#003828] hover:bg-white hover:text-[#003828] hover:border-[#003828] shadow-sm font-bold rounded-full transition-colors shrink-0">Close</button>
           </DraggableModal>
         </div>
         </Portal>
@@ -412,7 +412,7 @@ export default function ItineraryView({ users, setUsers, globalUsers, showToast,
         <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-[200] animate-in fade-in flex items-center justify-center p-4" onClick={() => setEditingUser(null)}>
           <DraggableModal className="bg-white rounded-3xl p-8 w-full max-w-2xl max-h-[90vh] shadow-2xl flex flex-col animate-in zoom-in-95 duration-200 pointer-events-auto" onClick={e => e.stopPropagation()}>
             <h3 className="text-xl font-bold text-stone-900 mb-6 border-b border-stone-100 pb-4 flex items-center gap-3 drag-handle cursor-grab active:cursor-grabbing touch-none shrink-0">
-               <MapPin className="text-[#004B36] pointer-events-none" size={24} /> <span className="pointer-events-none font-medium">Edit Itinerary: {editingUser.name}</span>
+               <MapPin className="text-[#003828] pointer-events-none" size={24} /> <span className="pointer-events-none font-medium">Edit Itinerary: {editingUser.name}</span>
             </h3>
             
             <div className="space-y-6 flex-1 overflow-y-auto min-h-0 pr-2 -mr-2">
@@ -431,7 +431,7 @@ export default function ItineraryView({ users, setUsers, globalUsers, showToast,
               </button>
               <button 
                 onClick={handleSaveClick} 
-                className="px-4 py-2 text-sm font-semibold bg-[#004B36] text-white hover:bg-[#003828] rounded-full transition-colors flex items-center gap-2 shadow-sm"
+                className="px-4 py-2 text-sm font-semibold bg-[#003828] text-white border border-[#003828] hover:bg-white hover:text-[#003828] hover:border-[#003828] rounded-full transition-colors flex items-center gap-2 shadow-sm"
               >
                 <Save size={16} /> Save Changes
               </button>

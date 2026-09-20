@@ -25,8 +25,8 @@ export default function DonationTrendsChart({ transactions = [] }) {
             <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorPkr" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#004B36" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#004B36" stopOpacity={0}/>
+                  <stop offset="5%" stopColor="#003828" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#003828" stopOpacity={0}/>
                 </linearGradient>
                 <linearGradient id="colorUsd" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#008080" stopOpacity={0.3}/>
@@ -42,7 +42,7 @@ export default function DonationTrendsChart({ transactions = [] }) {
                 formatter={(value, name) => [name === 'PKR' ? `PKR ${(value || 0).toLocaleString()}` : `$${(value || 0).toLocaleString()}`, name === 'PKR' ? 'PKR Donations' : 'USD Donations']}
               />
               <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />
-              <Area yAxisId="left" type="monotone" dataKey="pkr" name="PKR" stroke="#004B36" strokeWidth={2} fillOpacity={1} fill="url(#colorPkr)" />
+              <Area yAxisId="left" type="monotone" dataKey="pkr" name="PKR" stroke="#003828" strokeWidth={2} fillOpacity={1} fill="url(#colorPkr)" />
               <Area yAxisId="right" type="monotone" dataKey="usd" name="USD" stroke="#008080" strokeWidth={2} fillOpacity={1} fill="url(#colorUsd)" />
             </AreaChart>
           </ResponsiveContainer>

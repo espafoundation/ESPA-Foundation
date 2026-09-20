@@ -20,7 +20,7 @@ export default function MemberDetailsModal({ member, onClose }) {
               </div>
               <div>
                 <h3 className="text-xl font-bold text-stone-900">{member.name}</h3>
-                <p className="text-sm text-[#004B36] font-semibold">{member.role}</p>
+                <p className="text-sm text-[#003828] font-semibold">{member.role}</p>
               </div>
             </div>
             <button onClick={onClose} className="p-2 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-full transition-colors">

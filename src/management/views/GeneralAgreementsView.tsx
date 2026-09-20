@@ -116,7 +116,7 @@ export default function GeneralAgreementsView({ agreements, setAgreements, curre
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-semibold text-stone-900 flex items-center gap-2">
-            <FileText className="text-[#004B36]" size={28} /> In-House Agreement
+            <FileText className="text-[#003828]" size={28} /> In-House Agreement
           </h1>
           <p className="text-stone-500 text-sm mt-2 font-medium">View and manage admin-wide agreements.</p>
         </div>
@@ -125,7 +125,7 @@ export default function GeneralAgreementsView({ agreements, setAgreements, curre
             <button onClick={() => setShowRevisions(!showRevisions)} className="bg-white border border-stone-200 text-stone-700 px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-stone-50 transition-colors shadow-sm flex items-center gap-2">
               <History size={16} className="text-stone-500" /> {showRevisions ? 'Back to Active' : 'Revisions'}
             </button>
-            <button onClick={() => setIsDraftModalOpen(true)} className="bg-[#004B36] text-[#FDFCFB] px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-[#003828] transition-colors shadow-sm flex items-center gap-2">
+            <button onClick={() => setIsDraftModalOpen(true)} className="bg-[#003828] text-[#FDFCFB] px-5 py-2.5 rounded-xl text-sm font-medium border border-[#003828] hover:bg-white hover:text-[#003828] hover:border-[#003828] transition-colors shadow-sm flex items-center gap-2">
               <Plus size={16} className="text-[#FDFCFB]" /> Draft
             </button>
           </div>
@@ -133,13 +133,13 @@ export default function GeneralAgreementsView({ agreements, setAgreements, curre
       </div>
 
       <div className="relative">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#004B36]" size={18} strokeWidth={1.5} />
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#003828]" size={18} strokeWidth={1.5} />
         <input
           type="text"
           placeholder={showRevisions ? "Search revisions..." : "Search acknowledgments..."}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-11 pr-4 py-3 bg-white border border-stone-200/80 rounded-xl focus:outline-none focus:border-[#004B36] focus:ring-1 focus:ring-[#004B36] transition-all text-sm shadow-sm"
+          className="w-full pl-11 pr-4 py-3 bg-white border border-stone-200/80 rounded-xl focus:outline-none focus:border-[#003828] focus:ring-1 focus:ring-[#003828] transition-all text-sm shadow-sm"
         />
       </div>
 
@@ -171,9 +171,9 @@ export default function GeneralAgreementsView({ agreements, setAgreements, curre
                                         placeholder="Type your full name to sign" 
                                         value={signatureName}
                                         onChange={(e) => setSignatureName(e.target.value)}
-                                        className="w-full px-4 py-3 bg-white border border-stone-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#004B36] font-medium text-stone-900 text-center"
+                                        className="w-full px-4 py-3 bg-white border border-stone-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#003828] font-medium text-stone-900 text-center"
                                     />
-                                    <button onClick={handleSign} className="w-full px-8 py-3 bg-[#004B36] text-white rounded-xl font-bold hover:bg-[#003828] transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed" disabled={!signatureName.trim()}>
+                                    <button onClick={handleSign} className="w-full px-8 py-3 bg-[#003828] text-white rounded-xl font-bold border border-[#003828] hover:bg-white hover:text-[#003828] hover:border-[#003828] transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed" disabled={!signatureName.trim()}>
                                         I Acknowledge and Sign
                                     </button>
                                 </div>
@@ -193,7 +193,7 @@ export default function GeneralAgreementsView({ agreements, setAgreements, curre
                                   <p className="text-xs text-stone-500">{participant.role} {participant.batch ? `• ${participant.batch}` : ''}</p>
                                 </div>
                                 {hasAcknowledged ? (
-                                  <div className="px-3 py-1 bg-green-100 text-green-700 font-semibold text-xs rounded-full border border-green-200 uppercase tracking-wide">ACKNOWLEDGED</div>
+                                  <div className="px-3 py-1 bg-[#003828]/10 text-[#003828] font-semibold text-xs rounded-full border border-[#003828]/20 uppercase tracking-wide">ACKNOWLEDGED</div>
                                 ) : (
                                   <div className="px-3 py-1 bg-red-100 text-red-700 font-semibold text-xs rounded-full border border-red-200 uppercase tracking-wide">NOT ACKNOWLEDGED</div>
                                 )}
@@ -230,7 +230,7 @@ export default function GeneralAgreementsView({ agreements, setAgreements, curre
                        return (
                           <tr key={agreement.id} className="hover:bg-[#FDFCFB] transition-colors">
                              <td className="pl-12 pr-6 py-4 align-middle text-sm font-semibold whitespace-nowrap">
-                                <button onClick={() => setSelectedRevision(agreement)} className="text-stone-900 hover:text-[#004B36] font-bold">
+                                <button onClick={() => setSelectedRevision(agreement)} className="text-stone-900 hover:text-[#003828] font-bold">
                                     {agreement.title || 'Untitled Agreement'}
                                 </button>
                              </td>
@@ -255,7 +255,7 @@ export default function GeneralAgreementsView({ agreements, setAgreements, curre
                 <DraggableModal className="bg-white rounded-3xl p-8 max-w-4xl w-full max-h-[90vh] shadow-2xl flex flex-col animate-in zoom-in-95 duration-200 pointer-events-auto" onClick={e => e.stopPropagation()}>
                     <div className="flex justify-between items-start mb-6 border-b border-stone-100 pb-4 drag-handle cursor-grab active:cursor-grabbing touch-none shrink-0">
                         <h3 className="text-xl font-bold text-stone-900 flex items-center gap-3">
-                            <FileText className="text-[#004B36] pointer-events-none" size={24} /> 
+                            <FileText className="text-[#003828] pointer-events-none" size={24} /> 
                             <span className="pointer-events-none">Draft Agreement</span>
                         </h3>
                         <button type="button" onClick={() => setIsDraftModalOpen(false)} className="text-stone-400 hover:text-stone-600 transition-colors p-1">
@@ -270,7 +270,7 @@ export default function GeneralAgreementsView({ agreements, setAgreements, curre
                                 value={draftTitle}
                                 onChange={(e) => setDraftTitle(e.target.value)}
                                 placeholder="Enter title..." 
-                                className="w-full px-4 py-3 bg-white border border-stone-200 rounded-xl focus:ring-1 focus:ring-[#004B36] focus:border-[#004B36] outline-none text-sm font-normal text-stone-800" 
+                                className="w-full px-4 py-3 bg-white border border-stone-200 rounded-xl focus:ring-1 focus:ring-[#003828] focus:border-[#003828] outline-none text-sm font-normal text-stone-800" 
                             />
                         </div>
                         <div className="flex-1 flex flex-col min-h-[300px]">
@@ -287,7 +287,7 @@ export default function GeneralAgreementsView({ agreements, setAgreements, curre
                         </div>
                         <div className="flex justify-end gap-3 pt-4 border-t border-stone-100 shrink-0">
                             <button type="button" onClick={() => setIsDraftModalOpen(false)} className="px-5 py-2.5 bg-stone-100 text-stone-700 hover:bg-stone-200 shadow-sm font-medium rounded-xl transition-colors shrink-0">Cancel</button>
-                            <button type="submit" className="px-5 py-2.5 bg-[#004B36] text-[#FDFCFB] hover:bg-[#003828] shadow-sm font-medium rounded-xl transition-colors shrink-0">Save Draft</button>
+                            <button type="submit" className="px-5 py-2.5 bg-[#003828] text-[#FDFCFB] border border-[#003828] hover:bg-white hover:text-[#003828] hover:border-[#003828] shadow-sm font-medium rounded-xl transition-colors shrink-0">Save Draft</button>
                         </div>
                     </form>
                 </DraggableModal>
@@ -303,7 +303,7 @@ export default function GeneralAgreementsView({ agreements, setAgreements, curre
                 <DraggableModal className="bg-white rounded-3xl p-8 max-w-4xl w-full max-h-[90vh] shadow-2xl flex flex-col animate-in zoom-in-95 duration-200 pointer-events-auto" onClick={e => e.stopPropagation()}>
                     <div className="flex justify-between items-start mb-6 border-b border-stone-100 pb-4 drag-handle cursor-grab active:cursor-grabbing touch-none shrink-0">
                         <h3 className="text-xl font-bold text-stone-900 flex items-center gap-3">
-                            <History className="text-[#004B36] pointer-events-none" size={24} /> 
+                            <History className="text-[#003828] pointer-events-none" size={24} /> 
                             <span className="pointer-events-none">{selectedRevision.title || 'Agreement Revision'}</span>
                         </h3>
                         <button type="button" onClick={() => setSelectedRevision(null)} className="text-stone-400 hover:text-stone-600 transition-colors p-1">

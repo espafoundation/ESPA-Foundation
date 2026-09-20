@@ -159,7 +159,7 @@ export default function LibraryDashboard() {
   };
 
   return (
-    <div className="flex h-[calc(100dvh-80px)] bg-[#FDFCFB] overflow-hidden text-stone-800 selection:bg-[#004B36] selection:text-white">
+    <div className="flex h-[calc(100dvh-80px)] bg-[#FDFCFB] overflow-hidden text-stone-800 selection:bg-[#003828] selection:text-white">
       <FontStyles />
       <Helmet>
         <title>Library Dashboard | ESPA Foundation</title>
@@ -168,7 +168,7 @@ export default function LibraryDashboard() {
       
       {/* Mobile Header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-stone-200 z-50 flex items-center justify-between px-4 shadow-sm">
-        <LibraryLogo className="text-[#004B36] w-[100px]" />
+        <LibraryLogo className="text-[#003828] w-[100px]" />
         <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 text-stone-600 hover:bg-stone-100 rounded-full">
           {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
@@ -177,33 +177,33 @@ export default function LibraryDashboard() {
       {/* Sidebar */}
       <div className={`fixed inset-y-0 left-0 z-40 bg-white border-r border-stone-200 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:flex flex-col ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} w-64 shadow-[4px_0_24px_-8px_rgba(0,0,0,0.05)]`}>
         <div className="py-8 pl-8 pr-4 flex items-center border-b border-stone-100 hidden lg:flex shrink-0 w-full h-[120px]">
-            <LibraryLogo className="text-[#004B36] w-[150px]" />
+            <LibraryLogo className="text-[#003828] w-[150px]" />
         </div>
         <div className="flex-1 overflow-y-auto py-6 px-4 space-y-1 no-scrollbar pt-20 lg:pt-6">
           <div className="space-y-1">
-            <button onClick={() => setActiveTab('catalog')} className={`w-full flex items-center px-4 py-3 rounded-full transition-all duration-200 group ${activeTab === 'catalog' ? 'bg-[#004B36] text-[#FDFCFB] shadow-md font-semibold' : 'text-stone-600 hover:bg-stone-100 font-medium'}`}>
+            <button onClick={() => setActiveTab('catalog')} className={`w-full flex items-center px-4 py-3 rounded-full transition-all duration-200 group ${activeTab === 'catalog' ? 'bg-[#003828] text-[#FDFCFB] shadow-md font-semibold' : 'text-stone-600 hover:bg-stone-100 font-medium'}`}>
               <BookOpen size={20} strokeWidth={activeTab === 'catalog' ? 2.5 : 2} className={`shrink-0 ${activeTab === 'catalog' ? 'text-[#FDFCFB]' : 'text-stone-500 group-hover:text-stone-800'}`} />
               <span className="ml-3 text-sm">Catalog</span>
             </button>
-            <button onClick={() => setActiveTab('collections')} className={`w-full flex items-center px-4 py-3 rounded-full transition-all duration-200 group ${activeTab === 'collections' ? 'bg-[#004B36] text-[#FDFCFB] shadow-md font-semibold' : 'text-stone-600 hover:bg-stone-100 font-medium'}`}>
+            <button onClick={() => setActiveTab('collections')} className={`w-full flex items-center px-4 py-3 rounded-full transition-all duration-200 group ${activeTab === 'collections' ? 'bg-[#003828] text-[#FDFCFB] shadow-md font-semibold' : 'text-stone-600 hover:bg-stone-100 font-medium'}`}>
               <Layers size={20} strokeWidth={activeTab === 'collections' ? 2.5 : 2} className={`shrink-0 ${activeTab === 'collections' ? 'text-[#FDFCFB]' : 'text-stone-500 group-hover:text-stone-800'}`} />
               <span className="ml-3 text-sm">Collections</span>
             </button>
-            <button onClick={() => setActiveTab('featured')} className={`w-full flex items-center px-4 py-3 rounded-full transition-all duration-200 group ${activeTab === 'featured' ? 'bg-[#004B36] text-[#FDFCFB] shadow-md font-semibold' : 'text-stone-600 hover:bg-stone-100 font-medium'}`}>
+            <button onClick={() => setActiveTab('featured')} className={`w-full flex items-center px-4 py-3 rounded-full transition-all duration-200 group ${activeTab === 'featured' ? 'bg-[#003828] text-[#FDFCFB] shadow-md font-semibold' : 'text-stone-600 hover:bg-stone-100 font-medium'}`}>
               <Star size={20} strokeWidth={activeTab === 'featured' ? 2.5 : 2} className={`shrink-0 ${activeTab === 'featured' ? 'text-[#FDFCFB]' : 'text-stone-500 group-hover:text-stone-800'}`} />
               <span className="ml-3 text-sm">Featured</span>
             </button>
-            <button onClick={() => setActiveTab('recent')} className={`w-full flex items-center px-4 py-3 rounded-full transition-all duration-200 group ${activeTab === 'recent' ? 'bg-[#004B36] text-[#FDFCFB] shadow-md font-semibold' : 'text-stone-600 hover:bg-stone-100 font-medium'}`}>
+            <button onClick={() => setActiveTab('recent')} className={`w-full flex items-center px-4 py-3 rounded-full transition-all duration-200 group ${activeTab === 'recent' ? 'bg-[#003828] text-[#FDFCFB] shadow-md font-semibold' : 'text-stone-600 hover:bg-stone-100 font-medium'}`}>
               <Clock size={20} strokeWidth={activeTab === 'recent' ? 2.5 : 2} className={`shrink-0 ${activeTab === 'recent' ? 'text-[#FDFCFB]' : 'text-stone-500 group-hover:text-stone-800'}`} />
               <span className="ml-3 text-sm">Recently Added</span>
             </button>
-            <button onClick={() => setActiveTab('my-library')} className={`w-full flex items-center px-4 py-3 rounded-full transition-all duration-200 group ${activeTab === 'my-library' ? 'bg-[#004B36] text-[#FDFCFB] shadow-md font-semibold' : 'text-stone-600 hover:bg-stone-100 font-medium'}`}>
+            <button onClick={() => setActiveTab('my-library')} className={`w-full flex items-center px-4 py-3 rounded-full transition-all duration-200 group ${activeTab === 'my-library' ? 'bg-[#003828] text-[#FDFCFB] shadow-md font-semibold' : 'text-stone-600 hover:bg-stone-100 font-medium'}`}>
               <Library size={20} strokeWidth={activeTab === 'my-library' ? 2.5 : 2} className={`shrink-0 ${activeTab === 'my-library' ? 'text-[#FDFCFB]' : 'text-stone-500 group-hover:text-stone-800'}`} />
               <span className="ml-3 text-sm">My Library</span>
             </button>
           </div>
           <div className="space-y-1 mt-6">
-            <button onClick={() => setActiveTab('settings')} className={`w-full flex items-center px-4 py-3 rounded-full transition-all duration-200 group ${activeTab === 'settings' ? 'bg-[#004B36] text-[#FDFCFB] shadow-md font-semibold' : 'text-stone-600 hover:bg-stone-100 font-medium'}`}>
+            <button onClick={() => setActiveTab('settings')} className={`w-full flex items-center px-4 py-3 rounded-full transition-all duration-200 group ${activeTab === 'settings' ? 'bg-[#003828] text-[#FDFCFB] shadow-md font-semibold' : 'text-stone-600 hover:bg-stone-100 font-medium'}`}>
               <Settings size={20} strokeWidth={activeTab === 'settings' ? 2.5 : 2} className={`shrink-0 ${activeTab === 'settings' ? 'text-[#FDFCFB]' : 'text-stone-500 group-hover:text-stone-800'}`} />
               <span className="ml-3 text-sm">Settings</span>
             </button>
@@ -257,7 +257,7 @@ export default function LibraryDashboard() {
               {isLibraryAdmin && activeTab === 'catalog' && (
                 <button 
                   onClick={() => { setEditingBook({}); setShowAdminForm(true); }}
-                  className="bg-[#004B36] text-[#FDFCFB] px-6 py-2.5 rounded-full text-sm font-bold hover:bg-[#003828] transition-colors shadow-sm flex items-center gap-2"
+                  className="bg-[#003828] text-[#FDFCFB] px-6 py-2.5 rounded-full text-sm font-bold hover:bg-[#00261B] transition-colors shadow-sm flex items-center gap-2"
                 >
                   <Plus size={18} /> Add Book
                 </button>
@@ -273,7 +273,7 @@ export default function LibraryDashboard() {
                   placeholder="Search by title or author..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3.5 bg-white border border-stone-200/80 rounded-xl focus:outline-none focus:border-[#004B36] focus:ring-1 focus:ring-[#004B36] transition-all text-sm font-medium shadow-sm placeholder-stone-400"
+                  className="w-full pl-11 pr-4 py-3.5 bg-white border border-stone-200/80 rounded-xl focus:outline-none focus:border-[#003828] focus:ring-1 focus:ring-[#003828] transition-all text-sm font-medium shadow-sm placeholder-stone-400"
                 />
               </div>
               
@@ -281,7 +281,7 @@ export default function LibraryDashboard() {
                 <select 
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="px-4 py-3.5 bg-white border border-stone-200/80 rounded-xl focus:outline-none focus:border-[#004B36] focus:ring-1 focus:ring-[#004B36] cursor-pointer text-sm font-medium shadow-sm"
+                  className="px-4 py-3.5 bg-white border border-stone-200/80 rounded-xl focus:outline-none focus:border-[#003828] focus:ring-1 focus:ring-[#003828] cursor-pointer text-sm font-medium shadow-sm"
                 >
                   <option value="All">All Categories</option>
                   <option value="Bookmarks">My Bookmarks</option>
@@ -291,13 +291,13 @@ export default function LibraryDashboard() {
               <div className="flex bg-white border border-stone-200/80 rounded-xl p-1 shrink-0 shadow-sm items-center">
                 <button 
                   onClick={() => setViewMode('grid')}
-                  className={`p-2 rounded-full transition-colors ${viewMode === 'grid' ? 'bg-[#004B36]/5 text-[#004B36] ' : 'text-stone-400 hover:text-[#004B36] '}`}
+                  className={`p-2 rounded-full transition-colors ${viewMode === 'grid' ? 'bg-[#003828]/5 text-[#003828] ' : 'text-stone-400 hover:text-[#003828] '}`}
                 >
                   <Grid size={20} />
                 </button>
                 <button 
                   onClick={() => setViewMode('list')}
-                  className={`p-2 rounded-full transition-colors ${viewMode === 'list' ? 'bg-[#004B36]/5 text-[#004B36] ' : 'text-stone-400 hover:text-[#004B36] '}`}
+                  className={`p-2 rounded-full transition-colors ${viewMode === 'list' ? 'bg-[#003828]/5 text-[#003828] ' : 'text-stone-400 hover:text-[#003828] '}`}
                 >
                   <List size={20} />
                 </button>
@@ -307,9 +307,9 @@ export default function LibraryDashboard() {
             {/* Catalog View */}
             {filteredBooks.length === 0 ? (
               <div className="text-center py-20 bg-white rounded-2xl border border-stone-200/60 shadow-sm">
-                <BookOpen size={48} className="mx-auto text-[#004B36]/40 mb-4" />
+                <BookOpen size={48} className="mx-auto text-[#003828]/40 mb-4" />
                 <h3 className="text-xl font-bold mb-2">No books found</h3>
-                <p className="text-[#004B36]/60">Try adjusting your search or category filter.</p>
+                <p className="text-[#003828]/60">Try adjusting your search or category filter.</p>
               </div>
             ) : viewMode === 'grid' ? (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
@@ -319,24 +319,24 @@ export default function LibraryDashboard() {
                     className="group relative cursor-pointer"
                     onClick={() => setSelectedBook(book)}
                   >
-                    <div className="aspect-[2/3] w-full bg-neutral-200 rounded-xl overflow-hidden shadow-sm group-hover:shadow-xl transition-all duration-300 border border-[#004B36]/10 relative">
+                    <div className="aspect-[2/3] w-full bg-neutral-200 rounded-xl overflow-hidden shadow-sm group-hover:shadow-xl transition-all duration-300 border border-[#003828]/10 relative">
                       <img src={book.coverUrl} alt={book.title} className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-[#004B36]/0 group-hover:bg-[#004B36]/20 transition-colors" />
+                      <div className="absolute inset-0 bg-[#003828]/0 group-hover:bg-[#003828]/20 transition-colors" />
                     </div>
                     <div className="mt-4">
-                      <h3 className="font-bold text-sm leading-tight mb-1 group-hover:text-[#004B36] transition-colors">{book.title}</h3>
-                      <p className="text-xs text-[#004B36]/60">{book.author}</p>
+                      <h3 className="font-bold text-sm leading-tight mb-1 group-hover:text-[#003828] transition-colors">{book.title}</h3>
+                      <p className="text-xs text-[#003828]/60">{book.author}</p>
                     </div>
                     {isLibraryAdmin && (
                       <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                        <button onClick={(e) => openEdit(book, e)} className="p-2 bg-white/90 text-[#004B36] rounded-full hover:bg-white shadow-sm backdrop-blur-sm"><Edit size={14} /></button>
+                        <button onClick={(e) => openEdit(book, e)} className="p-2 bg-white/90 text-[#003828] rounded-full hover:bg-white shadow-sm backdrop-blur-sm"><Edit size={14} /></button>
                         <button onClick={(e) => handleDelete(book.id, e)} className="p-2 bg-white/90 text-red-600 rounded-full hover:bg-white shadow-sm backdrop-blur-sm"><Trash2 size={14} /></button>
                       </div>
                     )}
                        
                     <button 
                       onClick={(e) => toggleBookmark(book.id, e)} 
-                      className={`absolute top-2 ${isLibraryAdmin ? 'left-2' : 'right-2'} p-2 rounded-full backdrop-blur-sm shadow-sm transition-all z-10 ${bookmarks.includes(book.id) ? 'bg-[#004B36] text-white opacity-100' : 'bg-white/90 text-stone-400 hover:text-[#004B36] opacity-0 group-hover:opacity-100'}`}
+                      className={`absolute top-2 ${isLibraryAdmin ? 'left-2' : 'right-2'} p-2 rounded-full backdrop-blur-sm shadow-sm transition-all z-10 ${bookmarks.includes(book.id) ? 'bg-[#003828] text-white opacity-100' : 'bg-white/90 text-stone-400 hover:text-[#003828] opacity-0 group-hover:opacity-100'}`}
                     >
                       <Bookmark size={16} fill={bookmarks.includes(book.id) ? "currentColor" : "none"} />
                     </button>
@@ -349,15 +349,15 @@ export default function LibraryDashboard() {
                   <div 
                     key={book.id}
                     onClick={() => setSelectedBook(book)}
-                    className="flex items-center gap-6 bg-white p-4 rounded-2xl border border-stone-200/80 cursor-pointer hover:border-[#004B36]/50 transition-colors shadow-sm group"
+                    className="flex items-center gap-6 bg-white p-4 rounded-2xl border border-stone-200/80 cursor-pointer hover:border-[#003828]/50 transition-colors shadow-sm group"
                   >
                     <div className="w-16 h-24 shrink-0 rounded-lg overflow-hidden bg-neutral-200 ">
                       <img src={book.coverUrl} alt={book.title} className="w-full h-full object-cover" />
                     </div>
                     <div className="flex-grow">
-                      <h3 className="font-bold text-lg mb-1 group-hover:text-[#004B36] transition-colors">{book.title}</h3>
-                      <p className="text-[#004B36]/60 text-sm mb-2">{book.author}</p>
-                      <span className="text-xs font-bold bg-[#004B36]/5 px-2 py-1 rounded-md">{book.category}</span>
+                      <h3 className="font-bold text-lg mb-1 group-hover:text-[#003828] transition-colors">{book.title}</h3>
+                      <p className="text-[#003828]/60 text-sm mb-2">{book.author}</p>
+                      <span className="text-xs font-bold bg-[#003828]/5 px-2 py-1 rounded-md">{book.category}</span>
                     </div>
                     <div className="text-right hidden sm:block px-4">
                       <p className="text-xs text-stone-400 uppercase tracking-wider mb-1">Added</p>
@@ -366,14 +366,14 @@ export default function LibraryDashboard() {
                        
                     {isLibraryAdmin && (
                       <div className="flex gap-2 px-2 shrink-0">
-                        <button onClick={(e) => openEdit(book, e)} className="p-2 text-stone-400 hover:text-[#004B36] transition-colors"><Edit size={18} /></button>
+                        <button onClick={(e) => openEdit(book, e)} className="p-2 text-stone-400 hover:text-[#003828] transition-colors"><Edit size={18} /></button>
                         <button onClick={(e) => handleDelete(book.id, e)} className="p-2 text-stone-400 hover:text-red-500 transition-colors"><Trash2 size={18} /></button>
                       </div>
                     )}
                        
                     <button 
                       onClick={(e) => toggleBookmark(book.id, e)} 
-                      className={`p-2 rounded-full transition-colors shrink-0 ${bookmarks.includes(book.id) ? 'text-[#004B36]' : 'text-stone-300 hover:text-[#004B36]'}`}
+                      className={`p-2 rounded-full transition-colors shrink-0 ${bookmarks.includes(book.id) ? 'text-[#003828]' : 'text-stone-300 hover:text-[#003828]'}`}
                     >
                       <Bookmark size={20} fill={bookmarks.includes(book.id) ? "currentColor" : "none"} />
                     </button>

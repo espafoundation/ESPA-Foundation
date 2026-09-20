@@ -56,10 +56,10 @@ export default function EditableText({ id, defaultText, as: Component = 'span', 
  {isAdmin && (
  <>
  {/* Edit overlay trigger */}
- <span className="absolute -inset-2 bg-[#004B36]/50/10 border border-[#004B36]/50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex items-start justify-end pointer-events-none">
+ <span className="absolute -inset-2 bg-[#003828]/50/10 border border-[#003828]/50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex items-start justify-end pointer-events-none">
  <button 
  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setTempText(text); setIsEditing(true); }}
- className="bg-[#004B36] text-white p-1.5 rounded-bl-lg rounded-tr-lg shadow-sm pointer-events-auto hover:bg-[#003828]"
+ className="bg-[#003828] text-white p-1.5 rounded-bl-lg rounded-tr-lg shadow-sm pointer-events-auto border border-[#003828] hover:bg-white hover:text-[#003828] hover:border-[#003828]"
  title="Edit Text"
  >
  <Edit2 size={14} />
@@ -70,24 +70,24 @@ export default function EditableText({ id, defaultText, as: Component = 'span', 
  
  {isEditing && createPortal(
             <div
- className="fixed inset-0 bg-[#004B36]/60 flex items-center justify-center p-4 z-[100] backdrop-blur-sm"
+ className="fixed inset-0 bg-[#003828]/60 flex items-center justify-center p-4 z-[100] backdrop-blur-sm"
  onClick={e => e.stopPropagation()}
  >
  <div className="bg-white p-5 rounded-xl shadow-2xl w-full max-w-lg text-left text-base font-sans font-normal tracking-normal normal-case leading-normal" onClick={e => e.stopPropagation()}>
- <h4 className="text-xl font-bold mb-4 text-[#004B36] ">Edit Content</h4>
+ <h4 className="text-xl font-bold mb-4 text-[#003828] ">Edit Content</h4>
  {Component === 'p' ? (
  <textarea 
  value={tempText}
  onChange={(e) => setTempText(e.target.value)}
  rows={5}
- className="w-full px-4 py-3 bg-[#004B36]/5 border border-neutral-300 rounded-lg mb-4 text-base focus:outline-none focus:ring-2 focus:ring-[#004B36] text-[#004B36] resize-none"
+ className="w-full px-4 py-3 bg-[#003828]/5 border border-neutral-300 rounded-lg mb-4 text-base focus:outline-none focus:ring-2 focus:ring-[#003828] text-[#003828] resize-none"
  />
  ) : (
  <input 
  type="text" 
  value={tempText}
  onChange={(e) => setTempText(e.target.value)}
- className="w-full px-4 py-3 bg-[#004B36]/5 border border-neutral-300 rounded-lg mb-4 text-base focus:outline-none focus:ring-2 focus:ring-[#004B36] text-[#004B36] "
+ className="w-full px-4 py-3 bg-[#003828]/5 border border-neutral-300 rounded-lg mb-4 text-base focus:outline-none focus:ring-2 focus:ring-[#003828] text-[#003828] "
  />
  )}
  <div className="flex justify-between items-center mt-2">
@@ -100,13 +100,13 @@ export default function EditableText({ id, defaultText, as: Component = 'span', 
  <div className="flex gap-2">
  <button 
  onClick={handleCancel}
- className="px-4 py-2 text-[#004B36]/70 hover:bg-[#004B36]/5 :bg-[#003828] rounded-full transition-colors font-medium flex items-center gap-2"
+ className="px-4 py-2 text-[#003828]/70 hover:bg-[#003828]/5 :bg-[#00261B] rounded-full transition-colors font-medium flex items-center gap-2"
  >
  <X size={16} /> Cancel
  </button>
  <button 
  onClick={handleSave}
- className="px-4 py-2 text-white bg-[#004B36] hover:bg-[#003828] rounded-full transition-colors font-medium flex items-center gap-2 shadow-sm"
+ className="px-4 py-2 text-white bg-[#003828] border border-[#003828] hover:bg-white hover:text-[#003828] hover:border-[#003828] rounded-full transition-colors font-medium flex items-center gap-2 shadow-sm"
  >
  <Check size={16} /> Save
  </button>

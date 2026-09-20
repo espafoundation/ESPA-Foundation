@@ -3,91 +3,74 @@ import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, ChevronDown } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
-import { useLanguage } from '../contexts/LanguageContext';
 
 export default function Navigation() {
-    const [isScrolled, setIsScrolled] = useState(false);
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  
-  const [isServicesOpen, setIsServicesOpen] = useState(false);
-  const [isMoreOpen, setIsMoreOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { isAuthenticated, user, logout } = useAuth();
-  const { t } = useLanguage();
   const location = useLocation();
 
-  const isHome = location.pathname === '/';
+  // Close mobile menu on route change
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [location.pathname]);
 
-  const NavLink = ({ href, children }: { href: string, children: React.ReactNode }) => {
-    if (isHome) {
-      return (
-        <a href={href} className="text-sm font-medium hover:text-[#004B36]/60 transition-colors">
-          {children}
-        </a>
-      );
+  // Close mobile menu on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsMobileMenuOpen(false);
+      }
+    };
+    if (isMobileMenuOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
     }
-    return (
-      <Link to={`/${href}`} className="text-sm font-medium hover:text-[#004B36]/60 transition-colors">
-        {children}
-      </Link>
-    );
-  };
-
-  
+  }, [isMobileMenuOpen]);
 
   return (
     <nav 
-      className="fixed top-0 left-0 right-0 z-[999] px-8 py-4 flex items-center justify-between bg-white shadow-sm border-b border-[#004B36]/5"
+      className="fixed top-0 left-0 right-0 z-[999] px-4 sm:px-6 md:px-8 py-3 sm:py-4 flex items-center justify-between bg-white shadow-xs border-b border-[#003828]/5"
     >
-      <Link to="/" className="flex items-center gap-2 z-50 relative"><svg className="h-7 md:h-9 text-[#004B36] w-auto" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-<g clipPath="url(#clip0_350_59)">
-<path d="M188.9 99.9202V203.487H21.8804V299.761H188.9V412.08H0V512H313.618V0H0V99.9202H188.9Z" fill="currentColor"/>
-<path d="M512.211 0V99.9202H303.618V207.863H459.698V304.866H303.618V512H251.001L251 0H512.211Z" fill="currentColor"/>
-</g>
-<defs>
-<clipPath id="clip0_350_59">
-<rect width="512" height="512" fill="white"/>
-</clipPath>
-</defs>
-</svg></Link>
+      <Link to="/" className="flex items-center gap-2 z-50 relative" aria-label="ESPA Foundation Home">
+        <svg className="h-7 md:h-9 text-[#003828] w-auto" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g clipPath="url(#clip0_350_59)">
+            <path d="M188.9 99.9202V203.487H21.8804V299.761H188.9V412.08H0V512H313.618V0H0V99.9202H188.9Z" fill="currentColor"/>
+            <path d="M512.211 0V99.9202H303.618V207.863H459.698V304.866H303.618V512H251.001L251 0H512.211Z" fill="currentColor"/>
+          </g>
+          <defs>
+            <clipPath id="clip0_350_59">
+              <rect width="512" height="512" fill="white"/>
+            </clipPath>
+          </defs>
+        </svg>
+      </Link>
 
-      <div className="flex items-center gap-4 md:gap-8">
+      <div className="flex items-center gap-3 sm:gap-4 md:gap-8">
         <div className="hidden md:flex items-center gap-8 text-sm font-medium tracking-wide">
           <div className="relative group">
-            <span className="cursor-pointer text-sm font-medium text-[#004B36] hover:text-[#004B36]/60 transition-colors flex items-center gap-1 py-2">
+            <span className="cursor-pointer text-sm font-medium text-[#003828] hover:text-[#003828]/60 transition-colors flex items-center gap-1 py-2">
               Services
               <ChevronDown size={14} className="group-hover:rotate-180 transition-transform duration-200" />
             </span>
-            <div className="absolute top-full left-0 mt-0 w-48 bg-white border border-[#004B36]/10 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 py-2 flex flex-col overflow-hidden z-[100]">
-              <a href="https://library.espafoundation.social" className="px-4 py-2.5 text-sm hover:bg-[#004B36]/5 transition-colors">Digital Library</a>
-              <a href="https://esign.espafoundation.social" className="px-4 py-2.5 text-sm hover:bg-[#004B36]/5 transition-colors">Digital Signature</a>
-              <a href="https://pos.espafoundation.social" className="px-4 py-2.5 text-sm hover:bg-[#004B36]/5 transition-colors">Point-of-Sale</a>
-              <a href="https://ecard.espafoundation.social" className="px-4 py-2.5 text-sm hover:bg-[#004B36]/5 transition-colors">Virtual Card</a>
+            <div className="absolute top-full left-0 mt-0 w-48 bg-white border border-[#003828]/10 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 py-2 flex flex-col overflow-hidden z-[100]">
+              <a href="https://library.espafoundation.social" className="px-4 py-2.5 text-sm hover:bg-[#003828]/5 transition-colors">Digital Library</a>
+              <a href="https://esign.espafoundation.social" className="px-4 py-2.5 text-sm hover:bg-[#003828]/5 transition-colors">Digital Signature</a>
+              <a href="https://pos.espafoundation.social" className="px-4 py-2.5 text-sm hover:bg-[#003828]/5 transition-colors">Point-of-Sale</a>
+              <a href="https://ecard.espafoundation.social" className="px-4 py-2.5 text-sm hover:bg-[#003828]/5 transition-colors">Virtual Card</a>
             </div>
           </div>
           
-          <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.1 }}>
-            <Link to="/about" className="text-sm font-medium text-[#004B36] hover:text-[#004B36]/60 transition-colors flex items-center gap-1 py-2">
-              About Us
-            </Link>
-          </motion.div>
+          <Link to="/about" className="text-sm font-medium text-[#003828] hover:text-[#003828]/60 transition-colors flex items-center gap-1 py-2">
+            About Us
+          </Link>
 
-          <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.2 }}>
-            <Link to="/contact" className="text-sm font-medium text-[#004B36] hover:text-[#004B36]/60 transition-colors flex items-center gap-1 py-2">
-              Contact Us
-            </Link>
-          </motion.div>
+          <Link to="/contact" className="text-sm font-medium text-[#003828] hover:text-[#003828]/60 transition-colors flex items-center gap-1 py-2">
+            Contact Us
+          </Link>
         </div>
 
-        <div className="flex items-center gap-3">
-          <Link to="/donate" className="hidden md:flex text-sm font-medium tracking-wide text-white bg-[#004B36] px-5 py-2.5 rounded-full hover:bg-[#003828] transition-colors items-center gap-2">Donate</Link>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <Link to="/donate" className="hidden md:flex text-sm font-medium tracking-wide text-white bg-[#003828] border border-[#003828] px-5 py-2.5 rounded-full hover:bg-white hover:text-[#003828] hover:border-[#003828] transition-all items-center gap-2">Donate</Link>
           {isAuthenticated ? (
             <Link 
               to={user?.role?.includes("library") ? "/library/dashboard" : "/management"}
@@ -96,66 +79,71 @@ const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
                   window.localStorage.removeItem('ain_activeTab');
                 }
               }}
-              className="hidden md:flex text-sm font-medium tracking-wide text-[#004B36] bg-white border border-[#004B36] px-5 py-2.5 rounded-full hover:bg-[#004B36]/5 transition-colors items-center gap-2"
+              className="hidden md:flex text-sm font-medium tracking-wide text-[#003828] bg-white border border-[#003828] px-5 py-2.5 rounded-full hover:bg-[#003828] hover:text-white hover:border-[#003828] transition-all items-center gap-2"
             >
               {user?.name || "Dashboard"}
             </Link>
           ) : (
-            <Link to="/login" className="hidden md:flex text-sm font-medium tracking-wide text-[#004B36] bg-white border border-[#004B36] px-5 py-2.5 rounded-full hover:bg-[#004B36]/5 transition-colors items-center gap-2">
+            <Link to="/login" className="hidden md:flex text-sm font-medium tracking-wide text-[#003828] bg-white border border-[#003828] px-5 py-2.5 rounded-full hover:bg-[#003828] hover:text-white hover:border-[#003828] transition-all items-center gap-2">
               Login
             </Link>
           )}
-          <button className="md:hidden ml-2 p-2 rounded-full transition-colors text-[#004B36] hover:bg-[#004B36]/5" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
-            {isMobileMenuOpen ? <X size={24} color="#004B36" /> : <Menu size={24} color="#004B36" />}
+          <button 
+            className="md:hidden p-2 rounded-full transition-colors text-[#003828] hover:bg-[#003828]/5 touch-manipulation cursor-pointer" 
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            aria-label="Toggle Navigation Menu"
+            aria-expanded={isMobileMenuOpen}
+          >
+            {isMobileMenuOpen ? <X size={24} color="#003828" /> : <Menu size={24} color="#003828" />}
           </button>
         </div>
       </div>
 
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
-        <div
-          className="absolute top-full left-0 right-0 bg-white border-b border-[#004B36]/10 shadow-xl flex flex-col py-4 px-6 gap-4 md:hidden"
-        >
-          <div className="flex flex-col gap-2">
-            <Link to="/donate" onClick={() => setIsMobileMenuOpen(false)} className="text-sm font-medium text-white bg-[#004B36] px-4 py-3 rounded-full hover:bg-[#003828] transition-colors text-center mb-2 block">Donate</Link>
-            {isAuthenticated ? (
-              <div className="flex flex-col gap-2">
-                <Link to={user?.role?.includes("library") ? "/library/dashboard" : "/management"} onClick={() => { setIsMobileMenuOpen(false); if (typeof window !== 'undefined') window.localStorage.removeItem('ain_activeTab'); }} className="text-sm font-medium text-[#004B36] bg-white border border-[#004B36] px-4 py-3 rounded-full hover:bg-[#004B36]/5 transition-colors text-center">
-                  {user?.name || "Dashboard"}
+        <>
+          <div 
+            className="fixed inset-0 top-[65px] bg-black/20 z-[998] md:hidden backdrop-blur-xs animate-in fade-in duration-200"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+          <div
+            className="absolute top-full left-0 right-0 bg-white border-b border-[#003828]/10 shadow-xl flex flex-col py-5 px-6 gap-4 md:hidden z-[999] animate-in slide-in-from-top-2 duration-200"
+          >
+            <div className="flex flex-col gap-2">
+              <Link to="/donate" onClick={() => setIsMobileMenuOpen(false)} className="text-sm font-medium text-white bg-[#003828] border border-[#003828] px-4 py-3 rounded-full hover:bg-white hover:text-[#003828] hover:border-[#003828] transition-all text-center mb-2 block touch-manipulation">Donate</Link>
+              {isAuthenticated ? (
+                <div className="flex flex-col gap-2">
+                  <Link to={user?.role?.includes("library") ? "/library/dashboard" : "/management"} onClick={() => { setIsMobileMenuOpen(false); if (typeof window !== 'undefined') window.localStorage.removeItem('ain_activeTab'); }} className="text-sm font-medium text-[#003828] bg-white border border-[#003828] px-4 py-3 rounded-full hover:bg-[#003828] hover:text-white hover:border-[#003828] transition-all text-center touch-manipulation">
+                    {user?.name || "Dashboard"}
+                  </Link>
+                  <button 
+                    onClick={() => { setIsMobileMenuOpen(false); logout(); }}
+                    className="text-sm font-medium text-red-600 bg-red-50 px-4 py-3 rounded-full hover:bg-red-100 transition-colors text-center touch-manipulation"
+                  >
+                    Log out
+                  </button>
+                </div>
+              ) : (
+                <Link to="/login" onClick={() => setIsMobileMenuOpen(false)} className="text-sm font-medium text-[#003828] bg-white border border-[#003828] px-4 py-3 rounded-full hover:bg-[#003828] hover:text-white hover:border-[#003828] transition-all text-center mb-2 touch-manipulation">
+                  Login
                 </Link>
-                <button 
-                  onClick={() => { setIsMobileMenuOpen(false); logout(); }}
-                  className="text-sm font-medium text-red-600 bg-red-50 px-4 py-3 rounded-full hover:bg-red-100 transition-colors text-center"
-                >
-                  Log out
-                </button>
-              </div>
-            ) : (
-              <Link to="/login" onClick={() => setIsMobileMenuOpen(false)} className="text-sm font-medium text-[#004B36] bg-white border border-[#004B36] px-4 py-3 rounded-full hover:bg-[#004B36]/5 transition-colors text-center mb-2">
-                Login
-              </Link>
-            )}
-            <span className="text-xs font-bold text-[#004B36]/50 uppercase tracking-wider mb-2 mt-4 block">
-              Services
-            </span>
-            <a href="https://library.espafoundation.social" onClick={() => setIsMobileMenuOpen(false)} className="text-sm font-medium text-[#004B36] hover:text-[#004B36]/80 transition-colors">Digital Library</a>
-            <a href="https://esign.espafoundation.social" onClick={() => setIsMobileMenuOpen(false)} className="text-sm font-medium text-[#004B36] hover:text-[#004B36]/80 transition-colors">Digital Signature</a>
-            <a href="https://pos.espafoundation.social" onClick={() => setIsMobileMenuOpen(false)} className="text-sm font-medium text-[#004B36] hover:text-[#004B36]/80 transition-colors">Point-of-Sale</a>
-            <a href="https://ecard.espafoundation.social" onClick={() => setIsMobileMenuOpen(false)} className="text-sm font-medium text-[#004B36] hover:text-[#004B36]/80 transition-colors">Virtual Card</a>
+              )}
+              <span className="text-xs font-bold text-[#003828]/50 uppercase tracking-wider mb-2 mt-4 block">
+                Services
+              </span>
+              <a href="https://library.espafoundation.social" onClick={() => setIsMobileMenuOpen(false)} className="text-sm font-medium text-[#003828] hover:text-[#003828]/80 transition-colors py-1">Digital Library</a>
+              <a href="https://esign.espafoundation.social" onClick={() => setIsMobileMenuOpen(false)} className="text-sm font-medium text-[#003828] hover:text-[#003828]/80 transition-colors py-1">Digital Signature</a>
+              <a href="https://pos.espafoundation.social" onClick={() => setIsMobileMenuOpen(false)} className="text-sm font-medium text-[#003828] hover:text-[#003828]/80 transition-colors py-1">Point-of-Sale</a>
+              <a href="https://ecard.espafoundation.social" onClick={() => setIsMobileMenuOpen(false)} className="text-sm font-medium text-[#003828] hover:text-[#003828]/80 transition-colors py-1">Virtual Card</a>
+            </div>
+            
+            <div className="flex flex-col gap-3 pt-3 border-t border-stone-100">
+              <Link to="/about" onClick={() => setIsMobileMenuOpen(false)} className="text-sm font-medium text-[#003828] hover:text-[#003828]/80 transition-colors font-bold py-1">About Us</Link>
+              <Link to="/contact" onClick={() => setIsMobileMenuOpen(false)} className="text-sm font-medium text-[#003828] hover:text-[#003828]/80 transition-colors font-bold py-1">Contact Us</Link>
+            </div>
           </div>
-          
-          <div className="flex flex-col gap-4 mt-2">
-            <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.2, delay: 0.1 }}>
-              <Link to="/about" onClick={() => setIsMobileMenuOpen(false)} className="text-sm font-medium text-[#004B36] hover:text-[#004B36]/80 transition-colors font-bold">About Us</Link>
-            </motion.div>
-
-            <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.2, delay: 0.15 }}>
-              <Link to="/contact" onClick={() => setIsMobileMenuOpen(false)} className="text-sm font-medium text-[#004B36] hover:text-[#004B36]/80 transition-colors font-bold">Contact Us</Link>
-            </motion.div>
-          </div>
-        </div>
+        </>
       )}
-    
-      </nav>
+    </nav>
   );
 }

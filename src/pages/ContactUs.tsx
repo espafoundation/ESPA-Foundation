@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { Helmet } from 'react-helmet-async';
 import ReCAPTCHA from "react-google-recaptcha";
+import { RECAPTCHA_SITE_KEY } from "../config/recaptcha";
 
 export default function ContactUs() {
   const recaptchaRef = useRef<ReCAPTCHA>(null);
@@ -14,12 +15,12 @@ export default function ContactUs() {
       </Helmet>
       
       <div className="max-w-2xl w-full text-center">
-        <h1 className="font-display text-3xl md:text-5xl font-bold tracking-tight text-[#004B36] mb-6">Contact Us</h1>
-        <p className="font-sans text-xl font-normal text-[#004B36]/70 leading-relaxed mb-12">
+        <h1 className="font-display text-3xl md:text-5xl font-bold tracking-tight text-[#003828] mb-6">Contact Us</h1>
+        <p className="font-sans text-xl font-normal text-[#003828]/70 leading-relaxed mb-12">
           Have questions or want to get involved? We'd love to hear from you.
         </p>
         
-        <div className="bg-[#004B36] p-8 rounded-3xl border border-[#004B36]/10 text-left shadow-lg">
+        <div className="bg-[#003828] p-8 rounded-3xl border border-[#003828]/10 text-left shadow-lg">
           <form className="flex flex-col gap-6" onSubmit={async (e) => {
             e.preventDefault();
             const form = e.currentTarget;
@@ -78,11 +79,11 @@ export default function ContactUs() {
             <div className="flex justify-center my-2">
               <ReCAPTCHA
                 ref={recaptchaRef}
-                sitekey="6LfwCZYtAAAAAJfP8Lp_sa-rZjiIEFbC8SIhi0EW"
+                sitekey={RECAPTCHA_SITE_KEY}
                 theme="dark"
               />
             </div>
-            <button type="submit" className="w-full bg-white text-[#004B36] py-4 rounded-full font-bold hover:bg-neutral-200 transition-colors mt-2">
+            <button type="submit" className="w-full bg-white text-[#003828] border border-white py-4 rounded-full font-bold hover:bg-[#003828] hover:text-white hover:border-[#003828] transition-all mt-2 cursor-pointer shadow-md">
               Send Message
             </button>
           </form>

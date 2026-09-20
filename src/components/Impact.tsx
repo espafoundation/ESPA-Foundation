@@ -22,19 +22,19 @@ export default function Impact() {
   ];
 
   return (
-    <section id="impact" className="bg-white text-[#004B36] transition-colors duration-300 overflow-hidden relative">
+    <section id="impact" className="bg-white text-[#003828] transition-colors duration-300 overflow-hidden relative">
       <div className="max-w-7xl mx-auto px-6 md:px-12">
         <div>
           <div className="text-center mb-12 md:mb-20">
             <h3 className="font-display text-lg font-bold mb-2 md:mb-3">Glimpses of Impact</h3>
-            <p className="text-[#004B36]/70 ">Real stories from the classrooms we've helped build.</p>
+            <p className="text-[#003828]/70 ">Real stories from the classrooms we've helped build.</p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
             {photos.map((src, i) => (
               <div
                 key={src}
                 onClick={() => setSelectedImg(src)}
-                className="aspect-square rounded-2xl overflow-hidden cursor-pointer bg-[#003828]"
+                className="aspect-square rounded-2xl overflow-hidden cursor-pointer bg-[#00261B]"
               >
                 <img
                   src={src}
@@ -49,7 +49,7 @@ export default function Impact() {
 
       {selectedImg && (
         <div 
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#004B36]/90 backdrop-blur-sm cursor-pointer"
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#003828]/90 backdrop-blur-sm cursor-pointer"
           onClick={() => setSelectedImg(null)}
         >
           <img 

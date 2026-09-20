@@ -112,9 +112,6 @@ export default function LibraryLogin() {
     setIsVerifying(true);
     setError('');
     
-    // Simulate backend verification delay
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
     if (otpCode !== expectedOtp) {
       setError('Invalid verification code');
       setIsVerifying(false);
@@ -157,7 +154,7 @@ export default function LibraryLogin() {
       </Helmet>
       <FontStyles />
       
-      <div className="hidden lg:flex w-1/2 bg-[#004B36] relative overflow-hidden flex-col justify-between p-12">
+      <div className="hidden lg:flex w-1/2 bg-[#003828] relative overflow-hidden flex-col justify-between p-12">
           <div className="relative z-10">
               <LibraryLogo className="text-white w-96 mb-8" />
               
@@ -170,13 +167,13 @@ export default function LibraryLogin() {
           
           <div className="absolute inset-0 opacity-10 pointer-events-none mix-blend-overlay bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
           <div className="absolute -bottom-[20%] -right-[10%] w-[80%] h-[80%] bg-[#005c42] rounded-full blur-[120px] pointer-events-none"></div>
-          <div className="absolute top-[10%] -left-[20%] w-[50%] h-[50%] bg-[#003828] rounded-full blur-[100px] pointer-events-none"></div>
+          <div className="absolute top-[10%] -left-[20%] w-[50%] h-[50%] bg-[#00261B] rounded-full blur-[100px] pointer-events-none"></div>
       </div>
       
       <div className="w-full lg:w-[70%] flex items-center justify-center p-8 lg:p-24 relative bg-[#FDFCFB]">
         <div className="w-full max-w-[400px]">
           <div className="lg:hidden mb-12 flex justify-center">
-              <LibraryLogo className="text-[#004B36] w-96" />
+              <LibraryLogo className="text-[#003828] w-96" />
           </div>
           <div className="mb-10 text-center lg:text-left">
             <h2 className="text-3xl font-bold text-stone-900 tracking-tight">{isSignUp ? 'Sign Up' : 'Login'}</h2>
@@ -196,7 +193,7 @@ export default function LibraryLogin() {
                     maxLength={6}
                     value={otpCode}
                     onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
-                    className="w-full px-4 py-3.5 text-center tracking-[1em] font-mono text-2xl bg-white border border-stone-200/80 rounded-xl focus:outline-none focus:border-[#004B36] focus:ring-1 focus:ring-[#004B36] transition-all placeholder-stone-400"
+                    className="w-full px-4 py-3.5 text-center tracking-[1em] font-mono text-2xl bg-white border border-stone-200/80 rounded-xl focus:outline-none focus:border-[#003828] focus:ring-1 focus:ring-[#003828] transition-all placeholder-stone-400"
                     placeholder="••••••"
                     required
                   />
@@ -208,7 +205,7 @@ export default function LibraryLogin() {
                   </div>
                 )}
                 
-                <button disabled={isVerifying} type="submit" className="w-full py-3.5 bg-[#004B36] text-[#FDFCFB] rounded-full font-bold hover:bg-[#003828] transition-all transform hover:-translate-y-0.5 shadow-md flex items-center justify-center gap-2 text-sm mt-8 disabled:opacity-70 disabled:transform-none">
+                <button disabled={isVerifying} type="submit" className="w-full py-3.5 bg-[#003828] text-white border border-[#003828] rounded-full font-bold hover:bg-white hover:text-[#003828] hover:border-[#003828] transition-all transform hover:-translate-y-0.5 shadow-md flex items-center justify-center gap-2 text-sm mt-8 disabled:opacity-70 disabled:transform-none cursor-pointer">
                   {isVerifying ? (
                     <span className="flex items-center gap-2">
                       <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -241,7 +238,7 @@ export default function LibraryLogin() {
                         type="text" 
                         value={signupName}
                         onChange={(e) => setSignupName(e.target.value)}
-                        className="w-full pl-11 pr-4 py-3.5 bg-white border border-stone-200/80 rounded-xl focus:outline-none focus:border-[#004B36] focus:ring-1 focus:ring-[#004B36] transition-all text-sm font-medium shadow-sm placeholder-stone-400"
+                        className="w-full pl-11 pr-4 py-3.5 bg-white border border-stone-200/80 rounded-xl focus:outline-none focus:border-[#003828] focus:ring-1 focus:ring-[#003828] transition-all text-sm font-medium shadow-sm placeholder-stone-400 text-stone-900"
                         placeholder="Enter full name"
                         required
                       />
@@ -256,7 +253,7 @@ export default function LibraryLogin() {
                       type="text" 
                       value={loginEmail}
                       onChange={(e) => setLoginEmail(e.target.value)}
-                      className="w-full pl-11 pr-4 py-3.5 bg-white border border-stone-200/80 rounded-xl focus:outline-none focus:border-[#004B36] focus:ring-1 focus:ring-[#004B36] transition-all text-sm font-medium shadow-sm placeholder-stone-400"
+                      className="w-full pl-11 pr-4 py-3.5 bg-white border border-stone-200/80 rounded-xl focus:outline-none focus:border-[#003828] focus:ring-1 focus:ring-[#003828] transition-all text-sm font-medium shadow-sm placeholder-stone-400 text-stone-900"
                       placeholder={`Enter email${isSignUp ? '' : ' or username'}`}
                       required
                     />
@@ -274,7 +271,7 @@ export default function LibraryLogin() {
                       type={showPassword ? "text" : "password"} 
                       value={loginPassword}
                       onChange={(e) => setLoginPassword(e.target.value)}
-                      className="w-full pl-11 pr-12 py-3.5 bg-white border border-stone-200/80 rounded-xl focus:outline-none focus:border-[#004B36] focus:ring-1 focus:ring-[#004B36] transition-all text-sm font-medium shadow-sm placeholder-stone-400"
+                      className="w-full pl-11 pr-12 py-3.5 bg-white border border-stone-200/80 rounded-xl focus:outline-none focus:border-[#003828] focus:ring-1 focus:ring-[#003828] transition-all text-sm font-medium shadow-sm placeholder-stone-400 text-stone-900"
                       placeholder="••••••••"
                       required
                     />
@@ -303,7 +300,7 @@ export default function LibraryLogin() {
                   </div>
                 )}
 
-                <button disabled={isSending} type="submit" className="w-full py-3.5 bg-[#004B36] text-[#FDFCFB] rounded-full font-bold hover:bg-[#003828] transition-all transform hover:-translate-y-0.5 shadow-md flex items-center justify-center gap-2 text-sm mt-8 disabled:opacity-70 disabled:transform-none">
+                <button disabled={isSending} type="submit" className="w-full py-3.5 bg-[#003828] text-white border border-[#003828] rounded-full font-bold hover:bg-white hover:text-[#003828] hover:border-[#003828] transition-all transform hover:-translate-y-0.5 shadow-md flex items-center justify-center gap-2 text-sm mt-8 disabled:opacity-70 disabled:transform-none cursor-pointer">
                   {isSending ? (
                     <span className="flex items-center gap-2">
                       <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -321,7 +318,7 @@ export default function LibraryLogin() {
                   <button 
                     type="button"
                     onClick={() => { setIsSignUp(!isSignUp); setError(''); }}
-                    className="text-[#004B36] text-sm font-semibold hover:underline"
+                    className="text-[#003828] text-sm font-semibold hover:underline"
                   >
                     {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
                   </button>

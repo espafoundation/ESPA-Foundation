@@ -1,6 +1,5 @@
 import { Toaster } from 'react-hot-toast';
-import React from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { LanguageProvider } from './contexts/LanguageContext';
@@ -10,6 +9,39 @@ import Navigation from './components/Navigation';
 import Footer from './components/Footer';
 import Modals from './components/Modals';
 import ScrollToTop from './components/ScrollToTop';
+import ErrorBoundary from './components/ErrorBoundary';
+
+// Keep Home static for instant zero-latency landing page render
+import Home from './pages/Home';
+
+// Lazy-load secondary and management routes to keep initial bundle tiny and fast
+const AboutUs = lazy(() => import('./pages/AboutUs'));
+const ContactUs = lazy(() => import('./pages/ContactUs'));
+const Donate = lazy(() => import('./pages/Donate'));
+const Login = lazy(() => import('./pages/Login'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const LibraryLogin = lazy(() => import('./pages/LibraryLogin'));
+const LibraryDashboard = lazy(() => import('./pages/LibraryDashboard'));
+const VCardLogin = lazy(() => import('./pages/VCardLogin'));
+const DigitalSignature = lazy(() => import('./pages/DigitalSignature'));
+const POSPlaceholder = lazy(() => import('./pages/POSPlaceholder'));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
+const TermsOfService = lazy(() => import('./pages/TermsOfService'));
+const Volunteer = lazy(() => import('./pages/Volunteer'));
+const Ambassador = lazy(() => import('./pages/Ambassador'));
+const Partner = lazy(() => import('./pages/Partner'));
+const ServicesPage = lazy(() => import('./pages/ServicesPage'));
+const ManagementApp = lazy(() => import('./pages/ManagementApp'));
+const PublicProfile = lazy(() => import('./pages/PublicProfile'));
+
+function PageLoader() {
+  return (
+    <div className="min-h-[50vh] flex flex-col items-center justify-center gap-3">
+      <div className="w-8 h-8 border-3 border-[#003828]/20 border-t-[#003828] rounded-full animate-spin"></div>
+      <span className="text-xs font-medium text-[#003828]/60 tracking-wider uppercase">Loading...</span>
+    </div>
+  );
+}
 
 function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
@@ -17,7 +49,7 @@ function Layout({ children }: { children: React.ReactNode }) {
   const hideFooter = location.pathname.includes('/login') || location.pathname.includes('/dashboard') || location.pathname.includes('/management');
   
   return (
-    <div className={`bg-white min-h-screen selection:bg-[#004B36] selection:text-white dark:bg-white dark:text-[#004B36] font-sans transition-colors duration-300 ${isLoginPage ? "h-screen overflow-hidden" : ""}`}>
+    <div className={`bg-white min-h-screen selection:bg-[#003828] selection:text-white dark:bg-white dark:text-[#003828] font-sans transition-colors duration-300 ${isLoginPage ? "h-screen overflow-hidden" : ""}`}>
       <Navigation />
       <main className={!isLoginPage ? "pt-[80px]" : "pt-[80px]"}>
         {children}
@@ -29,61 +61,33 @@ function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
-const Home = React.lazy(() => import('./pages/Home'));
-const AboutUs = React.lazy(() => import('./pages/AboutUs'));
-const ContactUs = React.lazy(() => import('./pages/ContactUs'));
-const Donate = React.lazy(() => import('./pages/Donate'));
-const Login = React.lazy(() => import('./pages/Login'));
-const Dashboard = React.lazy(() => import('./pages/Dashboard'));
-const LibraryLogin = React.lazy(() => import('./pages/LibraryLogin'));
-const LibraryDashboard = React.lazy(() => import('./pages/LibraryDashboard'));
-const VCardLogin = React.lazy(() => import('./pages/VCardLogin'));
-const DigitalSignature = React.lazy(() => import('./pages/DigitalSignature'));
-const POSPlaceholder = React.lazy(() => import('./pages/POSPlaceholder'));
-const PrivacyPolicy = React.lazy(() => import('./pages/PrivacyPolicy'));
-const TermsOfService = React.lazy(() => import('./pages/TermsOfService'));
-import ElectionPage from './pages/ElectionPage';
-const ServicesPage = React.lazy(() => import('./pages/ServicesPage'));
-const ManagementApp = React.lazy(() => import('./pages/ManagementApp'));
-function AnimatedRoutes() {
+function AppRoutes() {
   const location = useLocation();
   return (
-    
-      <AnimatePresence mode="wait">
+    <Suspense fallback={<PageLoader />}>
       <Routes location={location} key={location.pathname}>
-        <Route path="/" element={<PageWrapper><Home /></PageWrapper>} />
-        {/* <Route path="/election" element={<PageWrapper><ElectionPage /></PageWrapper>} /> */}
-        <Route path="/services" element={<PageWrapper><ServicesPage /></PageWrapper>} />
-        <Route path="/about" element={<PageWrapper><AboutUs /></PageWrapper>} />
-        <Route path="/contact" element={<PageWrapper><ContactUs /></PageWrapper>} />
-        <Route path="/donate" element={<PageWrapper><Donate /></PageWrapper>} />
-        <Route path="/login" element={<PageWrapper><Login /></PageWrapper>} />
-        <Route path="/dashboard" element={<PageWrapper><Dashboard /></PageWrapper>} />
-        <Route path="/library/login" element={<PageWrapper><LibraryLogin /></PageWrapper>} />
-        <Route path="/library/dashboard" element={<PageWrapper><LibraryDashboard /></PageWrapper>} />
-        <Route path="/vcard/login" element={<PageWrapper><VCardLogin /></PageWrapper>} />
-        <Route path="/signature" element={<PageWrapper><DigitalSignature /></PageWrapper>} />
-        <Route path="/pos" element={<PageWrapper><POSPlaceholder /></PageWrapper>} />
-        <Route path="/privacy" element={<PageWrapper><PrivacyPolicy /></PageWrapper>} />
-        <Route path="/terms" element={<PageWrapper><TermsOfService /></PageWrapper>} />
-        <Route path="/management/*" element={<PageWrapper><ManagementApp /></PageWrapper>} />
+        <Route path="/" element={<Home />} />
+        {/* <Route path="/election" element={<ElectionPage />} /> */}
+        <Route path="/services" element={<ServicesPage />} />
+        <Route path="/about" element={<AboutUs />} />
+        <Route path="/contact" element={<ContactUs />} />
+        <Route path="/donate" element={<Donate />} />
+        <Route path="/volunteer" element={<Volunteer />} />
+        <Route path="/ambassador" element={<Ambassador />} />
+        <Route path="/partner" element={<Partner />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/library/login" element={<LibraryLogin />} />
+        <Route path="/library/dashboard" element={<LibraryDashboard />} />
+        <Route path="/vcard/login" element={<VCardLogin />} />
+        <Route path="/signature" element={<DigitalSignature />} />
+        <Route path="/pos" element={<POSPlaceholder />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<TermsOfService />} />
+        <Route path="/profile/:id" element={<PublicProfile />} />
+        <Route path="/management/*" element={<ManagementApp />} />
       </Routes>
-      </AnimatePresence>
-    
-  );
-}
-
-function PageWrapper({ children }: { children: React.ReactNode }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.3 }}
-      className="w-full h-full"
-    >
-      {children}
-    </motion.div>
+    </Suspense>
   );
 }
 
@@ -94,7 +98,9 @@ export default function App() {
         <AuthProvider>
           <BrowserRouter>
             <Layout>
-              <React.Suspense fallback={<div className="flex h-screen w-full items-center justify-center bg-stone-50"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#004B36]"></div></div>}><AnimatedRoutes /></React.Suspense>
+              <ErrorBoundary>
+                <AppRoutes />
+              </ErrorBoundary>
             </Layout>
           </BrowserRouter>
         </AuthProvider>

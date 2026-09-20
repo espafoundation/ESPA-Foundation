@@ -12,7 +12,7 @@ const DetailRow = ({ label, value, subValue, highlight = false }: { label: strin
     setCopied(true);
     toast.success(`${label} copied!`, {
       style: {
-        background: '#004B36',
+        background: '#003828',
         color: '#fff',
         borderRadius: '12px'
       }
@@ -102,8 +102,8 @@ const StripeCheckout = () => {
       className="bg-white rounded-3xl p-8 md:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.08)] max-w-2xl mx-auto mb-16 border border-stone-100"
     >
       <div className="flex justify-center mb-6">
-        <div className="w-16 h-16 bg-[#004B36]/10 rounded-full flex items-center justify-center">
-          <CreditCard className="text-[#004B36] w-8 h-8" />
+        <div className="w-16 h-16 bg-[#003828]/10 rounded-full flex items-center justify-center">
+          <CreditCard className="text-[#003828] w-8 h-8" />
         </div>
       </div>
       <h3 className="text-2xl font-bold text-stone-900 mb-2 text-center">Donate via Credit / Debit Card</h3>
@@ -118,14 +118,14 @@ const StripeCheckout = () => {
             required
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            className="w-full sm:w-48 pl-9 pr-5 py-3.5 rounded-full border border-stone-200 focus:outline-none focus:border-[#004B36] focus:ring-1 focus:ring-[#004B36] text-stone-900 font-medium text-lg"
+            className="w-full sm:w-48 pl-9 pr-5 py-3.5 rounded-full border border-stone-200 focus:outline-none focus:border-[#003828] focus:ring-1 focus:ring-[#003828] text-stone-900 font-medium text-lg"
             placeholder="Amount"
           />
         </div>
         <button 
           type="submit" 
           disabled={loading}
-          className="w-full sm:w-auto px-8 py-3.5 bg-[#004B36] text-white font-semibold rounded-full hover:bg-[#003828] transition-colors disabled:opacity-70 flex items-center justify-center gap-2 text-lg"
+          className="w-full sm:w-auto px-8 py-3.5 bg-[#003828] text-white border border-[#003828] font-semibold rounded-full hover:bg-white hover:text-[#003828] hover:border-[#003828] transition-all disabled:opacity-70 flex items-center justify-center gap-2 text-lg cursor-pointer shadow-sm"
         >
           {loading ? (
             <>
@@ -168,7 +168,7 @@ export default function Donate() {
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
-        className="text-3xl md:text-5xl font-bold text-[#004B36] mb-6 tracking-tight"
+        className="text-3xl md:text-5xl font-bold text-[#003828] mb-6 tracking-tight"
       >
         {title}
       </motion.h2>
@@ -207,7 +207,7 @@ export default function Donate() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.1 }}
-            className="bg-[#004B36] text-white rounded-3xl p-8 md:p-10 shadow-xl flex flex-col h-full"
+            className="bg-[#003828] text-white rounded-3xl p-8 md:p-10 shadow-xl flex flex-col h-full"
           >
             <h3 className="text-2xl font-bold mb-8 border-b border-white/20 pb-4">
               Canadian Donors
@@ -228,7 +228,7 @@ export default function Donate() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.2 }}
-            className="bg-[#004B36] text-white rounded-3xl p-8 md:p-10 shadow-xl flex flex-col h-full"
+            className="bg-[#003828] text-white rounded-3xl p-8 md:p-10 shadow-xl flex flex-col h-full"
           >
             <h3 className="text-2xl font-bold mb-8 border-b border-white/20 pb-4">
               UK & European Donors
@@ -249,7 +249,7 @@ export default function Donate() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.3 }}
-            className="bg-[#004B36] text-white rounded-3xl p-8 md:p-10 shadow-xl flex flex-col h-full"
+            className="bg-[#003828] text-white rounded-3xl p-8 md:p-10 shadow-xl flex flex-col h-full"
           >
             <h3 className="text-2xl font-bold mb-8 border-b border-white/20 pb-4">
               US Donors

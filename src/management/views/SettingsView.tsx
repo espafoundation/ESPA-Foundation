@@ -73,7 +73,7 @@ export default function SettingsView({ currentUser, globalUsers, setUsers, showT
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-8 items-stretch">
           <div className="bg-white rounded-3xl border border-stone-200/60 shadow-sm p-8 flex flex-col h-full">
             <h2 className="text-lg font-bold text-stone-900 mb-6 border-b border-stone-100 pb-4 flex items-center gap-2">
-                <Shield size={20} className="text-[#004B36]" /> Security
+                <Shield size={20} className="text-[#003828]" /> Security
             </h2>
             <div className="space-y-4 flex-1">
                 <div className="flex items-center justify-between p-4 bg-stone-50 border border-stone-200 rounded-xl">
@@ -148,7 +148,7 @@ export default function SettingsView({ currentUser, globalUsers, setUsers, showT
                     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 pointer-events-none">
                       <DraggableModal className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl flex flex-col animate-in zoom-in-95 duration-200 pointer-events-auto" onClick={e => e.stopPropagation()}>
                         <h3 className="text-xl font-bold text-stone-900 mb-6 border-b border-stone-100 pb-4 flex items-center gap-3 drag-handle cursor-grab active:cursor-grabbing touch-none">
-                          <Key className="text-[#004B36] pointer-events-none" size={24} /> <span className="pointer-events-none font-medium">Change Password</span>
+                          <Key className="text-[#003828] pointer-events-none" size={24} /> <span className="pointer-events-none font-medium">Change Password</span>
                         </h3>
                         <div className="space-y-4">
                           <div>
@@ -157,7 +157,7 @@ export default function SettingsView({ currentUser, globalUsers, setUsers, showT
                               type="password" 
                               value={oldPassword}
                               onChange={(e) => setOldPassword(e.target.value)}
-                              className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#004B36] focus:border-[#004B36] text-sm"
+                              className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#003828] focus:border-[#003828] text-sm"
                               placeholder="Enter old password"
                             />
                           </div>
@@ -167,7 +167,7 @@ export default function SettingsView({ currentUser, globalUsers, setUsers, showT
                               type="password" 
                               value={newPassword}
                               onChange={(e) => setNewPassword(e.target.value)}
-                              className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#004B36] focus:border-[#004B36] text-sm"
+                              className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#003828] focus:border-[#003828] text-sm"
                               placeholder="Enter new password"
                             />
                           </div>
@@ -177,7 +177,7 @@ export default function SettingsView({ currentUser, globalUsers, setUsers, showT
                               type="password" 
                               value={confirmPassword}
                               onChange={(e) => setConfirmPassword(e.target.value)}
-                              className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#004B36] focus:border-[#004B36] text-sm"
+                              className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#003828] focus:border-[#003828] text-sm"
                               placeholder="Confirm new password"
                             />
                           </div>
@@ -189,7 +189,7 @@ export default function SettingsView({ currentUser, globalUsers, setUsers, showT
                                 handlePasswordChange();
                                 setIsChangingPassword(false);
                             }} 
-                            className="px-6 py-2.5 bg-[#004B36] hover:bg-[#003828] text-white rounded-xl font-semibold flex items-center gap-2 transition-colors text-sm"
+                            className="px-6 py-2.5 bg-[#003828] border border-[#003828] hover:bg-white hover:text-[#003828] hover:border-[#003828] text-white rounded-xl font-semibold flex items-center gap-2 transition-colors text-sm"
                           >
                             <Save size={16} /> Update
                           </button>
@@ -203,11 +203,11 @@ export default function SettingsView({ currentUser, globalUsers, setUsers, showT
           
           <div className="bg-white rounded-3xl border border-stone-200/60 shadow-sm p-8 flex flex-col h-full">
             <h2 className="text-lg font-bold text-stone-900 mb-6 border-b border-stone-100 pb-4 flex items-center gap-2">
-                <Info size={20} className="text-[#004B36]" /> About
+                <Info size={20} className="text-[#003828]" /> About
             </h2>
             <div className="flex-1 flex flex-col items-center justify-center text-center">
                 <div className="flex flex-col items-center justify-center">
-                    <h2 className="text-2xl font-bold text-[#004B36]">ESPA Management</h2>
+                    <h2 className="text-2xl font-bold text-[#003828]">ESPA Management</h2>
                     <p className="text-sm text-stone-500 mt-4">Software Version 1.0.1</p>
                 </div>
                 
@@ -216,9 +216,9 @@ export default function SettingsView({ currentUser, globalUsers, setUsers, showT
                 <div className="flex flex-col items-center justify-center pb-2">
                     <p className="text-sm text-stone-500 mb-4">An Initiative Of</p>
                     
-                    <div className="w-32 sm:w-40 h-auto mb-6 font-bold text-xl text-[#004B36]">ESPA Foundation</div>
+                    <div className="w-32 sm:w-40 h-auto mb-6 font-bold text-xl text-[#003828]">ESPA Foundation</div>
                     
-                    <a href="https://linktr.ee/shaaaaabbir" target="_blank" rel="noopener noreferrer" className="w-12 h-12 rounded-full border border-stone-100 bg-stone-50 hover:bg-stone-100 transition-colors flex items-center justify-center text-[#004B36]">
+                    <a href="https://linktr.ee/shaaaaabbir" target="_blank" rel="noopener noreferrer" className="w-12 h-12 rounded-full border border-stone-100 bg-stone-50 hover:bg-stone-100 transition-colors flex items-center justify-center text-[#003828]">
                         <Globe size={20} strokeWidth={2} />
                     </a>
                 </div>
@@ -233,8 +233,8 @@ export default function SettingsView({ currentUser, globalUsers, setUsers, showT
             <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 pointer-events-none">
               <DraggableModal className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl flex flex-col animate-in zoom-in-95 duration-200 pointer-events-auto" onClick={e => e.stopPropagation()}>
               <div className="text-center mb-6">
-                <div className="w-16 h-16 bg-[#004B36]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Mail size={32} className="text-[#004B36]" />
+                <div className="w-16 h-16 bg-[#003828]/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Mail size={32} className="text-[#003828]" />
                 </div>
                 <h3 className="text-2xl font-bold text-stone-900">Verify Email</h3>
                 <p className="text-sm text-stone-500 mt-2">Enter the 6-digit session code sent to your email address to activate 2FA.</p>
@@ -246,7 +246,7 @@ export default function SettingsView({ currentUser, globalUsers, setUsers, showT
                   maxLength={6}
                   value={verificationCode}
                   onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
-                  className="w-full px-4 py-3 text-center tracking-[1em] font-mono text-2xl border border-stone-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#004B36]"
+                  className="w-full px-4 py-3 text-center tracking-[1em] font-mono text-2xl border border-stone-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#003828]"
                   placeholder="••••••"
                   autoFocus
                 />
@@ -281,7 +281,7 @@ export default function SettingsView({ currentUser, globalUsers, setUsers, showT
                       setVerificationError('Please enter a valid 6-digit code');
                     }
                   }} 
-                  className="flex-1 px-4 py-3 font-semibold rounded-xl transition-colors bg-[#004B36] text-white hover:bg-[#003828]"
+                  className="flex-1 px-4 py-3 font-semibold rounded-xl transition-colors bg-[#003828] text-white border border-[#003828] hover:bg-white hover:text-[#003828] hover:border-[#003828]"
                 >
                   Activate
                 </button>
@@ -297,8 +297,8 @@ export default function SettingsView({ currentUser, globalUsers, setUsers, showT
             <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 pointer-events-none">
               <DraggableModal className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl flex flex-col animate-in zoom-in-95 duration-200 pointer-events-auto" onClick={e => e.stopPropagation()}>
               <div className="text-center mb-6">
-                <div className="w-16 h-16 bg-[#004B36]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Smartphone size={32} className="text-[#004B36]" />
+                <div className="w-16 h-16 bg-[#003828]/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Smartphone size={32} className="text-[#003828]" />
                 </div>
                 <h3 className="text-2xl font-bold text-stone-900">Configure Authenticator</h3>
                 <p className="text-sm text-stone-500 mt-2">Scan the QR code below with Google or Microsoft Authenticator, then insert the time-session code to activate 2FA.</p>
@@ -316,7 +316,7 @@ export default function SettingsView({ currentUser, globalUsers, setUsers, showT
                   maxLength={6}
                   value={verificationCode}
                   onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
-                  className="w-full px-4 py-3 text-center tracking-[1em] font-mono text-2xl border border-stone-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#004B36]"
+                  className="w-full px-4 py-3 text-center tracking-[1em] font-mono text-2xl border border-stone-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#003828]"
                   placeholder="••••••"
                 />
                 {verificationError && <p className="text-red-500 text-xs mt-2 text-center">{verificationError}</p>}
@@ -350,7 +350,7 @@ export default function SettingsView({ currentUser, globalUsers, setUsers, showT
                       setVerificationError('Please enter a valid 6-digit code');
                     }
                   }} 
-                  className="flex-1 px-4 py-3 font-semibold rounded-xl transition-colors bg-[#004B36] text-white hover:bg-[#003828]"
+                  className="flex-1 px-4 py-3 font-semibold rounded-xl transition-colors bg-[#003828] text-white border border-[#003828] hover:bg-white hover:text-[#003828] hover:border-[#003828]"
                 >
                   Activate
                 </button>

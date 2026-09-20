@@ -220,22 +220,22 @@ export default function FundsView({ funds, setFunds, addLog, showToast }) {
 
                 <div>
                   <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1.5">Donor Name</label>
-                  <input type="text" required value={donorName} onChange={e => setDonorName(e.target.value)} className="w-full px-3 py-2 border border-stone-200 rounded-xl focus:outline-none focus:border-[#004B36] focus:ring-1 focus:ring-[#004B36]" placeholder="Name of donor" />
+                  <input type="text" required value={donorName} onChange={e => setDonorName(e.target.value)} className="w-full px-3 py-2 border border-stone-200 rounded-xl focus:outline-none focus:border-[#003828] focus:ring-1 focus:ring-[#003828]" placeholder="Name of donor" />
                 </div>
                 <div className="flex gap-4">
                     <div className="flex-1">
                       <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1.5">Amount (PKR)</label>
-                      <input type="number" min="0" value={amountPKR} onChange={e => { setAmountPKR(e.target.value); if(!amountUSD && e.target.value) setAmountUSD((Number(e.target.value)/278).toFixed(2)) }} className="w-full px-3 py-2 border border-stone-200 rounded-xl focus:outline-none focus:border-[#004B36] focus:ring-1 focus:ring-[#004B36]" placeholder="0.00" />
+                      <input type="number" min="0" value={amountPKR} onChange={e => { setAmountPKR(e.target.value); if(!amountUSD && e.target.value) setAmountUSD((Number(e.target.value)/278).toFixed(2)) }} className="w-full px-3 py-2 border border-stone-200 rounded-xl focus:outline-none focus:border-[#003828] focus:ring-1 focus:ring-[#003828]" placeholder="0.00" />
                     </div>
                     <div className="flex-1">
                       <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1.5">Amount (USD)</label>
-                      <input type="number" min="0" value={amountUSD} onChange={e => { setAmountUSD(e.target.value); if(!amountPKR && e.target.value) setAmountPKR((Number(e.target.value)*278).toFixed(0)) }} className="w-full px-3 py-2 border border-stone-200 rounded-xl focus:outline-none focus:border-[#004B36] focus:ring-1 focus:ring-[#004B36]" placeholder="0.00" />
+                      <input type="number" min="0" value={amountUSD} onChange={e => { setAmountUSD(e.target.value); if(!amountPKR && e.target.value) setAmountPKR((Number(e.target.value)*278).toFixed(0)) }} className="w-full px-3 py-2 border border-stone-200 rounded-xl focus:outline-none focus:border-[#003828] focus:ring-1 focus:ring-[#003828]" placeholder="0.00" />
                     </div>
                 </div>
                 <div className="text-xs text-stone-500 flex justify-end">Available: Rs {(funds?.pkr || 0).toLocaleString()} | $ {(funds?.usd || 0).toLocaleString()}</div>
                 <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-stone-100">
                   <button type="button" onClick={handleSaveAddDraft} className="px-5 py-2 rounded-full text-sm font-semibold text-stone-600 bg-stone-100 hover:bg-stone-200 transition-colors">Save Draft</button>
-                  <button type="submit" className="px-5 py-2 rounded-full text-sm font-semibold text-white bg-[#004B36] hover:bg-[#003828] transition-colors">Add Donation</button>
+                  <button type="submit" className="px-5 py-2 rounded-full text-sm font-semibold text-white bg-[#003828] border border-[#003828] hover:bg-white hover:text-[#003828] hover:border-[#003828] transition-colors">Add Donation</button>
                 </div>
 
                 </form>
@@ -244,16 +244,16 @@ export default function FundsView({ funds, setFunds, addLog, showToast }) {
 
                 <div>
                   <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1.5">Allocation Reason / Destination</label>
-                  <input type="text" required value={allocationReason} onChange={e => setAllocationReason(e.target.value)} className="w-full px-3 py-2 border border-stone-200 rounded-xl focus:outline-none focus:border-[#004B36] focus:ring-1 focus:ring-[#004B36]" placeholder="Where are these funds going?" />
+                  <input type="text" required value={allocationReason} onChange={e => setAllocationReason(e.target.value)} className="w-full px-3 py-2 border border-stone-200 rounded-xl focus:outline-none focus:border-[#003828] focus:ring-1 focus:ring-[#003828]" placeholder="Where are these funds going?" />
                 </div>
                 <div className="flex gap-4">
                     <div className="flex-1">
                       <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1.5">Amount (PKR)</label>
-                      <input type="number" min="0" value={amountPKR} onChange={e => { setAmountPKR(e.target.value); setIsInsufficientFunds(false); if(!amountUSD && e.target.value) setAmountUSD((Number(e.target.value)/278).toFixed(2)) }} className={`w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-1 transition-colors ${Number(amountPKR) > funds.pkr ? "border-red-500 focus:border-red-500 focus:ring-red-500 text-red-600" : "border-stone-200 focus:border-[#004B36] focus:ring-[#004B36]"}`} placeholder="0.00" />
+                      <input type="number" min="0" value={amountPKR} onChange={e => { setAmountPKR(e.target.value); setIsInsufficientFunds(false); if(!amountUSD && e.target.value) setAmountUSD((Number(e.target.value)/278).toFixed(2)) }} className={`w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-1 transition-colors ${Number(amountPKR) > funds.pkr ? "border-red-500 focus:border-red-500 focus:ring-red-500 text-red-600" : "border-stone-200 focus:border-[#003828] focus:ring-[#003828]"}`} placeholder="0.00" />
                     </div>
                     <div className="flex-1">
                       <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1.5">Amount (USD)</label>
-                      <input type="number" min="0" value={amountUSD} onChange={e => { setAmountUSD(e.target.value); setIsInsufficientFunds(false); if(!amountPKR && e.target.value) setAmountPKR((Number(e.target.value)*278).toFixed(0)) }} className={`w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-1 transition-colors ${Number(amountUSD) > funds.usd ? "border-red-500 focus:border-red-500 focus:ring-red-500 text-red-600" : "border-stone-200 focus:border-[#004B36] focus:ring-[#004B36]"}`} placeholder="0.00" />
+                      <input type="number" min="0" value={amountUSD} onChange={e => { setAmountUSD(e.target.value); setIsInsufficientFunds(false); if(!amountPKR && e.target.value) setAmountPKR((Number(e.target.value)*278).toFixed(0)) }} className={`w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-1 transition-colors ${Number(amountUSD) > funds.usd ? "border-red-500 focus:border-red-500 focus:ring-red-500 text-red-600" : "border-stone-200 focus:border-[#003828] focus:ring-[#003828]"}`} placeholder="0.00" />
                     </div>
                 </div>
                 <div className="text-xs text-stone-500 flex flex-col items-end gap-1">
@@ -262,7 +262,7 @@ export default function FundsView({ funds, setFunds, addLog, showToast }) {
                 </div>
                 <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-stone-100">
                   <button type="button" onClick={handleSaveAllocateDraft} className="px-5 py-2 rounded-full text-sm font-semibold text-stone-600 bg-stone-100 hover:bg-stone-200 transition-colors">Save Draft</button>
-                  <button type="submit" className="px-5 py-2 rounded-full text-sm font-semibold text-white bg-[#004B36] hover:bg-[#003828] transition-colors">Allocate Funds</button>
+                  <button type="submit" className="px-5 py-2 rounded-full text-sm font-semibold text-white bg-[#003828] border border-[#003828] hover:bg-white hover:text-[#003828] hover:border-[#003828] transition-colors">Allocate Funds</button>
                 </div>
 
                 </form>
@@ -296,7 +296,7 @@ export default function FundsView({ funds, setFunds, addLog, showToast }) {
         <div className="flex gap-2">
           <button 
             onClick={() => { setIsAdding(true); setAmountPKR(''); setAmountUSD(''); setIsInsufficientFunds(false); }}
-            className="px-5 py-2.5 bg-[#004B36] text-white rounded-full text-sm font-medium tracking-wide hover:bg-[#003828] transition-colors flex items-center gap-2"
+            className="px-5 py-2.5 bg-[#003828] text-white rounded-full text-sm font-medium tracking-wide border border-[#003828] hover:bg-white hover:text-[#003828] hover:border-[#003828] transition-colors flex items-center gap-2"
           >
             <ArrowDownRight size={16} /> Add Funds
           </button>
@@ -338,7 +338,7 @@ export default function FundsView({ funds, setFunds, addLog, showToast }) {
                     <td className="px-6 py-4 text-stone-600 text-sm">{new Date(tx.date).toLocaleDateString()}</td>
                     <td className="px-6 py-4">
                       {tx.type === 'donation' ? (
-                          <span className="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-lg text-xs font-bold bg-[#004B36]/10 text-[#004B36] tracking-wide uppercase">
+                          <span className="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-lg text-xs font-bold bg-[#003828]/10 text-[#003828] tracking-wide uppercase">
                             Donation
                           </span>
                       ) : (
@@ -352,7 +352,7 @@ export default function FundsView({ funds, setFunds, addLog, showToast }) {
                             {tx.type === 'donation' ? `From: ${tx.donorName}` : `For: ${tx.reason}`}
                         </div>
                     </td>
-                    <td className={`px-6 py-4 text-right font-bold ${tx.type === 'donation' ? 'text-[#004B36]' : 'text-red-600'}`}>
+                    <td className={`px-6 py-4 text-right font-bold ${tx.type === 'donation' ? 'text-[#003828]' : 'text-red-600'}`}>
                       {tx.type === 'donation' ? '+' : '-'} {tx.amountPKR !== undefined ? (
                         (tx.amountPKR ? `Rs ${(tx.amountPKR || 0).toLocaleString()}` : '') + 
                         (tx.amountPKR && tx.amountUSD ? ' | ' : '') + 

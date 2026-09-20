@@ -38,7 +38,7 @@ export default function FAQ() {
  ];
 
  return (
- <section className="bg-white py-16 md:py-24 text-[#004B36] transition-colors duration-300">
+ <section id="faq" className="bg-white py-16 md:py-24 text-[#003828] transition-colors duration-300">
  <div className="max-w-6xl mx-auto px-4 md:px-16">
  <div className="text-center mb-12 md:mb-20">
  <h2 className="font-display text-3xl md:text-5xl font-bold tracking-tight mb-2 md:mb-3">Frequently Asked Questions</h2>
@@ -46,13 +46,13 @@ export default function FAQ() {
  
  <div className="flex flex-col gap-4">
  {faqs.map((faq, i) => (
- <div key={i} className="border-b border-[#004B36]/10 overflow-hidden transition-colors duration-300">
+ <div key={i} className="border-b border-[#003828]/10 overflow-hidden transition-colors duration-300">
  <button 
  onClick={() => setOpenIndex(openIndex === i ? null : i)}
  className="w-full py-6 flex items-center justify-between text-left focus:outline-none cursor-pointer group"
  >
- <span className="font-display text-xl md:text-2xl font-bold pr-8 group-hover:text-[#004B36] :text-indigo-400 transition-colors">{faq.q}</span>
- <span className="flex-shrink-0 text-[#004B36]/50 group-hover:text-[#004B36] :text-indigo-400 transition-colors">
+ <span className="font-display text-xl md:text-2xl font-bold pr-8 group-hover:text-[#003828]/80 transition-colors">{faq.q}</span>
+ <span className="flex-shrink-0 text-[#003828]/50 group-hover:text-[#003828] transition-colors">
  {openIndex === i ? <Minus size={24} /> : <Plus size={24} />}
  </span>
  </button>
@@ -60,7 +60,7 @@ export default function FAQ() {
  {openIndex === i && (
  <div
  >
- <p className="text-justify pb-4 md:pb-6 font-sans text-lg text-[#004B36]/70 transition-colors duration-300">
+ <p className="text-justify pb-4 md:pb-6 font-sans text-lg text-[#003828]/70 transition-colors duration-300">
  {faq.a}
  </p>
  </div>
