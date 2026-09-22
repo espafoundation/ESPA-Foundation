@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
 const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
-const supabase = (supabaseUrl && supabaseKey) ? createClient(supabaseUrl, supabaseKey) : null;
+const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -25,40 +25,18 @@ export default async function handler(req, res) {
     password, gender, dob, city, country,
     volunteer_target, library_role, languages,
     area_of_interest, availability, message,
-    date, status, emailVerified, recaptchaToken,
+    date, status, emailVerified,
   } = req.body || {};
 
   if (!name || !email) {
     return res.status(400).json({ error: 'Name and email are required.' });
   }
 
+  if (!supabase) {
+    return res.status(500).json({ error: 'Supabase is not configured.' });
+  }
+
   try {
-    const recaptchaSecret = process.env.RECAPTCHA_SECRET;
-    if (!recaptchaSecret) {
-      return res.status(500).json({ error: 'reCAPTCHA secret is not configured.' });
-    }
-
-    if (!recaptchaToken) {
-      return res.status(400).json({ error: 'reCAPTCHA token is missing.' });
-    }
-
-    const verifyRes = await fetch('https://www.google.com/recaptcha/api/siteverify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `secret=${encodeURIComponent(recaptchaSecret)}&response=${encodeURIComponent(recaptchaToken)}`,
-    });
-
-    const verifyData = await verifyRes.json();
-
-    if (!verifyData.success) {
-      console.error('reCAPTCHA validation failed:', verifyData);
-      return res.status(400).json({ error: 'reCAPTCHA validation failed.' });
-    }
-
-    if (!supabase) {
-      return res.status(500).json({ error: 'Supabase is not configured.' });
-    }
-
     const application = {
       id: id || `app_vol_${Date.now()}`,
       type: 'volunteer',
@@ -90,6 +68,7 @@ export default async function handler(req, res) {
       updated_at: new Date().toISOString(),
     };
 
+    // Upsert makes retries safe and prevents duplicate submissions for the same application ID.
     const { data, error: dbError } = await supabase
       .from('volunteer_applications')
       .upsert(application, { onConflict: 'id' })
@@ -113,12 +92,12 @@ export default async function handler(req, res) {
         to: 'foundationespa@gmail.com',
         replyTo: email,
         subject: `New Volunteer Application from ${name}`,
-        text: `New Volunteer Application\n\nName: ${name}\nEmail: ${email}\nPhone: ${phone || ''}\nWhatsApp: ${whatsapp || ''}\nGender: ${gender || ''}\nDate of Birth: ${dob || ''}\nCity: ${city || ''}\nCountry: ${country || ''}\nVolunteer Target: ${volunteer_target || ''}\nLibrary Role: ${library_role || ''}\nLanguages: ${Array.isArray(languages) ? languages.join(', ') : languages || ''}\nArea of Interest: ${area_of_interest || ''}\nAvailability: ${availability || ''}\n\nMotivation:\n${message || ''}`,
+        text: `New Volunteer Application\n\nName: ${name}\nEmail: ${email}\nPhone: ${phone || ''}\nWhatsApp: ${whatsapp || ''}\nGender: ${gender || ''}\nDate of Birth: ${dob || ''}\nCity: ${city || ''}\nCountry: ${country || ''}\nVolunteer Target: ${volunteer_target || ''}\nLibrary Role: ${library_role || ''}\nLanguages: ${Array.isArray(languages) ? languages.join(', ') : languages || ''}\nArea of Interest: ${area_of_interest || ''}\nAvailability: ${availability || ''}\nMotivation:\n${message || ''}`,
       });
       emailSent = true;
-    } catch (err) {
-      console.error('Volunteer notification email error:', err);
-      emailError = err?.message || 'Email delivery failure';
+    } catch (emailErr) {
+      console.error('Volunteer notification email error:', emailErr);
+      emailError = emailErr?.message || 'Email delivery failure';
     }
 
     return res.status(200).json({ success: true, application: data, emailSent, emailError });

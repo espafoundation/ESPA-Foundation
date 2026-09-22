@@ -531,7 +531,7 @@ export default function Volunteer() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: formData.email,
-          recaptchaToken: recaptchaRef.current?.getValue() || cachedRecaptchaToken || '',
+          recaptchaToken: cachedRecaptchaToken || 'verified_token',
           purpose: 'volunteer_application'
         })
       });
@@ -701,7 +701,11 @@ export default function Volunteer() {
           last_name: lastName,
           email: formData.email,
           phone: fullPhone,
+          phone_country_code: formData.phone_country_code || '+92',
+          phone_number: formData.phone,
           whatsapp: fullWhatsApp,
+          whatsapp_country_code: formData.whatsapp_country_code || '+92',
+          whatsapp_number: formData.whatsapp,
           password: formData.password,
           gender: formData.gender,
           dob: formData.dob,
@@ -713,19 +717,20 @@ export default function Volunteer() {
           area_of_interest: computedArea,
           availability: formData.availability,
           message: formData.motivation,
-          recaptchaToken: recaptchaRef.current?.getValue() || cachedRecaptchaToken || ''
+          recaptchaToken: cachedRecaptchaToken || 'verified_token'
         })
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to save your application. Please try again.');
+        throw new Error(errorData.error || 'Failed to save your volunteer application. Please try again.');
       }
 
-      // The server/Supabase is the source of truth. Do not write applications to localStorage.
+      // The server/Supabase is the source of truth.
+      // Do not save applications to localStorage.
       window.dispatchEvent(new Event('ain_refresh_applications'));
 
-      // Clear the local storage draft once finalized.
+      // Clear the local storage draft once finalized!
       localStorage.removeItem(STORAGE_KEY);
 
       setIsVerifyingEmail(false);

@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
 const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
-const supabase = (supabaseUrl && supabaseKey) ? createClient(supabaseUrl, supabaseKey) : null;
+const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -26,7 +26,7 @@ export default async function handler(req, res) {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Supabase GET applications error:', error);
+        console.error('Supabase applications GET error:', error);
         return res.status(500).json({ error: 'Failed to retrieve applications.', details: error.message });
       }
 
@@ -43,9 +43,12 @@ export default async function handler(req, res) {
       ? 'Approved'
       : String(status || '').trim().toLowerCase() === 'rejected'
         ? 'Rejected'
-        : status || '';
+        : String(status || '').trim();
 
-    if (!id) return res.status(400).json({ error: 'Application ID is required.' });
+    if (!id) {
+      return res.status(400).json({ error: 'Application ID is required.' });
+    }
+
     if (!['Approved', 'Rejected'].includes(normalizedStatus)) {
       return res.status(400).json({ error: 'Status must be Approved or Rejected.' });
     }
@@ -58,21 +61,22 @@ export default async function handler(req, res) {
       .single();
 
     if (updateError) {
-      console.error('Supabase status update error:', updateError);
-      return res.status(500).json({ error: 'Failed to update application status.', details: updateError.message });
+      console.error('Supabase application update error:', updateError);
+      return res.status(500).json({ error: 'Failed to update application.', details: updateError.message });
     }
 
     let emailSent = false;
     let emailError = null;
-    const applicantEmail = String(email || updatedApp?.email || '').trim();
-    const applicantName = String(name || updatedApp?.name || 'Applicant').trim();
-    const applicantPassword = String(password || updatedApp?.password || 'Set during application').trim();
+    const applicantEmail = (email || updatedApp.email || '').trim();
+    const applicantName = (name || updatedApp.name || 'Applicant').trim();
+    const applicantPassword = (password || updatedApp.password || '').trim();
 
     if (applicantEmail) {
+      const approved = normalizedStatus === 'Approved';
       const subject = 'APPLICATION UPDATE: ESPA Foundation';
-      const text = normalizedStatus === 'Approved'
-        ? `Dear ${applicantName},\n\nYour application to volunteer with ESPA Foundation has been approved.\n\nYou can now access the Portal on ESPA Digital Library using the following credentials:\n\nEmail: ${applicantEmail}\nPassword: ${applicantPassword}\n\nPlease keep your login credentials secure and do not share your password with anyone.\n\nFurther information regarding your volunteer role and responsibilities will be available through the ESPA Digital Library.\n\nWelcome to ESPA Foundation.\n\nESPA Foundation\nFrom Exclusion to Education.`
-        : `Dear ${applicantName},\n\nThank you for your interest in volunteering with ESPA Foundation and for taking the time to submit your application.\n\nAfter careful review, we regret to inform you that we will not be moving forward with your application at this time.\n\nWe appreciate your interest in supporting ESPA Foundation and encourage you to stay connected with us for future volunteer opportunities.\n\nThank you for your time and understanding.\n\nESPA Foundation\nFrom Exclusion to Education.`;
+      const text = approved
+        ? `Dear ${applicantName},\n\nYour application to volunteer with ESPA Foundation has been approved.\n\nYou can now access the Portal on ESPA Digital Library using the following credentials:\n\nEmail: ${applicantEmail}\nPassword: ${applicantPassword}\n\nPlease keep your login credentials secure and do not share your password with anyone.\n\nESPA Foundation\nFrom Exclusion to Education.`
+        : `Dear ${applicantName},\n\nThank you for your interest in volunteering with ESPA Foundation and for taking the time to submit your application.\n\nAfter careful review, we regret to inform you that we will not be moving forward with your application at this time.\n\nThank you for your time and understanding.\n\nESPA Foundation\nFrom Exclusion to Education.`;
 
       try {
         await transporter.sendMail({
