@@ -577,11 +577,11 @@ export default function ApplicationsView({
             </div>
           </div>
 
-          {/* Contact Information Card */}
+          {/* Personal Information Card */}
           <div className="bg-white rounded-3xl p-6 sm:p-7 border border-stone-200/80 shadow-2xs space-y-4">
             <div className="flex items-center gap-2 pb-3 border-b border-stone-100 text-emerald-900 font-bold text-sm uppercase tracking-wider">
               <Mail size={16} className="text-emerald-900" />
-              <h3>Contact Information</h3>
+              <h3>Personal Information</h3>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
@@ -647,7 +647,7 @@ export default function ApplicationsView({
             <div className="bg-white rounded-3xl p-6 sm:p-7 border border-stone-200/80 shadow-2xs space-y-4">
               <div className="flex items-center gap-2 pb-3 border-b border-stone-100 text-emerald-900 font-bold text-sm uppercase tracking-wider">
                 <Briefcase size={16} className="text-emerald-900" />
-                <h3>Partnership & Organization Details</h3>
+                <h3>Organization Details</h3>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
@@ -703,7 +703,7 @@ export default function ApplicationsView({
             <div className="bg-white rounded-3xl p-6 sm:p-7 border border-stone-200/80 shadow-2xs space-y-4">
               <div className="flex items-center gap-2 pb-3 border-b border-stone-100 text-emerald-900 font-bold text-sm uppercase tracking-wider">
                 <Globe size={16} className="text-emerald-900" />
-                <h3>Campus & Youth Outreach Profile</h3>
+                <h3>Academic & Institutional Details</h3>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
@@ -753,7 +753,7 @@ export default function ApplicationsView({
             <div className="bg-white rounded-3xl p-6 sm:p-7 border border-stone-200/80 shadow-2xs space-y-4">
               <div className="flex items-center gap-2 pb-3 border-b border-stone-100 text-emerald-900 font-bold text-sm uppercase tracking-wider">
                 <HeartHandshake size={16} className="text-emerald-900" />
-                <h3>Volunteer Service Profile</h3>
+                <h3>Where Would You Like to Volunteer?</h3>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
@@ -785,25 +785,6 @@ export default function ApplicationsView({
                     showToast={showToast}
                   />
                 )}
-                {selectedApp.languages && (
-                  <CopyableDetail 
-                    label="Languages Spoken" 
-                    value={Array.isArray(selectedApp.languages) 
-                      ? selectedApp.languages.map(l => typeof l === 'object' && l !== null ? `${l.language} (${l.fluency})` : l).join(', ') 
-                      : String(selectedApp.languages)} 
-                    displayValue={
-                      <div className="flex flex-wrap gap-1.5 mt-1">
-                        {(Array.isArray(selectedApp.languages) ? selectedApp.languages : [selectedApp.languages]).map((lang, idx) => (
-                          <span key={idx} className="px-2.5 py-0.5 bg-white text-emerald-900 rounded-full text-xs font-semibold border border-emerald-200">
-                            {typeof lang === 'object' && lang !== null ? `${lang.language} (${lang.fluency})` : lang}
-                          </span>
-                        ))}
-                      </div>
-                    }
-                    className="col-span-full"
-                    showToast={showToast}
-                  />
-                )}
                 {selectedApp.skills && (
                   <CopyableDetail 
                     label="Special Skills & Capabilities" 
@@ -816,12 +797,36 @@ export default function ApplicationsView({
             </div>
           )}
 
+          {selectedApp.type === 'volunteer' && selectedApp.languages && (
+            <div className="bg-white rounded-3xl p-6 sm:p-7 border border-stone-200/80 shadow-2xs space-y-4">
+              <div className="flex items-center gap-2 pb-3 border-b border-stone-100 text-emerald-900 font-bold text-sm uppercase tracking-wider">
+                <Globe size={16} className="text-emerald-900" />
+                <h3>Languages</h3>
+              </div>
+              <div className="grid grid-cols-1 gap-4 text-sm">
+                {(Array.isArray(selectedApp.languages) ? selectedApp.languages : [selectedApp.languages]).map((lang, idx) => {
+                  const value = typeof lang === 'object' && lang !== null
+                    ? `${lang.language} (${lang.fluency})`
+                    : String(lang);
+                  return (
+                    <CopyableDetail
+                      key={`${value}-${idx}`}
+                      label="Language"
+                      value={value}
+                      showToast={showToast}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Motivation / Proposal Statement Box */}
           {(selectedApp.message || selectedApp.motivation || selectedApp.proposal) && (
             <div className="bg-white rounded-3xl p-6 sm:p-7 border border-stone-200/80 shadow-2xs">
               <div className="flex items-center gap-2 pb-3 mb-4 border-b border-stone-100 text-emerald-900 font-bold text-sm uppercase tracking-wider">
                 <MessageSquare size={16} className="text-emerald-900" />
-                <h3>{selectedApp.type === 'partner' ? 'Partnership Proposal Statement' : 'Motivation & Statement of Intent'}</h3>
+                <h3>{selectedApp.type === 'partner' ? 'Partnership Proposal & Scope' : selectedApp.type === 'ambassador' ? 'Mission & Leadership Experience' : 'Availability & Experience'}</h3>
               </div>
               <CopyableDetail 
                 label="Click anywhere to copy statement"
@@ -952,3 +957,4 @@ export default function ApplicationsView({
     </div>
   );
 }
+
