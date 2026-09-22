@@ -797,6 +797,11 @@ export default function App() {
   const [agreements, setAgreements] = useLocalStorage("ain_agreements", [{ id: 'AG01', title: 'Non-Disclosure Agreement', parties: 'ESPA & TechCorp', status: 'Signed', validUntil: '2028-01-01', dateAdded: new Date().toISOString() }]);
   const [flights, setFlights] = useLocalStorage("ain_flights", [{ id: 'FL01', airline: 'Emirates', flightNumber: 'EK202', origin: 'JFK', destination: 'DXB', departure: '2026-10-10T15:30', arrival: '2026-10-11T12:00', status: 'Scheduled' }]);
   
+  const showToast = useCallback((message, type = 'success') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 4000);
+  }, []);
+
   // New applications state
   const [applications, setApplications] = useState([]);
 
@@ -955,11 +960,6 @@ export default function App() {
   }, [setUsers]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [globalUser, setGlobalUser] = useState(null); 
-
-  const showToast = useCallback((message, type = 'success') => {
-    setToast({ show: true, message, type });
-    setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 4000);
-  }, []);
 
   const addLog = useCallback((action) => {
     setLogs(prev => [{
