@@ -7,74 +7,123 @@ const supabase = (supabaseUrl && supabaseKey) ? createClient(supabaseUrl, supaba
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
-  auth: { user: 'foundationespa@gmail.com', pass: 'xzxp ilzw hiwu sjcr' },
+  auth: {
+    user: process.env.EMAIL_USER || 'foundationespa@gmail.com',
+    pass: process.env.EMAIL_PASS,
+  },
 });
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
-  
-  const { name, email, area_of_interest, availability, recaptchaToken } = req.body;
-  
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method Not Allowed' });
+  }
+
+  const {
+    id, name, full_name, first_name, last_name, email,
+    phone, phone_country_code, phone_number,
+    whatsapp, whatsapp_country_code, whatsapp_number,
+    password, gender, dob, city, country,
+    volunteer_target, library_role, languages,
+    area_of_interest, availability, message,
+    date, status, emailVerified, recaptchaToken,
+  } = req.body || {};
+
+  if (!name || !email) {
+    return res.status(400).json({ error: 'Name and email are required.' });
+  }
+
   try {
-    const recaptchaSecret = process.env.RECAPTCHA_SECRET || '6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe';
+    const recaptchaSecret = process.env.RECAPTCHA_SECRET;
+    if (!recaptchaSecret) {
+      return res.status(500).json({ error: 'reCAPTCHA secret is not configured.' });
+    }
+
+    if (!recaptchaToken) {
+      return res.status(400).json({ error: 'reCAPTCHA token is missing.' });
+    }
+
     const verifyRes = await fetch('https://www.google.com/recaptcha/api/siteverify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `secret=${recaptchaSecret}&response=${recaptchaToken}`,
+      body: `secret=${encodeURIComponent(recaptchaSecret)}&response=${encodeURIComponent(recaptchaToken)}`,
     });
+
     const verifyData = await verifyRes.json();
-    
+
     if (!verifyData.success) {
+      console.error('reCAPTCHA validation failed:', verifyData);
       return res.status(400).json({ error: 'reCAPTCHA validation failed.' });
     }
 
-    if (supabase) {
-      const { error: dbError } = await supabase
-        .from('volunteer_applications')
-        .insert([{ name, email, area_of_interest, availability }]);
-      if (dbError) console.error('Supabase error (volunteer):', dbError);
+    if (!supabase) {
+      return res.status(500).json({ error: 'Supabase is not configured.' });
     }
 
-    await transporter.sendMail({
-      from: '"ESPA Website" <foundationespa@gmail.com>',
-      to: 'foundationespa@gmail.com',
-      replyTo: email,
-      subject: `New Volunteer Application from ${name}`,
-      text: `Name: ${name}\nEmail: ${email}\nArea of Interest: ${area_of_interest}\nAvailability: ${availability}`,
-      html: `
-        <div style="font-family: 'Poppins'; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
-          <div style="background-color: #004B36; padding: 20px; text-align: center; color: white;">
-            <h2 style="margin: 0;">New Volunteer Application</h2>
-          </div>
-          <div style="padding: 20px; background-color: #f9f9f9;">
-            <table style="width: 100%; border-collapse: collapse;">
-              <tr>
-                <td style="padding: 12px 0; border-bottom: 1px solid #eeeeee;"><strong>Name:</strong></td>
-                <td style="padding: 12px 0; border-bottom: 1px solid #eeeeee;">${name}</td>
-              </tr>
-              <tr>
-                <td style="padding: 12px 0; border-bottom: 1px solid #eeeeee;"><strong>Email:</strong></td>
-                <td style="padding: 12px 0; border-bottom: 1px solid #eeeeee;"><a href="mailto:${email}" style="color: #004B36;">${email}</a></td>
-              </tr>
-              <tr>
-                <td style="padding: 12px 0; border-bottom: 1px solid #eeeeee;"><strong>Area of Interest:</strong></td>
-                <td style="padding: 12px 0; border-bottom: 1px solid #eeeeee;">${area_of_interest}</td>
-              </tr>
-              <tr>
-                <td style="padding: 12px 0;"><strong>Availability:</strong></td>
-                <td style="padding: 12px 0;">${availability}</td>
-              </tr>
-            </table>
-          </div>
-          <div style="background-color: #eeeeee; padding: 15px; text-align: center; font-size: 12px; color: #888;">
-            This email was automatically generated from the ESPA Foundation Website.
-          </div>
-        </div>
-      `
-    });
-    
-    res.status(200).json({ success: true });
+    const application = {
+      id: id || `app_vol_${Date.now()}`,
+      type: 'volunteer',
+      name: String(name).trim(),
+      full_name: full_name || name,
+      first_name: first_name || '',
+      last_name: last_name || '',
+      email: String(email).trim().toLowerCase(),
+      phone: phone || '',
+      phone_country_code: phone_country_code || '',
+      phone_number: phone_number || '',
+      whatsapp: whatsapp || '',
+      whatsapp_country_code: whatsapp_country_code || '',
+      whatsapp_number: whatsapp_number || '',
+      password: password || '',
+      gender: gender || '',
+      dob: dob || null,
+      city: city || '',
+      country: country || '',
+      volunteer_target: volunteer_target || '',
+      library_role: library_role || '',
+      languages: Array.isArray(languages) ? languages : [],
+      area_of_interest: area_of_interest || '',
+      availability: availability || '',
+      message: message || '',
+      status: status || 'Pending',
+      email_verified: emailVerified === true || emailVerified === 'true',
+      created_at: date || new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    const { data, error: dbError } = await supabase
+      .from('volunteer_applications')
+      .upsert(application, { onConflict: 'id' })
+      .select()
+      .single();
+
+    if (dbError) {
+      console.error('Supabase volunteer application error:', dbError);
+      return res.status(500).json({
+        error: 'Failed to save volunteer application.',
+        details: dbError.message,
+      });
+    }
+
+    let emailSent = false;
+    let emailError = null;
+
+    try {
+      await transporter.sendMail({
+        from: '"ESPA Foundation" <foundationespa@gmail.com>',
+        to: 'foundationespa@gmail.com',
+        replyTo: email,
+        subject: `New Volunteer Application from ${name}`,
+        text: `New Volunteer Application\n\nName: ${name}\nEmail: ${email}\nPhone: ${phone || ''}\nWhatsApp: ${whatsapp || ''}\nGender: ${gender || ''}\nDate of Birth: ${dob || ''}\nCity: ${city || ''}\nCountry: ${country || ''}\nVolunteer Target: ${volunteer_target || ''}\nLibrary Role: ${library_role || ''}\nLanguages: ${Array.isArray(languages) ? languages.join(', ') : languages || ''}\nArea of Interest: ${area_of_interest || ''}\nAvailability: ${availability || ''}\n\nMotivation:\n${message || ''}`,
+      });
+      emailSent = true;
+    } catch (err) {
+      console.error('Volunteer notification email error:', err);
+      emailError = err?.message || 'Email delivery failure';
+    }
+
+    return res.status(200).json({ success: true, application: data, emailSent, emailError });
   } catch (error) {
-    res.status(500).json({ error: 'Email service error: ' + error.message });
+    console.error('Volunteer application error:', error);
+    return res.status(500).json({ error: error?.message || 'Failed to process volunteer application.' });
   }
 }

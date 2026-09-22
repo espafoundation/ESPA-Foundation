@@ -397,10 +397,11 @@ export default function ApplicationsView({
 
     // Persist to backend server API
     try {
-      const response = await fetch(`/api/applications/${id}`, {
+      const response = await fetch('/api/applications', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
+          id,
           status: newStatus,
           name: targetApp?.name || `${targetApp?.first_name || ''} ${targetApp?.last_name || ''}`.trim(),
           email: targetApp?.email,

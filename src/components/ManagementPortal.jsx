@@ -798,68 +798,47 @@ export default function App() {
   const [flights, setFlights] = useLocalStorage("ain_flights", [{ id: 'FL01', airline: 'Emirates', flightNumber: 'EK202', origin: 'JFK', destination: 'DXB', departure: '2026-10-10T15:30', arrival: '2026-10-11T12:00', status: 'Scheduled' }]);
   
   // New applications state
-  const [applications, setApplications] = useLocalStorage("ain_applications", []);
+  const [applications, setApplications] = useState([]);
 
-  // Synchronize applications with backend API on mount with strict deduplication
+  // Load applications from Supabase-backed API. Server data is the source of truth.
   useEffect(() => {
     let isMounted = true;
-    const syncApplications = async () => {
+
+    const loadApplications = async () => {
       try {
-        const res = await fetch('/api/applications');
-        if (res.ok && isMounted) {
-          const serverApps = await res.json();
-          if (Array.isArray(serverApps)) {
-            setApplications(localApps => {
-              const current = Array.isArray(localApps) ? localApps : [];
-              const merged = [];
+        const res = await fetch('/api/applications', {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' },
+          cache: 'no-store',
+        });
 
-              const addApp = (a, isLocal = false) => {
-                if (!a) return;
-                const idKey = a.id ? String(a.id) : null;
-                const emailTypeKey = (a.email && a.type) ? `${a.email.toLowerCase().trim()}_${(a.type || '').toLowerCase().trim()}` : null;
-                
-                const existingIdx = merged.findIndex(m => 
-                  (idKey && String(m.id) === idKey) ||
-                  (emailTypeKey && m.email && m.type && `${m.email.toLowerCase().trim()}_${(m.type || '').toLowerCase().trim()}` === emailTypeKey)
-                );
+        const data = await res.json().catch(() => []);
 
-                if (existingIdx !== -1) {
-                  const existing = merged[existingIdx];
-                  const existingStatus = (existing.status || '').trim().toLowerCase();
-                  const newStatus = (a.status || '').trim().toLowerCase();
-
-                  // An Approved or Rejected status must NEVER be reverted back to Pending!
-                  if ((existingStatus === 'approved' || existingStatus === 'rejected') && newStatus === 'pending') {
-                    merged[existingIdx] = { ...a, ...existing, status: existing.status };
-                  } else if (newStatus === 'approved' || newStatus === 'rejected') {
-                    merged[existingIdx] = { ...existing, ...a, status: a.status };
-                  } else if (isLocal) {
-                    merged[existingIdx] = { ...existing, ...a };
-                  }
-                  return;
-                }
-
-                merged.push({ ...a });
-              };
-
-              // Local records first, then server records
-              current.forEach(a => addApp(a, true));
-              serverApps.forEach(a => addApp(a, false));
-
-              try {
-                localStorage.setItem('ain_applications', JSON.stringify(merged));
-              } catch (e) {}
-              return merged;
-            });
-          }
+        if (!res.ok) {
+          throw new Error(data?.error || `Failed to load applications (${res.status})`);
         }
-      } catch (e) {
-        console.warn('API sync failed:', e);
+
+        if (isMounted && Array.isArray(data)) {
+          setApplications(data);
+        }
+      } catch (error) {
+        console.error('Failed to load applications from API:', error);
+        if (isMounted && showToast) {
+          showToast('Failed to load applications from the server.', 'error');
+        }
       }
     };
-    syncApplications();
-    return () => { isMounted = false; };
-  }, [setApplications]);
+
+    loadApplications();
+
+    const handleRefresh = () => loadApplications();
+    window.addEventListener('ain_refresh_applications', handleRefresh);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener('ain_refresh_applications', handleRefresh);
+    };
+  }, [showToast]);
 
   // Synchronize approved applications to users so they reflect in Volunteers, Ambassadors, and Partners
   useEffect(() => {

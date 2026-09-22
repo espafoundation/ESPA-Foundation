@@ -531,7 +531,7 @@ export default function Volunteer() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: formData.email,
-          recaptchaToken: cachedRecaptchaToken || 'verified_token',
+          recaptchaToken: recaptchaRef.current?.getValue() || cachedRecaptchaToken || '',
           purpose: 'volunteer_application'
         })
       });
@@ -713,26 +713,19 @@ export default function Volunteer() {
           area_of_interest: computedArea,
           availability: formData.availability,
           message: formData.motivation,
-          recaptchaToken: cachedRecaptchaToken || 'verified_token'
+          recaptchaToken: recaptchaRef.current?.getValue() || cachedRecaptchaToken || ''
         })
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.warn('Backend volunteer endpoint response:', errorData.error);
+        throw new Error(errorData.error || 'Failed to save your application. Please try again.');
       }
 
-      // 2. Save to local storage for administrative portal sync, preventing duplicates
-      const apps = JSON.parse(localStorage.getItem('ain_applications') || '[]');
-      const filteredApps = apps.filter((a: any) => 
-        a.id !== appId && 
-        !(a.email && a.email.toLowerCase() === formData.email.toLowerCase() && a.type === 'volunteer')
-      );
-      filteredApps.unshift(newAppRecord);
-      localStorage.setItem('ain_applications', JSON.stringify(filteredApps));
-      window.dispatchEvent(new Event('storage'));
+      // The server/Supabase is the source of truth. Do not write applications to localStorage.
+      window.dispatchEvent(new Event('ain_refresh_applications'));
 
-      // Clear the local storage draft once finalized!
+      // Clear the local storage draft once finalized.
       localStorage.removeItem(STORAGE_KEY);
 
       setIsVerifyingEmail(false);
