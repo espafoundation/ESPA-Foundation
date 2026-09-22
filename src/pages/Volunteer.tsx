@@ -1285,11 +1285,11 @@ export default function Volunteer() {
                   </div>
                 )}
 
-                {/* Input row with Language Name and Fluency Selector */}
+                {/* Input row with Language and Fluency Selector */}
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
                   <div className="sm:col-span-6">
                     <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-1.5">
-                      Language Name<span className="text-red-500">*</span>
+                      Language<span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -1297,7 +1297,7 @@ export default function Volunteer() {
                       maxLength={50}
                       onChange={(e) => setLanguageInput(e.target.value)}
                       onKeyDown={handleKeyDownLanguage}
-                      placeholder="Enter Language Name"
+                      placeholder="Enter Language"
                       className="w-full px-4 py-2.5 bg-white border border-stone-200 rounded-xl focus:outline-none focus:border-[#003828] focus:ring-1 focus:ring-[#003828] text-stone-900 text-sm font-medium transition-all shadow-xs placeholder-stone-400"
                     />
                   </div>
@@ -1665,3 +1665,4 @@ export default function Volunteer() {
     </div>
   );
 }
+
