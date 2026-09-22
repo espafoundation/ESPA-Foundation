@@ -64,13 +64,15 @@ export default function ContactUs() {
               recaptchaRef.current?.reset();
             }
           }}>
-            <div>
-              <label className="block text-sm font-bold text-white/70 uppercase tracking-wider mb-2">Name</label>
-              <input type="text" name="name" required className="w-full px-4 py-3 rounded-xl border border-white/20 bg-white/10 text-white placeholder:text-white/50 focus:outline-none focus:border-white transition-colors" placeholder="Your Name" />
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-white/70 uppercase tracking-wider mb-2">Email Address</label>
-              <input type="email" name="email" required className="w-full px-4 py-3 rounded-xl border border-white/20 bg-white/10 text-white placeholder:text-white/50 focus:outline-none focus:border-white transition-colors" placeholder="Your Email Address" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-bold text-white/70 uppercase tracking-wider mb-2">Full Name</label>
+                <input type="text" name="name" required className="w-full px-4 py-3 rounded-xl border border-white/20 bg-white/10 text-white placeholder:text-white/50 focus:outline-none focus:border-white transition-colors" placeholder="Your Full Name" />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-white/70 uppercase tracking-wider mb-2">Email Address</label>
+                <input type="email" name="email" required className="w-full px-4 py-3 rounded-xl border border-white/20 bg-white/10 text-white placeholder:text-white/50 focus:outline-none focus:border-white transition-colors" placeholder="Your Email Address" />
+              </div>
             </div>
             <div>
               <label className="block text-sm font-bold text-white/70 uppercase tracking-wider mb-2">Message</label>

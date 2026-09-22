@@ -168,7 +168,7 @@ export default function LibraryDashboard() {
       
       {/* Mobile Header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-stone-200 z-50 flex items-center justify-between px-4 shadow-sm">
-        <LibraryLogo className="text-[#003828] w-[100px]" />
+        <LibraryLogo className="text-[#003828] h-[32px] w-auto" />
         <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 text-stone-600 hover:bg-stone-100 rounded-full">
           {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
@@ -177,7 +177,7 @@ export default function LibraryDashboard() {
       {/* Sidebar */}
       <div className={`fixed inset-y-0 left-0 z-40 bg-white border-r border-stone-200 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:flex flex-col ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} w-64 shadow-[4px_0_24px_-8px_rgba(0,0,0,0.05)]`}>
         <div className="py-8 pl-8 pr-4 flex items-center border-b border-stone-100 hidden lg:flex shrink-0 w-full h-[120px]">
-            <LibraryLogo className="text-[#003828] w-[150px]" />
+            <LibraryLogo className="text-[#003828] h-[32px] w-auto" />
         </div>
         <div className="flex-1 overflow-y-auto py-6 px-4 space-y-1 no-scrollbar pt-20 lg:pt-6">
           <div className="space-y-1">

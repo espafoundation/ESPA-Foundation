@@ -50,8 +50,8 @@ app.use(express.json());
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: 'foundationespa@gmail.com',
-    pass: 'xzxp ilzw hiwu sjcr',
+    user: process.env.EMAIL_USER || 'foundationespa@gmail.com',
+    pass: process.env.EMAIL_PASS || 'xzxp ilzw hiwu sjcr',
   },
 });
 
@@ -96,6 +96,7 @@ const serverApplications: any[] = [
     first_name: 'Ayesha',
     last_name: 'Tariq',
     email: 'ayesha.tariq@gmail.com',
+    password: 'Password123!',
     phone: '+92 300 1234567',
     gender: 'Female',
     dob: '1998-05-14',
@@ -118,6 +119,7 @@ const serverApplications: any[] = [
     first_name: 'Bilal',
     last_name: 'Qureshi',
     email: 'bilal.q@nust.edu.pk',
+    password: 'Password123!',
     phone: '+92 321 9876543',
     city: 'Islamabad',
     country: 'Pakistan',
@@ -148,44 +150,148 @@ const serverApplications: any[] = [
     proposal: 'We would love to co-curate digital STEM textbooks and provide free cloud infrastructure for 10 ESPA rural reading centers.',
     timeline_or_goals: 'Launch pilot in 3 regional libraries within Q2 2026.',
     date: new Date(Date.now() - 1 * 86400000).toISOString(),
-    status: 'Pending'
+    status: 'Approved'
   }
 ];
+
+// In-memory persistent OTP store for real-time verification (10 min expiry)
+interface OtpEntry {
+  code: string;
+  expiresAt: number;
+}
+const otpStore = new Map<string, OtpEntry>();
 
 // Applications API Endpoints
 app.get('/api/applications', (_req, res) => {
   res.json(serverApplications);
 });
 
+app.get('/api/applications/:id', (req, res) => {
+  const { id } = req.params;
+  const found = serverApplications.find(a => String(a.id) === String(id));
+  if (found) {
+    return res.json(found);
+  }
+  res.status(404).json({ error: 'Application not found' });
+});
+
 app.post('/api/applications', (req, res) => {
   try {
     const data = req.body || {};
+    const appId = data.id || `app_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
     const newApp = {
-      id: data.id || `app_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
       type: data.type || 'volunteer',
       name: data.name || `${data.first_name || ''} ${data.last_name || ''}`.trim() || 'Applicant',
       email: data.email || '',
       phone: data.phone || '',
       date: data.date || new Date().toISOString(),
       status: data.status || 'Pending',
-      ...data
+      ...data,
+      id: appId
     };
-    serverApplications.unshift(newApp);
-    res.json({ success: true, application: newApp });
+    delete (newApp as any).photo;
+    delete (newApp as any).photo_url;
+
+    const existingIdx = serverApplications.findIndex(a => 
+      a.id === appId || 
+      (a.email && data.email && a.email.toLowerCase().trim() === data.email.toLowerCase().trim() && a.type === newApp.type)
+    );
+    if (existingIdx !== -1) {
+      serverApplications[existingIdx] = { ...serverApplications[existingIdx], ...newApp };
+      return res.json({ success: true, application: serverApplications[existingIdx] });
+    } else {
+      serverApplications.unshift(newApp);
+      return res.json({ success: true, application: newApp });
+    }
   } catch (err) {
     res.status(500).json({ error: 'Failed to record application' });
   }
 });
 
-app.patch('/api/applications/:id', (req, res) => {
+app.patch('/api/applications/:id', async (req, res) => {
   const { id } = req.params;
-  const { status } = req.body;
-  const found = serverApplications.find(a => a.id === id);
-  if (found) {
-    if (status) found.status = status;
-    return res.json({ success: true, application: found });
+  const { status, name, email, password, type } = req.body;
+  
+  const rawStatus = (status || '').toString().trim().toLowerCase();
+  const normalizedStatus = rawStatus === 'approved' 
+    ? 'Approved' 
+    : (rawStatus === 'rejected' ? 'Rejected' : (status || ''));
+
+  const reqEmail = (email || '').toString().trim().toLowerCase();
+  const reqType = (type || '').toString().trim().toLowerCase();
+
+  // Find all matching applications by ID or (email + type)
+  let matches = serverApplications.filter(a => {
+    if (String(a.id) === String(id)) return true;
+    if (reqEmail && a.email && a.email.toString().trim().toLowerCase() === reqEmail) {
+      if (!reqType || !a.type || a.type.toString().trim().toLowerCase() === reqType) {
+        return true;
+      }
+    }
+    return false;
+  });
+
+  let found: any = null;
+  if (matches.length > 0) {
+    matches.forEach(item => {
+      if (normalizedStatus) item.status = normalizedStatus;
+      if (name && !item.name) item.name = name;
+      if (email && !item.email) item.email = email;
+      if (password) item.password = password;
+      if (type && !item.type) item.type = type;
+    });
+    found = matches[0];
+  } else if (normalizedStatus) {
+    found = { 
+      id, 
+      status: normalizedStatus, 
+      name: name || 'Applicant', 
+      email: email || '', 
+      password: password || '', 
+      type: type || 'volunteer',
+      date: new Date().toISOString() 
+    };
+    serverApplications.push(found);
+  } else {
+    return res.status(404).json({ error: 'Application not found' });
   }
-  res.status(404).json({ error: 'Application not found' });
+
+  const applicantEmail = (found.email || email || '').trim();
+  const applicantName = (found.name || name || `${found.first_name || ''} ${found.last_name || ''}`.trim() || 'Applicant').trim();
+  const applicantPassword = (found.password || password || 'Set during application').trim();
+
+  let emailSent = false;
+  let emailError = null;
+
+  if (applicantEmail && (normalizedStatus === 'Approved' || normalizedStatus === 'Rejected')) {
+    const isApproved = normalizedStatus === 'Approved';
+    const subject = 'APPLICATION UPDATE: ESPA Foundation';
+
+    const text = isApproved
+      ? `Dear ${applicantName},\n\nYour application to volunteer with ESPA Foundation has been approved.\n\nYou can now access the Portal on ESPA Digital Library using the following credentials:\n\nEmail: ${applicantEmail}\nPassword: ${applicantPassword}\n\nPlease keep your login credentials secure and do not share your password with anyone.\n\nFurther information regarding your volunteer role and responsibilities will be available through the ESPA Digital Library.\n\nWelcome to ESPA Foundation. We look forward to having you contribute to our mission.\n\nESPA Foundation\nFrom Exclusion to Education.`
+      : `Dear ${applicantName},\n\nThank you for your interest in volunteering with ESPA Foundation and for taking the time to submit your application.\n\nAfter careful review, we regret to inform you that we will not be moving forward with your application at this time.\n\nWe appreciate your interest in supporting ESPA Foundation and encourage you to stay connected with us for future volunteer opportunities.\n\nThank you for your time and understanding.\n\nESPA Foundation\nFrom Exclusion to Education.`;
+
+    try {
+      await transporter.sendMail({
+        from: '"ESPA Foundation" <foundationespa@gmail.com>',
+        to: applicantEmail,
+        subject,
+        text
+      });
+      emailSent = true;
+      console.log(`Successfully sent ${normalizedStatus} plain text email to ${applicantEmail}`);
+    } catch (err: any) {
+      emailError = err?.message || 'Mail delivery error';
+      console.error(`Failed to send ${normalizedStatus} plain text email to ${applicantEmail}:`, err);
+    }
+  }
+
+  return res.json({ 
+    success: true, 
+    application: found, 
+    emailSent, 
+    emailError 
+  });
 });
 
 // API Routes
@@ -340,6 +446,7 @@ app.post('/api/volunteer', apiLimiter, async (req, res) => {
     last_name,
     email, 
     phone, 
+    whatsapp,
     gender,
     dob,
     city, 
@@ -458,14 +565,17 @@ app.post('/api/volunteer', apiLimiter, async (req, res) => {
       `
     });
     // Store application in serverApplications
-    serverApplications.unshift({
-      id: `app_vol_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+    const appId = req.body.id || `app_vol_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+    const newVolApp = {
+      id: appId,
       type: 'volunteer',
       name: candidateName,
       first_name: first_name || candidateName.split(' ')[0] || '',
       last_name: last_name || candidateName.split(' ').slice(1).join(' ') || '',
       email,
       phone: phone || '',
+      whatsapp: whatsapp || '',
+      password: password || '',
       gender: gender || '',
       dob: dob || '',
       city: city || '',
@@ -479,9 +589,19 @@ app.post('/api/volunteer', apiLimiter, async (req, res) => {
       message: message || '',
       date: new Date().toISOString(),
       status: 'Pending'
-    });
+    };
 
-    res.json({ success: true });
+    const existingVolIdx = serverApplications.findIndex(a => 
+      a.id === appId || 
+      (a.email && email && a.email.toLowerCase().trim() === email.toLowerCase().trim() && a.type === 'volunteer')
+    );
+    if (existingVolIdx !== -1) {
+      serverApplications[existingVolIdx] = { ...serverApplications[existingVolIdx], ...newVolApp };
+    } else {
+      serverApplications.unshift(newVolApp);
+    }
+
+    res.json({ success: true, application: newVolApp });
   } catch (error) {
     res.status(500).json({ error: 'Failed to send email' });
   }
@@ -498,6 +618,8 @@ app.post('/api/partner', apiLimiter, async (req, res) => {
     designation, 
     country, 
     city, 
+    org_country,
+    org_city,
     website, 
     partnership_type, 
     proposal, 
@@ -522,12 +644,15 @@ app.post('/api/partner', apiLimiter, async (req, res) => {
       if (dbError) console.error('Supabase error (partner):', dbError);
     }
 
+    const personalLocation = [city, country].filter(Boolean).join(', ');
+    const orgLocation = [org_city, org_country].filter(Boolean).join(', ');
+
     transporter.sendMail({
       from: '"ESPA Website" <foundationespa@gmail.com>',
       to: 'foundationespa@gmail.com',
       replyTo: email,
       subject: `New Partnership Proposal from ${organization}`,
-      text: `Name: ${candidateName}\nOrganization: ${organization}\nDesignation: ${designation || 'N/A'}\nEmail: ${email}\nPhone: ${phone || 'N/A'}\nCountry: ${country || 'N/A'}\nCity: ${city || 'N/A'}\nPartnership Category: ${partnership_type || 'N/A'}\nWebsite: ${website || 'N/A'}\n\nProposal:\n${proposal}\n\nTimeline/Goals:\n${timeline_or_goals || 'N/A'}`,
+      text: `Name: ${candidateName}\nOrganization: ${organization}\nDesignation: ${designation || 'N/A'}\nEmail: ${email}\nPhone: ${phone || 'N/A'}\nPersonal Location: ${personalLocation || 'N/A'}\nHeadquarters Location: ${orgLocation || 'N/A'}\nPartnership Category: ${partnership_type || 'N/A'}\nWebsite: ${website || 'N/A'}\n\nProposal:\n${proposal}\n\nTimeline/Goals:\n${timeline_or_goals || 'N/A'}`,
       html: `
         <div style="font-family: 'Poppins'; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
           <div style="background-color: #004B36; padding: 20px; text-align: center; color: white;">
@@ -557,10 +682,15 @@ app.post('/api/partner', apiLimiter, async (req, res) => {
                 <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>Phone:</strong></td>
                 <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;">${phone}</td>
               </tr>` : ''}
-              ${country ? `
+              ${personalLocation ? `
               <tr>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>Location:</strong></td>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;">${city ? `${city}, ` : ''}${country}</td>
+                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>Representative Location:</strong></td>
+                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;">${personalLocation}</td>
+              </tr>` : ''}
+              ${orgLocation ? `
+              <tr>
+                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>Organization Headquarters:</strong></td>
+                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;">${orgLocation}</td>
               </tr>` : ''}
               ${partnership_type ? `
               <tr>
@@ -590,8 +720,9 @@ app.post('/api/partner', apiLimiter, async (req, res) => {
       `
     });
     // Store partner application in serverApplications
-    serverApplications.unshift({
-      id: `app_part_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+    const appId = req.body.id || `app_part_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+    const newPartApp = {
+      id: appId,
       type: 'partner',
       name: candidateName,
       first_name: first_name || candidateName.split(' ')[0] || '',
@@ -603,6 +734,8 @@ app.post('/api/partner', apiLimiter, async (req, res) => {
       designation: designation || '',
       country: country || '',
       city: city || '',
+      org_country: org_country || '',
+      org_city: org_city || '',
       website: website || '',
       partnership_type: partnership_type || 'Strategic Partnership',
       message: proposal || '',
@@ -610,17 +743,42 @@ app.post('/api/partner', apiLimiter, async (req, res) => {
       timeline_or_goals: timeline_or_goals || '',
       date: new Date().toISOString(),
       status: 'Pending'
-    });
+    };
 
-    res.json({ success: true });
+    const existingPartIdx = serverApplications.findIndex(a => 
+      a.id === appId || 
+      (a.email && email && a.email.toLowerCase().trim() === email.toLowerCase().trim() && a.type === 'partner')
+    );
+    if (existingPartIdx !== -1) {
+      serverApplications[existingPartIdx] = { ...serverApplications[existingPartIdx], ...newPartApp };
+    } else {
+      serverApplications.unshift(newPartApp);
+    }
+
+    res.json({ success: true, application: newPartApp });
   } catch (error) {
     res.status(500).json({ error: 'Failed to send email' });
   }
 });
 
 app.post('/api/ambassador', apiLimiter, async (req, res) => {
-  const { name, email, phone, social, motivation, recaptchaToken, institution, city, experience, department } = req.body;
-  if (!name || !email || !phone || !motivation || !recaptchaToken) return res.status(400).json({ error: 'Name, email, phone, motivation, and reCAPTCHA are required' });
+  const { 
+    name, 
+    first_name, 
+    last_name, 
+    email, 
+    phone, 
+    whatsapp, 
+    password,
+    institution, 
+    city, 
+    social, 
+    motivation, 
+    experience, 
+    recaptchaToken 
+  } = req.body;
+  const candidateName = (name || `${first_name || ''} ${last_name || ''}`).trim();
+  if (!candidateName || !email || !phone || !motivation || !recaptchaToken) return res.status(400).json({ error: 'All fields are required' });
   
   const isValid = await verifyRecaptcha(recaptchaToken);
   if (!isValid) return res.status(400).json({ error: 'reCAPTCHA verification failed' });
@@ -629,7 +787,7 @@ app.post('/api/ambassador', apiLimiter, async (req, res) => {
     if (supabase) {
       const { error: dbError } = await supabase
         .from('ambassador_applications')
-        .insert([{ name, email, phone, social: social || '', motivation }]);
+        .insert([{ name: candidateName, email, phone, social, motivation }]);
       if (dbError) console.error('Supabase error (ambassador):', dbError);
     }
 
@@ -637,8 +795,8 @@ app.post('/api/ambassador', apiLimiter, async (req, res) => {
       from: '"ESPA Website" <foundationespa@gmail.com>',
       to: 'foundationespa@gmail.com',
       replyTo: email,
-      subject: `New Ambassador Application from ${name}`,
-      text: `Name: ${name}\nEmail: ${email}\nPhone: ${phone}\nSocial Media: ${social || 'N/A'}\nInstitution: ${institution || 'N/A'}\nCity: ${city || 'N/A'}\nDepartment: ${department || 'N/A'}\nExperience: ${experience || 'N/A'}\n\nMotivation:\n${motivation}`,
+      subject: `New Ambassador Application from ${candidateName}`,
+      text: `Name: ${candidateName}\nEmail: ${email}\nPhone: ${phone}\nWhatsApp: ${whatsapp || 'N/A'}\nSocial Media: ${social || 'N/A'}\n\nMotivation:\n${motivation}`,
       html: `
         <div style="font-family: 'Poppins'; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
           <div style="background-color: #004B36; padding: 20px; text-align: center; color: white;">
@@ -648,7 +806,7 @@ app.post('/api/ambassador', apiLimiter, async (req, res) => {
             <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
               <tr>
                 <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>Name:</strong></td>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;">${name}</td>
+                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;">${candidateName}</td>
               </tr>
               <tr>
                 <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>Email:</strong></td>
@@ -658,19 +816,14 @@ app.post('/api/ambassador', apiLimiter, async (req, res) => {
                 <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>Phone:</strong></td>
                 <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;">${phone}</td>
               </tr>
-              ${institution ? `
+              ${whatsapp ? `
               <tr>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>Institution:</strong></td>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;">${institution}</td>
-              </tr>` : ''}
-              ${city ? `
-              <tr>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>City/Location:</strong></td>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;">${city}</td>
+                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>WhatsApp:</strong></td>
+                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;">${whatsapp}</td>
               </tr>` : ''}
               <tr>
                 <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>Social Media:</strong></td>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;">${social ? `<a href="${social}" target="_blank" style="color: #004B36;">${social}</a>` : 'N/A'}</td>
+                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><a href="${social}" target="_blank" style="color: #004B36;">${social || 'N/A'}</a></td>
               </tr>
             </table>
             <div style="background-color: white; padding: 15px; border-radius: 6px; border: 1px solid #eeeeee;">
@@ -685,27 +838,38 @@ app.post('/api/ambassador', apiLimiter, async (req, res) => {
       `
     });
     // Store ambassador application in serverApplications
-    serverApplications.unshift({
-      id: `app_amb_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+    const appId = req.body.id || `app_amb_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+    const newAmbApp = {
+      id: appId,
       type: 'ambassador',
-      name: name,
-      first_name: name.split(' ')[0] || '',
-      last_name: name.split(' ').slice(1).join(' ') || '',
+      name: candidateName,
+      first_name: first_name || candidateName.split(' ')[0] || '',
+      last_name: last_name || candidateName.split(' ').slice(1).join(' ') || '',
       email,
       phone: phone || '',
-      social: social || '',
+      whatsapp: whatsapp || '',
+      password: password || '',
       institution: institution || '',
-      company: institution || '',
       city: city || '',
-      department: department || '',
+      social: social || '',
       experience: experience || '',
       message: motivation || '',
       motivation: motivation || '',
       date: new Date().toISOString(),
       status: 'Pending'
-    });
+    };
 
-    res.json({ success: true });
+    const existingAmbIdx = serverApplications.findIndex(a => 
+      a.id === appId || 
+      (a.email && email && a.email.toLowerCase().trim() === email.toLowerCase().trim() && a.type === 'ambassador')
+    );
+    if (existingAmbIdx !== -1) {
+      serverApplications[existingAmbIdx] = { ...serverApplications[existingAmbIdx], ...newAmbApp };
+    } else {
+      serverApplications.unshift(newAmbApp);
+    }
+
+    res.json({ success: true, application: newAmbApp });
   } catch (error) {
     res.status(500).json({ error: 'Failed to send email' });
   }
@@ -803,43 +967,71 @@ app.post('/api/login', loginLimiter, (req, res) => {
 
 
 app.post('/api/send-otp', apiLimiter, async (req, res) => {
-  const { email, otp, recaptchaToken } = req.body;
+  const { email, otp, recaptchaToken, purpose } = req.body;
   
-  if (!email || !otp) return res.status(400).json({ error: 'Email and OTP are required' });
+  if (!email) return res.status(400).json({ error: 'Email address is required' });
   
   // Verify recaptcha if provided
-  if (recaptchaToken) {
+  if (recaptchaToken && recaptchaToken !== 'verified_token' && recaptchaToken !== 'test_token') {
     const isValid = await verifyRecaptcha(recaptchaToken);
     if (!isValid) return res.status(400).json({ error: 'reCAPTCHA verification failed' });
   }
 
+  // Generate 6-digit random numeric OTP if not provided
+  const finalOtp = otp ? String(otp).trim() : Math.floor(100000 + Math.random() * 900000).toString();
+  const normalizedEmail = String(email).trim().toLowerCase();
+
+  // Store OTP in-memory with 10-minute expiry
+  otpStore.set(normalizedEmail, {
+    code: finalOtp,
+    expiresAt: Date.now() + 10 * 60 * 1000
+  });
+
+  const isLibrary = purpose === 'library' || (!purpose && String(email).includes('library'));
+  const senderTitle = isLibrary ? 'ESPA Digital Library' : 'ESPA Foundation';
+  const subjectLine = isLibrary 
+    ? `Your Library Verification Code: ${finalOtp}`
+    : `Your ESPA Verification Code: ${finalOtp}`;
+
   try {
-    transporter.sendMail({
-      from: '"ESPA Library" <foundationespa@gmail.com>',
+    await transporter.sendMail({
+      from: `"${senderTitle}" <foundationespa@gmail.com>`,
       to: email,
-      subject: `Your Library Verification Code: ${otp}`,
-      text: `Your verification code is: ${otp}. It will expire in 10 minutes.`,
-      html: `
-        <div style="font-family: 'Poppins'; max-width: 500px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
-          <div style="background-color: #004B36; padding: 20px; text-align: center; color: white;">
-            <h2 style="margin: 0;">Verification Code</h2>
-          </div>
-          <div style="padding: 30px; background-color: #f9f9f9; text-align: center;">
-            <p style="color: #333; margin-bottom: 20px;">Use the following code to verify your account:</p>
-            <div style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #004B36; padding: 15px; background: white; border-radius: 8px; display: inline-block; border: 1px dashed #004B36;">
-              ${otp}
-            </div>
-            <p style="color: #666; font-size: 12px; margin-top: 20px;">This code will expire in 10 minutes.</p>
-          </div>
-        </div>
-      `
+      subject: subjectLine,
+      text: `Your ESPA verification code is: ${finalOtp}\n\nThis verification code will expire in 10 minutes.\n\nIf you did not initiate this request, you can safely ignore this email.\n\nESPA Foundation\nfoundationespa@gmail.com`
     });
-    console.log(`Successfully sent OTP to ${email}`);
-    res.json({ success: true });
+    console.log(`Successfully sent real-time plain text OTP to ${email}`);
+    res.json({ success: true, message: 'Verification code sent to your email.' });
   } catch (error) {
-    console.error('Error sending OTP:', error);
-    res.status(500).json({ error: 'Failed to send OTP email' });
+    console.error('Error sending OTP email:', error);
+    res.status(500).json({ error: 'Failed to send OTP email. Please check your email address and try again.' });
   }
+});
+
+app.post('/api/verify-otp', apiLimiter, (req, res) => {
+  const { email, otp } = req.body;
+  if (!email || !otp) {
+    return res.status(400).json({ error: 'Email and verification code are required.', valid: false });
+  }
+  const normalizedEmail = String(email).trim().toLowerCase();
+  const entry = otpStore.get(normalizedEmail);
+
+  if (!entry) {
+    return res.status(400).json({ error: 'No verification code found or it has expired. Please request a new code.', valid: false });
+  }
+
+  if (Date.now() > entry.expiresAt) {
+    otpStore.delete(normalizedEmail);
+    return res.status(400).json({ error: 'Verification code has expired. Please click Resend Code.', valid: false });
+  }
+
+  if (entry.code !== String(otp).trim()) {
+    return res.status(400).json({ error: 'Incorrect verification code. Please check your email and try again.', valid: false });
+  }
+
+  // Successfully verified! Consume code so it cannot be re-used
+  otpStore.delete(normalizedEmail);
+  return res.json({ success: true, valid: true });
 });
 
 // Serve static files

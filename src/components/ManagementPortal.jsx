@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { motion } from 'framer-motion';
 import Cropper from 'react-easy-crop';
 
 const Portal = ({ children }) => {
@@ -12,9 +13,7 @@ import DraggableModal from './DraggableModal';
 import FundsView from './FundsView';
 import SummaryDashboard from './SummaryDashboard';
 import MemberListView from './MemberListView';
-import ItineraryView from './ItineraryView';
 import FormsView from './FormsView';
-import UsersView from './UsersView';
 import SettingsView from "./SettingsView";
 import ArchivesView from "./ArchivesView";
 import GeneralAgreementsView from "./GeneralAgreementsView";
@@ -52,7 +51,6 @@ export const AINLogo = ({ className = "" }) => (
 );
 export const FontStyles = () => (
   <style dangerouslySetInnerHTML={{__html: `
-    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
     :root {
       --font-main: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
@@ -116,60 +114,76 @@ export const ToggleSwitch = ({ isOn, onClick }) => (
   </button>
 );
 
-export const ActionMenu = ({ children, id, activeDropdown, setActiveDropdown }) => {
-  const isOpen = activeDropdown === id;
+export const ActionMenu = ({ children, id, activeDropdown, setActiveDropdown, items }) => {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = typeof setActiveDropdown === 'function';
+  const isOpen = isControlled ? activeDropdown === id : internalOpen;
   const menuRef = useRef(null);
+
+  const closeMenu = () => {
+    if (isControlled && typeof setActiveDropdown === 'function') {
+      setActiveDropdown(null);
+    } else {
+      setInternalOpen(false);
+    }
+  };
+
+  const toggleMenu = (e) => {
+    e?.stopPropagation();
+    if (isControlled && typeof setActiveDropdown === 'function') {
+      setActiveDropdown(isOpen ? null : id);
+    } else {
+      setInternalOpen(!internalOpen);
+    }
+  };
 
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
-        if (isOpen) setActiveDropdown(null);
+        if (isOpen) closeMenu();
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen, setActiveDropdown]);
+  }, [isOpen, isControlled, setActiveDropdown]);
 
   return (
     <div className="relative inline-block text-left" ref={menuRef}>
       <button
-        onClick={(e) => {
-          e.stopPropagation();
-          setActiveDropdown(isOpen ? null : id);
-        }}
-        className="p-2 rounded-full hover:bg-stone-100 text-[#003828] transition-colors focus:outline-none"
+        type="button"
+        onClick={toggleMenu}
+        className="p-2 rounded-full hover:bg-stone-100 text-[#003828] transition-colors focus:outline-none cursor-pointer"
       >
         <MoreVertical size={18} className="text-[#003828]" />
       </button>
       {isOpen && (
         <div className="origin-top-right absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1)] border border-stone-200 z-[9999] py-1 overflow-hidden">
-          {children}
-        </div>
-      )}
-
-      {showTabChangeConfirm && (
-        <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl animate-in zoom-in-95">
-            <h3 className="text-xl font-bold text-stone-900 mb-2">Discard Changes?</h3>
-            <p className="text-stone-500 mb-6 text-sm">You have unsaved changes. Are you sure you want to discard them and leave this page?</p>
-            <div className="flex justify-end gap-3">
-              <button onClick={() => setShowTabChangeConfirm(false)} className="px-4 py-2 font-semibold text-stone-600 bg-stone-100 hover:bg-stone-200 rounded-full text-sm">Cancel</button>
-              <button onClick={confirmTabChange} className="px-4 py-2 font-semibold text-white bg-red-600 hover:bg-red-700 rounded-full text-sm">Discard</button>
+          {items && items.length > 0 ? (
+            <div className="py-1">
+              {items.map((item, idx) => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      closeMenu();
+                      if (typeof item.onClick === 'function') {
+                        item.onClick(e);
+                      }
+                    }}
+                    className={`w-full text-left px-4 py-2.5 text-sm font-medium flex items-center gap-2 hover:bg-stone-50 transition-colors cursor-pointer ${item.className || 'text-stone-700'}`}
+                  >
+                    {Icon && <Icon size={16} />}
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
             </div>
-          </div>
-        </div>
-      )}
-
-      {showLogoutConfirm && (
-        <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl animate-in zoom-in-95">
-            <h3 className="text-xl font-bold text-stone-900 mb-2">Log Out</h3>
-            <p className="text-stone-500 mb-6 text-sm">Are you sure you want to log out of the portal?</p>
-            <div className="flex justify-end gap-3">
-              <button onClick={() => setShowLogoutConfirm(false)} className="px-4 py-2 font-semibold text-stone-600 bg-stone-100 hover:bg-stone-200 rounded-full text-sm">Cancel</button>
-              <button onClick={() => { setShowLogoutConfirm(false); handleLogout(); }} className="px-4 py-2 font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-full text-sm">Log Out</button>
-            </div>
-          </div>
+          ) : (
+            children
+          )}
         </div>
       )}
     </div>
@@ -664,6 +678,9 @@ const generateUsername = (userData) => {
 
 
 function useLocalStorage(key, initialValue) {
+  const initialValueRef = useRef(initialValue);
+  initialValueRef.current = initialValue;
+
   const [storedValue, setStoredValue] = useState(() => {
     if (typeof window === "undefined") {
       return initialValue instanceof Function ? initialValue() : initialValue;
@@ -683,10 +700,12 @@ function useLocalStorage(key, initialValue) {
     if (typeof window === 'undefined') return;
     
     const handleStorageChange = (e) => {
+      if (e && e.key && e.key !== key) return;
       try {
         const item = window.localStorage.getItem(key);
         if (item === null || item === 'undefined' || item === 'null') {
-          setStoredValue(initialValue instanceof Function ? initialValue() : initialValue);
+          const init = initialValueRef.current;
+          setStoredValue(init instanceof Function ? init() : init);
         } else {
           setStoredValue(JSON.parse(item));
         }
@@ -701,24 +720,30 @@ function useLocalStorage(key, initialValue) {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('ain_user_changed', handleStorageChange);
     };
-  }, [key, initialValue]);
+  }, [key]);
 
-  const setValue = (value) => {
+  const setValue = useCallback((value) => {
     try {
-      const valueToStore = value instanceof Function ? value(storedValue) : value;
-      setStoredValue(valueToStore);
-      if (typeof window !== "undefined") {
-        if (valueToStore === null || valueToStore === undefined) {
-           window.localStorage.removeItem(key);
-        } else {
-           window.localStorage.setItem(key, JSON.stringify(valueToStore));
+      setStoredValue((prev) => {
+        const valueToStore = value instanceof Function ? value(prev) : value;
+        if (typeof window !== "undefined") {
+          try {
+            if (valueToStore === null || valueToStore === undefined) {
+              window.localStorage.removeItem(key);
+            } else {
+              window.localStorage.setItem(key, JSON.stringify(valueToStore));
+            }
+            if (key === "ain_currentUser") window.dispatchEvent(new Event("ain_user_changed"));
+          } catch (writeErr) {
+            console.warn(`Error writing to localStorage for key "${key}":`, writeErr);
+          }
         }
-        if (key === "ain_currentUser") window.dispatchEvent(new Event("ain_user_changed"));
-      }
+        return valueToStore;
+      });
     } catch (error) {
       console.warn(`Error setting localStorage key "${key}":`, error);
     }
-  };
+  }, [key]);
 
   return [storedValue, setValue];
 }
@@ -726,7 +751,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useLocalStorage("ain_activeTab", "dashboard");
 
   useEffect(() => {
-    if (activeTab === 'alliance') {
+    if (activeTab === 'alliance' || activeTab === 'roles') {
       setActiveTab('dashboard');
     }
   }, [activeTab, setActiveTab]);
@@ -775,12 +800,159 @@ export default function App() {
   // New applications state
   const [applications, setApplications] = useLocalStorage("ain_applications", []);
 
+  // Synchronize applications with backend API on mount with strict deduplication
+  useEffect(() => {
+    let isMounted = true;
+    const syncApplications = async () => {
+      try {
+        const res = await fetch('/api/applications');
+        if (res.ok && isMounted) {
+          const serverApps = await res.json();
+          if (Array.isArray(serverApps)) {
+            setApplications(localApps => {
+              const current = Array.isArray(localApps) ? localApps : [];
+              const merged = [];
+
+              const addApp = (a, isLocal = false) => {
+                if (!a) return;
+                const idKey = a.id ? String(a.id) : null;
+                const emailTypeKey = (a.email && a.type) ? `${a.email.toLowerCase().trim()}_${(a.type || '').toLowerCase().trim()}` : null;
+                
+                const existingIdx = merged.findIndex(m => 
+                  (idKey && String(m.id) === idKey) ||
+                  (emailTypeKey && m.email && m.type && `${m.email.toLowerCase().trim()}_${(m.type || '').toLowerCase().trim()}` === emailTypeKey)
+                );
+
+                if (existingIdx !== -1) {
+                  const existing = merged[existingIdx];
+                  const existingStatus = (existing.status || '').trim().toLowerCase();
+                  const newStatus = (a.status || '').trim().toLowerCase();
+
+                  // An Approved or Rejected status must NEVER be reverted back to Pending!
+                  if ((existingStatus === 'approved' || existingStatus === 'rejected') && newStatus === 'pending') {
+                    merged[existingIdx] = { ...a, ...existing, status: existing.status };
+                  } else if (newStatus === 'approved' || newStatus === 'rejected') {
+                    merged[existingIdx] = { ...existing, ...a, status: a.status };
+                  } else if (isLocal) {
+                    merged[existingIdx] = { ...existing, ...a };
+                  }
+                  return;
+                }
+
+                merged.push({ ...a });
+              };
+
+              // Local records first, then server records
+              current.forEach(a => addApp(a, true));
+              serverApps.forEach(a => addApp(a, false));
+
+              try {
+                localStorage.setItem('ain_applications', JSON.stringify(merged));
+              } catch (e) {}
+              return merged;
+            });
+          }
+        }
+      } catch (e) {
+        console.warn('API sync failed:', e);
+      }
+    };
+    syncApplications();
+    return () => { isMounted = false; };
+  }, [setApplications]);
+
+  // Synchronize approved applications to users so they reflect in Volunteers, Ambassadors, and Partners
+  useEffect(() => {
+    if (!Array.isArray(applications) || applications.length === 0) return;
+    const approved = applications.filter(a => (a.status || '').trim().toLowerCase() === 'approved');
+    if (approved.length === 0) return;
+
+    setUsers(currentUsers => {
+      if (!Array.isArray(currentUsers)) return currentUsers;
+      let hasChanges = false;
+      const nextUsers = [...currentUsers];
+
+      approved.forEach(app => {
+        const type = (app.type || '').toLowerCase();
+        const targetRole = type === 'volunteer' ? 'Volunteer' : (type === 'ambassador' ? 'Ambassador' : (type === 'partner' ? 'Partner' : null));
+        if (!targetRole) return;
+
+        const appEmail = (app.email || '').toLowerCase().trim();
+        const exists = nextUsers.some(u => 
+          u.applicationId === app.id || 
+          (appEmail && u.email && u.email.toLowerCase().trim() === appEmail && u.role === targetRole)
+        );
+
+        if (!exists) {
+          hasChanges = true;
+          const prefix = type === 'volunteer' ? 'V' : (type === 'ambassador' ? 'AM' : 'PA');
+          nextUsers.unshift({
+            id: `${prefix}_${app.id}`,
+            applicationId: app.id,
+            name: type === 'partner' 
+              ? (app.organization || app.company || app.name || 'Partner Organization')
+              : (app.name || `${app.first_name || ''} ${app.last_name || ''}`.trim() || 'Member'),
+            email: app.email || '',
+            phone: app.phone || '',
+            role: targetRole,
+            username: (app.email ? app.email.split('@')[0] : `${type}_${app.id}`),
+            password: app.password || '12345',
+            active: true,
+            status: 'Active',
+            dateAdded: app.date || new Date().toISOString(),
+            joinDate: app.date ? new Date(app.date).toLocaleDateString() : new Date().toLocaleDateString(),
+            city: app.city || '',
+            country: app.country || '',
+            location: [app.city, app.country].filter(Boolean).join(', '),
+            gender: app.gender || '',
+            dob: app.dob || '',
+            volunteer_target: app.volunteer_target || 'ESPA Foundation',
+            library_role: app.library_role || '',
+            languages: app.languages || [],
+            area_of_interest: app.area_of_interest || app.volunteer_target || '',
+            interests: app.area_of_interest || app.volunteer_target || '',
+            availability: app.availability || '',
+            skills: app.skills || '',
+            institution: app.institution || app.company || '',
+            department: app.department || '',
+            current_status: app.current_status || '',
+            social: app.social || '',
+            socialMedia: app.social || '',
+            experience: app.experience || '',
+            influenceArea: app.department || 'Education & Youth',
+            profession: app.current_status || 'Ambassador Fellow',
+            organization: app.organization || app.company || '',
+            company: app.organization || app.company || '',
+            representative: app.name || '',
+            designation: app.designation || 'Representative',
+            website: app.website || '',
+            partnership_type: app.partnership_type || 'Strategic Partner',
+            partnershipType: app.partnership_type || 'Strategic Partner',
+            timeline_or_goals: app.timeline_or_goals || '',
+            proposal: app.proposal || app.message || '',
+            motivation: app.message || app.motivation || '',
+            history: `Application approved and synced to ${targetRole}s on ${new Date().toLocaleDateString()}`
+          });
+        }
+      });
+
+      if (hasChanges) {
+        try {
+          localStorage.setItem('ain_users', JSON.stringify(nextUsers));
+        } catch (e) {}
+        return nextUsers;
+      }
+      return currentUsers;
+    });
+  }, [applications, setUsers]);
+
   // Effect to clean up existing dummy names for users who already have them cached
   useEffect(() => {
-    if (users) {
+    setUsers(currentUsers => {
+      if (!Array.isArray(currentUsers)) return currentUsers;
       let changed = false;
-      const updatedUsers = users.map(u => {
-        if (u.name.startsWith('Dummy ')) {
+      const updatedUsers = currentUsers.map(u => {
+        if (u.name && u.name.startsWith('Dummy ')) {
           changed = true;
           switch (u.role) {
             case 'President': return { ...u, name: 'Tariq Mahmood' };
@@ -799,11 +971,9 @@ export default function App() {
         }
         return u;
       });
-      if (changed) {
-        setUsers(updatedUsers);
-      }
-    }
-  }, [users, setUsers]);
+      return changed ? updatedUsers : currentUsers;
+    });
+  }, [setUsers]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [globalUser, setGlobalUser] = useState(null); 
 
@@ -852,6 +1022,30 @@ export default function App() {
     }
   };
 
+  const handleQuickLogin = (username, password = '12345') => {
+    setLoginEmail(username);
+    setLoginPassword(password);
+    setLoginError('');
+    const user = users?.find(u => 
+      (u.email.toLowerCase() === username.toLowerCase() || 
+       (u.username && u.username.toLowerCase() === username.toLowerCase())) && 
+      u.password === password && u.active !== false
+    );
+    
+    if (user) {
+      if (twoFactorConfig.enabled && twoFactorConfig.requireForLogin && user.id === 'A01') {
+        setTempUser(user);
+        setRequires2FA(true);
+        setLoginError('');
+      } else {
+        setCurrentUser(user);
+        setActiveTab('dashboard');
+        addLog(`${user.name} logged in`);
+        setLoginError('');
+      }
+    }
+  };
+
   const handle2FALogin = async (e) => {
       e.preventDefault();
       if (otpCode.length === 6) {
@@ -875,8 +1069,13 @@ export default function App() {
   const [pendingTab, setPendingTab] = useState(null);
   const [showTabChangeConfirm, setShowTabChangeConfirm] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [applicationsNavTrigger, setApplicationsNavTrigger] = useState(0);
 
   const handleTabChange = (id) => {
+    if (id === 'applications') {
+      setApplicationsNavTrigger(prev => prev + 1);
+      window.dispatchEvent(new CustomEvent('ain_reset_applications_hero'));
+    }
     if (window.ain_isFormDirty) {
       setPendingTab(id);
       setShowTabChangeConfirm(true);
@@ -894,6 +1093,10 @@ export default function App() {
         window.localStorage.removeItem(k);
       }
     });
+    if (pendingTab === 'applications') {
+      setApplicationsNavTrigger(prev => prev + 1);
+      window.dispatchEvent(new CustomEvent('ain_reset_applications_hero'));
+    }
     setActiveTab(pendingTab);
     setShowTabChangeConfirm(false);
     setIsMobileMenuOpen(false);
@@ -1053,11 +1256,7 @@ export default function App() {
                     <button
                       key={btn.user}
                       type="button"
-                      onClick={() => {
-                        setLoginEmail(btn.user);
-                        setLoginPassword('12345');
-                        setLoginError('');
-                      }}
+                      onClick={() => handleQuickLogin(btn.user)}
                       className="px-2.5 py-1 text-xs font-semibold bg-stone-100 hover:bg-[#003828] hover:text-white text-stone-700 rounded-lg transition-colors cursor-pointer"
                     >
                       {btn.label}
@@ -1099,14 +1298,14 @@ export default function App() {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard': return <SummaryDashboard funds={funds} currentUser={currentUser} setActiveTab={setActiveTab} />;
-      case 'general': return <MemberListView key="General Committee" title="Committee & Board" description="Core office bearers and registered general members of the NGO." icon={Users} members={users.filter(u => ['President', 'Vice President', 'General Secretary', 'Joint Secretary', 'Treasurer', 'Executive Member', 'General Member'].includes(u.role))} onUpdateRole={handleUpdateRole} />;
-      case 'volunteers': return <MemberListView key="Volunteers" title="Volunteers" description="List of all the Volunteers." icon={HeartHandshake} members={users.filter(u => u.role === 'Volunteer')} onUpdateRole={handleUpdateRole} />;
-      case 'ambassadors': return <MemberListView key="Ambassadors" title="Ambassadors" description="List of all the Ambassadors." icon={Globe} members={users.filter(u => u.role === 'Ambassador')} onUpdateRole={handleUpdateRole} />;
-      case 'partners': return <MemberListView key="Partners" title="Partners" description="List of all the Partners." icon={Briefcase} members={users.filter(u => u.role === 'Partner')} onUpdateRole={handleUpdateRole} />;
-      case 'donors': return <MemberListView key="Donors" title="Donors" description="List of all the Donors." icon={HandCoins} members={users.filter(u => u.role === 'Donor')} onUpdateRole={handleUpdateRole} />;
-      case 'funds': return <FundsView key="funds" funds={funds} setFunds={setFunds} addLog={addLog} showToast={showToast} />;
+      case 'general': return <MemberListView key="General Committee" title="Board Members" description="Core office bearers and registered board members of the NGO." icon={Users} members={users.filter(u => ['President', 'Vice President', 'General Secretary', 'Joint Secretary', 'Treasurer', 'Executive Member', 'General Member'].includes(u.role))} onUpdateRole={handleUpdateRole} onAddMember={(newM) => setUsers(prev => [newM, ...prev])} />;
+      case 'volunteers': return <MemberListView key="Volunteers" title="Volunteers" description="List of all registered Volunteers." icon={HeartHandshake} members={users.filter(u => u.role === 'Volunteer')} onUpdateRole={handleUpdateRole} onAddMember={(newM) => setUsers(prev => [newM, ...prev])} />;
+      case 'ambassadors': return <MemberListView key="Ambassadors" title="Ambassadors" description="List of all registered Ambassadors." icon={Globe} members={users.filter(u => u.role === 'Ambassador')} onUpdateRole={handleUpdateRole} onAddMember={(newM) => setUsers(prev => [newM, ...prev])} />;
+      case 'partners': return <MemberListView key="Partners" title="Partners" description="List of all registered Partners." icon={Briefcase} members={users.filter(u => u.role === 'Partner')} onUpdateRole={handleUpdateRole} onAddMember={(newM) => setUsers(prev => [newM, ...prev])} />;
+      case 'donors': return <MemberListView key="Donors" title="Donors" description="List of all registered Donors." icon={HandCoins} members={users.filter(u => u.role === 'Donor')} onUpdateRole={handleUpdateRole} onAddMember={(newM) => setUsers(prev => [newM, ...prev])} />;
+      case 'funds': return <FundsView key="funds" funds={funds} setFunds={setFunds} users={users} addLog={addLog} showToast={showToast} />;
       case 'settings': return <SettingsView key="settings" currentUser={currentUser} setCurrentUser={setCurrentUser} globalUsers={users} setUsers={setUsers} showToast={showToast} addLog={addLog} twoFactorConfig={twoFactorConfig} setTwoFactorConfig={setTwoFactorConfig} setActiveTab={setActiveTab} funds={funds} setFunds={setFunds} />;
-      case 'applications': return <ApplicationsView key="applications" applications={applications} setApplications={setApplications} showToast={showToast} addLog={addLog} />;
+      case 'applications': return <ApplicationsView key="applications" applications={applications} setApplications={setApplications} users={users} setUsers={setUsers} showToast={showToast} addLog={addLog} setActiveTab={setActiveTab} resetTrigger={applicationsNavTrigger} />;
       case 'activity': return (
           <div className="space-y-0 h-full flex flex-col tracking-tight relative overflow-hidden">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-6 shrink-0">
@@ -1160,7 +1359,7 @@ export default function App() {
           </div>
         );
       case 'archives': return <ArchivesView archivedHosts={archivedHosts} setArchivedHosts={setArchivedHosts} setHosts={setHosts} hosts={hosts} archivedUsers={archivedUsers} setArchivedUsers={setArchivedUsers} setUsers={setUsers} users={users} archivedBatches={archivedBatches} setArchivedBatches={setArchivedBatches} setBatches={setBatches} batches={batches} archivedRooms={archivedRooms} setArchivedRooms={setArchivedRooms} setRooms={setRooms} rooms={rooms} showToast={showToast} addLog={addLog} setActiveTab={setActiveTab} />;
-      case 'roles': return <UsersView roles={roles} globalUsers={users} currentUser={currentUser} users={users} setUsers={setUsers} showToast={showToast} addLog={addLog} setActiveTab={setActiveTab} />;
+      case 'roles': return <SummaryDashboard funds={funds} currentUser={currentUser} />;
       default: return <SummaryDashboard funds={funds} currentUser={currentUser} />;
     }
   };
@@ -1175,14 +1374,13 @@ export default function App() {
 
   const navItems = [
     { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: allRoles },
-    { id: 'general', icon: Users, label: 'Committee & Board', roles: basicCommitteeRoles },
+    { id: 'general', icon: Users, label: 'Board Members', roles: basicCommitteeRoles },
     { id: 'volunteers', icon: HeartHandshake, label: 'Volunteers', roles: mgmtRoles },
     { id: 'ambassadors', icon: Globe, label: 'Ambassadors', roles: mgmtRoles },
     { id: 'partners', icon: Briefcase, label: 'Partners', roles: mgmtRoles },
     { id: 'donors', icon: HandCoins, label: 'Donors', roles: financeRoles },
     { id: 'applications', icon: FileText, label: 'Applications', roles: mgmtRoles },
     { id: 'funds', icon: Wallet, label: 'Funds', roles: financeRoles },
-    { id: 'roles', icon: Shield, label: 'System Users', roles: topExecRoles },
   ];
 
   const adminItems = [
@@ -1190,7 +1388,12 @@ export default function App() {
   ];
 
   return (
-    <div className="flex h-full bg-[#FDFCFB] overflow-hidden text-stone-800">
+    <motion.div 
+      initial={{ opacity: 0 }} 
+      animate={{ opacity: 1 }} 
+      transition={{ duration: 0.25, ease: "easeOut" }} 
+      className="flex h-full bg-[#FDFCFB] overflow-hidden text-stone-800"
+    >
       <FontStyles />
       {/* Mobile Header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-stone-200 z-50 flex items-center justify-between px-4 shadow-sm">
@@ -1295,6 +1498,6 @@ export default function App() {
           </div>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }

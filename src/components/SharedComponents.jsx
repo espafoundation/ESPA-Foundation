@@ -3,34 +3,76 @@ import { MoreVertical, X, Check, Search } from 'lucide-react';
 import DraggableModal from './DraggableModal';
 import { createPortal } from 'react-dom';
 
-export const ActionMenu = ({ id, activeDropdown, setActiveDropdown, children }) => {
-  const isOpen = activeDropdown === id;
+export const ActionMenu = ({ id, activeDropdown, setActiveDropdown, items, children }) => {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = typeof setActiveDropdown === 'function';
+  const isOpen = isControlled ? activeDropdown === id : internalOpen;
   const menuRef = useRef(null);
+
+  const closeMenu = () => {
+    if (isControlled && typeof setActiveDropdown === 'function') {
+      setActiveDropdown(null);
+    } else {
+      setInternalOpen(false);
+    }
+  };
+
+  const toggleMenu = (e) => {
+    e?.stopPropagation();
+    if (isControlled && typeof setActiveDropdown === 'function') {
+      setActiveDropdown(isOpen ? null : id);
+    } else {
+      setInternalOpen(!internalOpen);
+    }
+  };
 
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
-        if (isOpen) setActiveDropdown(null);
+        if (isOpen) closeMenu();
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen, setActiveDropdown]);
+  }, [isOpen, isControlled, setActiveDropdown]);
 
   return (
     <div className="relative inline-block text-left" ref={menuRef}>
       <button
-        onClick={(e) => {
-          e.stopPropagation();
-          setActiveDropdown(isOpen ? null : id);
-        }}
-        className="p-2 rounded-full hover:bg-stone-100 transition-colors focus:outline-none"
+        type="button"
+        onClick={toggleMenu}
+        className="p-2 rounded-full hover:bg-stone-100 transition-colors focus:outline-none cursor-pointer"
       >
         <MoreVertical size={16} className="text-stone-500" />
       </button>
       {isOpen && (
         <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-xl shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50 py-1 overflow-hidden">
-          {children}
+          {items && items.length > 0 ? (
+            <div className="py-1">
+              {items.map((item, idx) => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      closeMenu();
+                      if (typeof item.onClick === 'function') {
+                        item.onClick(e);
+                      }
+                    }}
+                    className={`w-full text-left px-4 py-2.5 text-sm font-medium flex items-center gap-2 hover:bg-stone-50 transition-colors cursor-pointer ${item.className || 'text-stone-700'}`}
+                  >
+                    {Icon && <Icon size={16} />}
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            children
+          )}
         </div>
       )}
     </div>

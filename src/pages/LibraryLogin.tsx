@@ -156,7 +156,7 @@ export default function LibraryLogin() {
       
       <div className="hidden lg:flex w-1/2 bg-[#003828] relative overflow-hidden flex-col justify-between p-12">
           <div className="relative z-10">
-              <LibraryLogo className="text-white w-96 mb-8" />
+              <LibraryLogo className="text-white h-[32px] w-auto mb-8" />
               
           </div>
           
@@ -173,7 +173,7 @@ export default function LibraryLogin() {
       <div className="w-full lg:w-[70%] flex items-center justify-center p-8 lg:p-24 relative bg-[#FDFCFB]">
         <div className="w-full max-w-[400px]">
           <div className="lg:hidden mb-12 flex justify-center">
-              <LibraryLogo className="text-[#003828] w-96" />
+              <LibraryLogo className="text-[#003828] h-[32px] w-auto" />
           </div>
           <div className="mb-10 text-center lg:text-left">
             <h2 className="text-3xl font-bold text-stone-900 tracking-tight">{isSignUp ? 'Sign Up' : 'Login'}</h2>

@@ -20,8 +20,8 @@ export default function ServicesPage() {
     },
     {
       id: "portal",
-      title: "Management Portal",
-      link: "/login",
+      title: "Alliance Portal",
+      link: "/portal",
       desc: "An integrated portal for seamless management of organizational operations, offering transparent resource allocation and streamlined administration.",
       img: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=1000",
     },

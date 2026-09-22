@@ -76,23 +76,25 @@ export default function ContactForm() {
             onSubmit={handleSubmit}
             className="flex flex-col gap-4"
           >
-            <div>
-              <input
-                type="text"
-                name="name"
-                required
-                placeholder="Your Name"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-white/30 focus:bg-white/10 transition-all"
-              />
-            </div>
-            <div>
-              <input
-                type="email"
-                name="email"
-                required
-                placeholder="Email Address"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-white/30 focus:bg-white/10 transition-all"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <input
+                  type="text"
+                  name="name"
+                  required
+                  placeholder="Your Full Name"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-white/30 focus:bg-white/10 transition-all"
+                />
+              </div>
+              <div>
+                <input
+                  type="email"
+                  name="email"
+                  required
+                  placeholder="Email Address"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-white/30 focus:bg-white/10 transition-all"
+                />
+              </div>
             </div>
             <div>
               <textarea

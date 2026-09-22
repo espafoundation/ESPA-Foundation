@@ -48,12 +48,12 @@ export default function SearchableDropdown({
 
   // Filtered options based on search query
   const filteredOptions = useMemo(() => {
-    if (!searchQuery.trim()) return options;
-    const query = searchQuery.toLowerCase().trim();
+    const cleanQuery = (searchQuery || '').toLowerCase().trim();
+    if (!cleanQuery) return options;
     return options.filter(opt => 
-      opt.label.toLowerCase().includes(query) || 
-      (opt.sublabel && opt.sublabel.toLowerCase().includes(query)) ||
-      opt.value.toLowerCase().includes(query)
+      (opt?.label || '').toLowerCase().includes(cleanQuery) || 
+      (opt?.sublabel && opt.sublabel.toLowerCase().includes(cleanQuery)) ||
+      (opt?.value || '').toLowerCase().includes(cleanQuery)
     );
   }, [options, searchQuery]);
 

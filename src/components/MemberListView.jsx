@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Download, Plus, Search, FileText, Calendar, Mail, Phone, Eye, History, X, Shield, ChevronDown } from 'lucide-react';
+import { Download, Plus, Search, FileText, Calendar, Mail, Phone, Eye, History, X, Shield, ChevronDown, Edit } from 'lucide-react';
 import DraggableModal from './DraggableModal';
 import MemberDetailsModal from './MemberDetailsModal';
 import { createPortal } from 'react-dom';
 
 const Portal = ({ children }) => createPortal(children, document.body);
 
-export default function MemberListView({ title, description, icon: Icon, members = [], onUpdateRole }) {
+export default function MemberListView({ title, description, icon: Icon, members = [], onUpdateRole, onAddMember }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMember, setSelectedMember] = useState(null);
   const [memberToChangeRole, setMemberToChangeRole] = useState(null);
@@ -65,10 +65,30 @@ export default function MemberListView({ title, description, icon: Icon, members
     e.preventDefault();
     if (!newMember.name || !newMember.email) return;
     
-    // We would need to pass setUsers here, or just mock it or notify parent.
+    if (onAddMember) {
+      let role = newMember.role;
+      if (!role) {
+        if (title === 'Board Members') role = 'General Member';
+        else if (title.endsWith('s')) role = title.slice(0, -1);
+        else role = title;
+      }
+      onAddMember({
+        id: `${role.substring(0, 2).toUpperCase()}_${Date.now()}`,
+        name: newMember.name,
+        email: newMember.email,
+        phone: newMember.phone || '',
+        role: role,
+        active: true,
+        status: 'Active',
+        dateAdded: new Date().toISOString(),
+        joinDate: new Date().toLocaleDateString(),
+        ...newMember
+      });
+    }
+
     window.localStorage.removeItem(draftKey);
     setIsAddModalOpen(false);
-    setNewMember({ role: title.endsWith('s') ? title.slice(0, -1) : title });
+    setNewMember({ role: title === 'Board Members' ? 'General Member' : (title.endsWith('s') ? title.slice(0, -1) : title) });
   };
 
   const availableRoles = ['Admin', 'President', 'Vice President', 'General Secretary', 'Joint Secretary', 'Treasurer', 'Executive Member', 'General Member', 'Volunteer', 'Ambassador', 'Partner'];
@@ -117,21 +137,25 @@ export default function MemberListView({ title, description, icon: Icon, members
             
               <form onSubmit={handleAddMemberSubmit} className="space-y-4 max-w-3xl mx-auto pb-12">
                 {/* Basic Fields - Common */}
-                <div>
-                  <label className="block text-xs font-normal text-stone-500 mb-1 uppercase tracking-wider">{title === 'Partners' ? 'Organization Name' : 'Full Name'}<span className="text-red-500 font-medium">*</span></label>
-                  <input required type="text" value={newMember.name || ''} onChange={e => setNewMember({...newMember, name: e.target.value})} className="w-full px-4 py-2.5 bg-white border border-stone-200 rounded-xl focus:ring-1 focus:ring-[#003828] outline-none text-sm font-medium text-stone-800" placeholder={title === 'Partners' ? 'Organization Name' : 'John Doe'} />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-normal text-stone-500 mb-1 uppercase tracking-wider">{title === 'Partners' ? 'Organization Name' : 'Full Name'}<span className="text-red-500 font-medium">*</span></label>
+                    <input required type="text" value={newMember.name || ''} onChange={e => setNewMember({...newMember, name: e.target.value})} className="w-full px-4 py-2.5 bg-white border border-stone-200 rounded-xl focus:ring-1 focus:ring-[#003828] outline-none text-sm font-medium text-stone-800" placeholder={title === 'Partners' ? 'Organization Name' : 'John Doe'} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-normal text-stone-500 mb-1 uppercase tracking-wider">Email Address<span className="text-red-500 font-medium">*</span></label>
+                    <input required type="email" value={newMember.email || ''} onChange={e => setNewMember({...newMember, email: e.target.value})} className="w-full px-4 py-2.5 bg-white border border-stone-200 rounded-xl focus:ring-1 focus:ring-[#003828] outline-none text-sm font-medium text-stone-800" placeholder="email@example.com" />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-normal text-stone-500 mb-1 uppercase tracking-wider">Email<span className="text-red-500 font-medium">*</span></label>
-                  <input required type="email" value={newMember.email || ''} onChange={e => setNewMember({...newMember, email: e.target.value})} className="w-full px-4 py-2.5 bg-white border border-stone-200 rounded-xl focus:ring-1 focus:ring-[#003828] outline-none text-sm font-medium text-stone-800" placeholder="email@example.com" />
-                </div>
-                <div>
-                  <label className="block text-xs font-normal text-stone-500 mb-1 uppercase tracking-wider">Phone / WhatsApp</label>
-                  <input type="text" value={newMember.phone || ''} onChange={e => setNewMember({...newMember, phone: e.target.value})} className="w-full px-4 py-2.5 bg-white border border-stone-200 rounded-xl focus:ring-1 focus:ring-[#003828] outline-none text-sm font-medium text-stone-800" placeholder="+1 234 567 890" />
-                </div>
-                <div>
-                  <label className="block text-xs font-normal text-stone-500 mb-1 uppercase tracking-wider">City / Country</label>
-                  <input type="text" value={newMember.location || ''} onChange={e => setNewMember({...newMember, location: e.target.value})} className="w-full px-4 py-2.5 bg-white border border-stone-200 rounded-xl focus:ring-1 focus:ring-[#003828] outline-none text-sm font-medium text-stone-800" placeholder="City, Country" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-normal text-stone-500 mb-1 uppercase tracking-wider">Phone / WhatsApp</label>
+                    <input type="text" value={newMember.phone || ''} onChange={e => setNewMember({...newMember, phone: e.target.value})} className="w-full px-4 py-2.5 bg-white border border-stone-200 rounded-xl focus:ring-1 focus:ring-[#003828] outline-none text-sm font-medium text-stone-800" placeholder="+1 234 567 890" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-normal text-stone-500 mb-1 uppercase tracking-wider">City / Country</label>
+                    <input type="text" value={newMember.location || ''} onChange={e => setNewMember({...newMember, location: e.target.value})} className="w-full px-4 py-2.5 bg-white border border-stone-200 rounded-xl focus:ring-1 focus:ring-[#003828] outline-none text-sm font-medium text-stone-800" placeholder="City, Country" />
+                  </div>
                 </div>
 
                 {/* Role Specific Fields */}
@@ -294,39 +318,42 @@ export default function MemberListView({ title, description, icon: Icon, members
       <div className="bg-white rounded-2xl border border-stone-200/60 shadow-sm flex flex-col overflow-hidden min-h-0 flex-1">
         <div className="flex-1 overflow-auto">
           {filteredMembers.length > 0 ? (
-            <table className="w-full text-left border-collapse">
-              <thead className="bg-stone-50/50 sticky top-0 z-10 border-b border-stone-200 backdrop-blur-sm">
+            <table className="w-full text-left border-collapse table-fixed min-w-[650px]">
+              <thead className="bg-stone-50/75 sticky top-0 z-10 border-b border-stone-200 backdrop-blur-sm">
                 <tr>
-                  <th className="px-6 py-4 font-semibold text-stone-600 text-sm whitespace-nowrap">Name</th>
-                  <th className="px-6 py-4 font-semibold text-stone-600 text-sm whitespace-nowrap hidden md:table-cell">Email</th>
-                  <th className="px-6 py-4 font-semibold text-stone-600 text-sm whitespace-nowrap">Join Date</th>
-                  <th className="px-6 py-4 font-semibold text-stone-600 text-sm whitespace-nowrap text-right">Action</th>
+                  <th className="w-[32%] px-6 py-4 font-semibold text-stone-600 text-sm whitespace-nowrap text-left">Title</th>
+                  <th className="w-[28%] px-6 py-4 font-semibold text-stone-600 text-sm whitespace-nowrap text-left">Email</th>
+                  <th className="w-[22%] px-6 py-4 font-semibold text-stone-600 text-sm whitespace-nowrap text-left">Join Date</th>
+                  <th className="w-[18%] px-6 py-4 font-semibold text-stone-600 text-sm whitespace-nowrap text-center">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-100">
                 {(filteredMembers || []).map((member, idx) => (
                   <tr key={idx} className="hover:bg-stone-50/80 transition-colors group">
-                    <td className="px-6 py-4">
-                      <div className="font-semibold text-stone-900 text-sm">{member.name}</div>
-                      <div className="text-xs text-stone-500 md:hidden">{member.email}</div>
+                    <td className="w-[32%] px-6 py-4 text-left">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedMember(member)}
+                        className="font-semibold text-stone-900 text-sm hover:text-[#003828] hover:underline transition-colors text-left cursor-pointer truncate block"
+                        title="View member details"
+                      >
+                        {member.name}
+                      </button>
                     </td>
-                    <td className="px-6 py-4 text-stone-600 text-sm hidden md:table-cell">{member.email}</td>
-                    <td className="px-6 py-4 text-stone-600 text-sm">{member.joinDate || 'N/A'}</td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-1">
+                    <td className="w-[28%] px-6 py-4 text-stone-600 text-sm text-left">
+                      <span className="truncate block">{member.email || '—'}</span>
+                    </td>
+                    <td className="w-[22%] px-6 py-4 text-stone-600 text-sm text-left">
+                      <span className="inline-block">{member.joinDate || (member.dateAdded ? new Date(member.dateAdded).toLocaleDateString() : 'N/A')}</span>
+                    </td>
+                    <td className="w-[18%] px-6 py-4 text-center">
+                      <div className="flex items-center justify-center">
                         <button 
                           onClick={() => setMemberToChangeRole(member)}
-                          className="p-2 text-stone-400 hover:text-[#003828] hover:bg-[#003828]/10 rounded-full transition-colors"
-                          title="Change Role"
+                          className="p-2 text-stone-400 hover:text-[#003828] hover:bg-[#003828]/10 rounded-full transition-colors cursor-pointer"
+                          title="Edit Member"
                         >
-                          <Shield size={18} />
-                        </button>
-                        <button 
-                          onClick={() => setSelectedMember(member)}
-                          className="p-2 text-stone-400 hover:text-[#003828] hover:bg-[#003828]/10 rounded-full transition-colors"
-                          title="View Details"
-                        >
-                          <Eye size={18} />
+                          <Edit size={18} />
                         </button>
                       </div>
                     </td>
@@ -351,7 +378,7 @@ export default function MemberListView({ title, description, icon: Icon, members
             <DraggableModal className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl flex flex-col pointer-events-auto animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-bold text-stone-900 flex items-center gap-2">
-                  <Shield className="text-[#003828]" size={24} /> Change Role
+                  <Edit className="text-[#003828]" size={22} /> Edit Member Role
                 </h3>
                 <button onClick={() => setMemberToChangeRole(null)} className="p-2 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-full transition-colors">
                   <X size={20} />

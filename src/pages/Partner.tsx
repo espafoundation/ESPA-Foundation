@@ -11,6 +11,7 @@ import {
   ChevronDown
 } from 'lucide-react';
 import SearchableDropdown, { DropdownOption } from '../components/SearchableDropdown';
+import PhoneCountryInput from '../components/PhoneCountryInput';
 import { RECAPTCHA_SITE_KEY } from '../config/recaptcha';
 
 const STORAGE_KEY = 'espa_partner_form_draft';
@@ -43,29 +44,36 @@ export default function Partner() {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
 
   const [formData, setFormData] = useState({
-    first_name: '',
-    last_name: '',
+    full_name: '',
     email: '',
     phone: '',
+    phone_country_code: '+92',
     designation: '',
     country: '',
     city: '',
     organization: '',
     website: '',
+    org_country: '',
+    org_city: '',
     partnership_type: '',
     proposal: '',
     timeline_or_goals: ''
   });
 
-  // Country & City Dropdown States
-  const [selectedCountryCode, setSelectedCountryCode] = useState('');
-  const [customCity, setCustomCity] = useState('');
+  // Personal Location States
+  const [selectedPersonalCountryCode, setSelectedPersonalCountryCode] = useState('');
+  const [customPersonalCity, setCustomPersonalCity] = useState('');
 
-  // All countries sorted alphabetically
+  // Organization Location States (Completely unlinked from Personal Location)
+  const [selectedOrgCountryCode, setSelectedOrgCountryCode] = useState('');
+  const [customOrgCity, setCustomOrgCity] = useState('');
+
+  // All countries sorted alphabetically (excluding Israel, Palestine mapped)
   const allCountries = useMemo(() => {
     return Country.getAllCountries()
+      .filter(c => c.name.toLowerCase() !== 'israel' && c.isoCode !== 'IL' && !c.name.toLowerCase().includes('israel'))
       .map(c => ({
-        name: c.name,
+        name: (c.name.includes('Palestinian Territory') || c.name.includes('Palestine')) ? 'Palestine' : c.name,
         isoCode: c.isoCode,
         flag: c.flag
       }))
@@ -79,15 +87,16 @@ export default function Partner() {
     }));
   }, [allCountries]);
 
-  const availableCities = useMemo(() => {
-    if (!selectedCountryCode) return [];
-    const rawCities = City.getCitiesOfCountry(selectedCountryCode) || [];
-    const uniqueNames = Array.from(new Set(rawCities.map(c => c.name.trim()))).filter(Boolean);
+  // Personal Cities
+  const availablePersonalCities = useMemo(() => {
+    if (!selectedPersonalCountryCode) return [];
+    const rawCities = City.getCitiesOfCountry(selectedPersonalCountryCode) || [];
+    const uniqueNames = Array.from(new Set(rawCities.map(c => (c?.name || '').trim()))).filter(Boolean);
     return uniqueNames.sort((a, b) => a.localeCompare(b));
-  }, [selectedCountryCode]);
+  }, [selectedPersonalCountryCode]);
 
-  const cityOptions: DropdownOption[] = useMemo(() => {
-    const list: DropdownOption[] = availableCities.map(cityName => ({
+  const personalCityOptions: DropdownOption[] = useMemo(() => {
+    const list: DropdownOption[] = availablePersonalCities.map(cityName => ({
       value: cityName,
       label: cityName
     }));
@@ -98,7 +107,29 @@ export default function Partner() {
       });
     }
     return list;
-  }, [availableCities]);
+  }, [availablePersonalCities]);
+
+  // Organization Cities (Unlinked)
+  const availableOrgCities = useMemo(() => {
+    if (!selectedOrgCountryCode) return [];
+    const rawCities = City.getCitiesOfCountry(selectedOrgCountryCode) || [];
+    const uniqueNames = Array.from(new Set(rawCities.map(c => (c?.name || '').trim()))).filter(Boolean);
+    return uniqueNames.sort((a, b) => a.localeCompare(b));
+  }, [selectedOrgCountryCode]);
+
+  const orgCityOptions: DropdownOption[] = useMemo(() => {
+    const list: DropdownOption[] = availableOrgCities.map(cityName => ({
+      value: cityName,
+      label: cityName
+    }));
+    if (list.length > 0) {
+      list.push({
+        value: 'Other / Not Listed',
+        label: 'Other / Not Listed'
+      });
+    }
+    return list;
+  }, [availableOrgCities]);
 
   const markTouched = (field: string) => {
     setTouched(prev => ({ ...prev, [field]: true }));
@@ -108,22 +139,29 @@ export default function Partner() {
   const validationErrors = useMemo(() => {
     const errs: Record<string, string> = {};
 
-    // First Name
-    if (!formData.first_name.trim()) {
-      errs.first_name = 'First Name is required';
-    } else if (formData.first_name.length > 50) {
-      errs.first_name = 'First Name cannot exceed 50 characters';
+    // Full Name
+    if (!formData.full_name?.trim()) {
+      errs.full_name = 'Representative Full Name is required';
+    } else if (formData.full_name.trim().length < 2) {
+      errs.full_name = 'Please enter representative full name';
+    } else if (formData.full_name.length > 70) {
+      errs.full_name = 'Full Name cannot exceed 70 characters';
     }
 
-    // Last Name
-    if (!formData.last_name.trim()) {
-      errs.last_name = 'Last Name is required';
-    } else if (formData.last_name.length > 50) {
-      errs.last_name = 'Last Name cannot exceed 50 characters';
+    // Designation
+    if (!formData.designation?.trim()) {
+      errs.designation = 'Designation or Job Role is required';
+    }
+
+    // Phone
+    if (!formData.phone?.trim()) {
+      errs.phone = 'Phone Number is required';
+    } else if (formData.phone.length > 25) {
+      errs.phone = 'Phone Number cannot exceed 25 characters';
     }
 
     // Email
-    if (!formData.email.trim()) {
+    if (!formData.email?.trim()) {
       errs.email = 'Official Work Email is required';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
       errs.email = 'Please enter a valid work email address';
@@ -131,28 +169,37 @@ export default function Partner() {
       errs.email = 'Email Address cannot exceed 100 characters';
     }
 
-    // Phone
-    if (!formData.phone.trim()) {
-      errs.phone = 'Phone Number is required';
-    } else if (formData.phone.length > 25) {
-      errs.phone = 'Phone Number cannot exceed 25 characters';
-    }
-
-    // Designation
-    if (!formData.designation.trim()) {
-      errs.designation = 'Designation or Job Role is required';
-    }
-
-    // Country
-    if (!formData.country.trim()) {
+    // Personal Country
+    if (!formData.country?.trim()) {
       errs.country = 'Country is required';
     }
 
-    // Organization
-    if (!formData.organization.trim()) {
+    // Personal City
+    const effectivePersonalCity = formData.city === 'Other / Not Listed'
+      ? customPersonalCity.trim()
+      : (formData.city || customPersonalCity).trim();
+    if (!effectivePersonalCity) {
+      errs.city = 'City is required';
+    }
+
+    // Organization Name
+    if (!formData.organization?.trim()) {
       errs.organization = 'Organization or Company Name is required';
     } else if (formData.organization.length > 120) {
       errs.organization = 'Organization Name cannot exceed 120 characters';
+    }
+
+    // Organization Country
+    if (!formData.org_country?.trim()) {
+      errs.org_country = 'Headquarters Country is required';
+    }
+
+    // Organization City
+    const effectiveOrgCity = formData.org_city === 'Other / Not Listed'
+      ? customOrgCity.trim()
+      : (formData.org_city || customOrgCity).trim();
+    if (!effectiveOrgCity) {
+      errs.org_city = 'Headquarters City is required';
     }
 
     // Partnership Type
@@ -161,17 +208,17 @@ export default function Partner() {
     }
 
     // Proposal
-    if (!formData.proposal.trim()) {
+    if (!formData.proposal?.trim()) {
       errs.proposal = 'Partnership proposal description is required';
     } else if (formData.proposal.trim().length < 20) {
       errs.proposal = 'Proposal must be at least 20 characters';
     }
 
     return errs;
-  }, [formData]);
+  }, [formData, customPersonalCity, customOrgCity]);
 
   const shouldShowError = (field: string) => {
-    return Boolean((hasSubmittedAttempt || touched[field]) && validationErrors[field]);
+    return Boolean(hasSubmittedAttempt && validationErrors[field]);
   };
 
   // Restore draft from local storage on mount with 48h expiration
@@ -192,26 +239,31 @@ export default function Partner() {
       }
 
       if (parsed?.formData) {
-        let first_name = parsed.formData.first_name || '';
-        let last_name = parsed.formData.last_name || '';
-        if (!first_name && parsed.formData.name) {
-          const parts = parsed.formData.name.trim().split(' ');
-          first_name = parts[0] || '';
-          last_name = parts.slice(1).join(' ') || '';
+        let full_name = parsed.formData.full_name || '';
+        if (!full_name) {
+          const first = parsed.formData.first_name || '';
+          const last = parsed.formData.last_name || '';
+          full_name = `${first} ${last}`.trim() || parsed.formData.name || '';
         }
 
         setFormData(prev => ({
           ...prev,
           ...parsed.formData,
-          first_name,
-          last_name
+          full_name,
+          phone_country_code: parsed.formData.phone_country_code || '+92'
         }));
 
-        if (parsed.formData.countryCode) {
-          setSelectedCountryCode(parsed.formData.countryCode);
+        if (parsed.selectedPersonalCountryCode || parsed.formData.countryCode) {
+          setSelectedPersonalCountryCode(parsed.selectedPersonalCountryCode || parsed.formData.countryCode);
         }
-        if (parsed.customCity) {
-          setCustomCity(parsed.customCity);
+        if (parsed.customPersonalCity || parsed.customCity) {
+          setCustomPersonalCity(parsed.customPersonalCity || parsed.customCity);
+        }
+        if (parsed.selectedOrgCountryCode || parsed.formData.orgCountryCode) {
+          setSelectedOrgCountryCode(parsed.selectedOrgCountryCode || parsed.formData.orgCountryCode);
+        }
+        if (parsed.customOrgCity) {
+          setCustomOrgCity(parsed.customOrgCity);
         }
       }
     } catch (e) {
@@ -225,15 +277,21 @@ export default function Partner() {
 
     const timer = setTimeout(() => {
       try {
-        const hasContent = Object.values(formData).some(val => typeof val === 'string' && val.trim() !== '') || Boolean(customCity.trim());
+        const hasContent = Object.values(formData).some(val => typeof val === 'string' && val.trim() !== '') || 
+          Boolean((customPersonalCity || '').trim()) || 
+          Boolean((customOrgCity || '').trim());
         if (!hasContent) return;
 
         const draft = {
           formData: {
             ...formData,
-            countryCode: selectedCountryCode
+            countryCode: selectedPersonalCountryCode,
+            orgCountryCode: selectedOrgCountryCode
           },
-          customCity,
+          selectedPersonalCountryCode,
+          customPersonalCity,
+          selectedOrgCountryCode,
+          customOrgCity,
           savedAt: new Date().toISOString()
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
@@ -243,27 +301,31 @@ export default function Partner() {
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [formData, selectedCountryCode, customCity, isSubmitted]);
+  }, [formData, selectedPersonalCountryCode, customPersonalCity, selectedOrgCountryCode, customOrgCity, isSubmitted]);
 
   // Clear auto-saved draft
   const handleClearDraft = () => {
     localStorage.removeItem(STORAGE_KEY);
     setFormData({
-      first_name: '',
-      last_name: '',
+      full_name: '',
       email: '',
       phone: '',
+      phone_country_code: '+92',
       designation: '',
       country: '',
       city: '',
       organization: '',
       website: '',
+      org_country: '',
+      org_city: '',
       partnership_type: '',
       proposal: '',
       timeline_or_goals: ''
     });
-    setSelectedCountryCode('');
-    setCustomCity('');
+    setSelectedPersonalCountryCode('');
+    setCustomPersonalCity('');
+    setSelectedOrgCountryCode('');
+    setCustomOrgCity('');
     setTouched({});
     setHasSubmittedAttempt(false);
     recaptchaRef.current?.reset();
@@ -279,31 +341,62 @@ export default function Partner() {
     markTouched(name);
   };
 
-  const handleCountrySelect = (isoCode: string) => {
-    setSelectedCountryCode(isoCode);
+  const handlePersonalCountrySelect = (isoCode: string) => {
+    setSelectedPersonalCountryCode(isoCode);
     const countryObj = allCountries.find(c => c.isoCode === isoCode);
     setFormData(prev => ({
       ...prev,
       country: countryObj ? countryObj.name : isoCode,
       city: ''
     }));
-    setCustomCity('');
+    setCustomPersonalCity('');
     markTouched('country');
   };
 
-  const handleCitySelect = (cityName: string) => {
+  const handlePersonalCitySelect = (cityName: string) => {
     setFormData(prev => ({
       ...prev,
       city: cityName
     }));
     if (cityName !== 'Other / Not Listed') {
-      setCustomCity('');
+      setCustomPersonalCity('');
     }
     markTouched('city');
   };
 
-  const representativeFullName = `${formData.first_name} ${formData.last_name}`.trim();
-  const finalCity = formData.city === 'Other / Not Listed' ? customCity.trim() : (formData.city || customCity).trim();
+  const handleOrgCountrySelect = (isoCode: string) => {
+    setSelectedOrgCountryCode(isoCode);
+    const countryObj = allCountries.find(c => c.isoCode === isoCode);
+    setFormData(prev => ({
+      ...prev,
+      org_country: countryObj ? countryObj.name : isoCode,
+      org_city: ''
+    }));
+    setCustomOrgCity('');
+    markTouched('org_country');
+  };
+
+  const handleOrgCitySelect = (cityName: string) => {
+    setFormData(prev => ({
+      ...prev,
+      org_city: cityName
+    }));
+    if (cityName !== 'Other / Not Listed') {
+      setCustomOrgCity('');
+    }
+    markTouched('org_city');
+  };
+
+  const representativeFullName = (formData.full_name || '').trim();
+  const firstName = representativeFullName.split(/\s+/)[0] || '';
+  const lastName = representativeFullName.split(/\s+/).slice(1).join(' ') || '';
+  const fullPhone = `${formData.phone_country_code || '+92'} ${formData.phone || ''}`.trim();
+  const finalPersonalCity = formData.city === 'Other / Not Listed' 
+    ? (customPersonalCity || '').trim() 
+    : (formData.city || customPersonalCity || '').trim();
+  const finalOrgCity = formData.org_city === 'Other / Not Listed' 
+    ? (customOrgCity || '').trim() 
+    : (formData.org_city || customOrgCity || '').trim();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -326,21 +419,27 @@ export default function Partner() {
       // Clear saved draft on successful submission
       localStorage.removeItem(STORAGE_KEY);
 
-      // 1. Save to local storage for administrative portal sync
-      const apps = JSON.parse(localStorage.getItem('ain_applications') || '[]');
-      apps.unshift({
-        id: Date.now().toString(),
+      // 1. Dispatch to backend API with consistent unique ID
+      const appId = `app_part_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+      const newApp = {
+        id: appId,
         type: 'partner',
         name: representativeFullName,
-        first_name: formData.first_name,
-        last_name: formData.last_name,
+        first_name: firstName,
+        last_name: lastName,
         company: formData.organization,
         organization: formData.organization,
         email: formData.email,
-        phone: formData.phone,
+        phone: fullPhone,
         designation: formData.designation,
         country: formData.country,
-        city: finalCity,
+        city: finalPersonalCity,
+        personal_country: formData.country,
+        personal_city: finalPersonalCity,
+        org_country: formData.org_country,
+        org_city: finalOrgCity,
+        organization_country: formData.org_country,
+        organization_city: finalOrgCity,
         website: formData.website,
         partnership_type: formData.partnership_type,
         message: formData.proposal,
@@ -348,25 +447,28 @@ export default function Partner() {
         timeline_or_goals: formData.timeline_or_goals,
         date: new Date().toISOString(),
         status: 'Pending'
-      });
-      localStorage.setItem('ain_applications', JSON.stringify(apps));
-      window.dispatchEvent(new Event('storage'));
-      window.dispatchEvent(new CustomEvent('ain_applications_updated'));
+      };
 
-      // 2. Dispatch to backend API
       const response = await fetch('/api/partner', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          id: appId,
           name: representativeFullName,
-          first_name: formData.first_name,
-          last_name: formData.last_name,
+          first_name: firstName,
+          last_name: lastName,
           organization: formData.organization,
           email: formData.email,
-          phone: formData.phone,
+          phone: fullPhone,
           designation: formData.designation,
           country: formData.country,
-          city: finalCity,
+          city: finalPersonalCity,
+          personal_country: formData.country,
+          personal_city: finalPersonalCity,
+          org_country: formData.org_country,
+          org_city: finalOrgCity,
+          organization_country: formData.org_country,
+          organization_city: finalOrgCity,
           website: formData.website,
           partnership_type: formData.partnership_type,
           proposal: formData.proposal,
@@ -379,6 +481,16 @@ export default function Partner() {
         const errorData = await response.json().catch(() => ({}));
         console.warn('Backend partner endpoint warning:', errorData.error);
       }
+
+      // 2. Save to local storage for administrative portal sync with deduplication
+      const apps = JSON.parse(localStorage.getItem('ain_applications') || '[]');
+      const filtered = apps.filter((a: any) => 
+        a.id !== appId && 
+        !(a.email && a.email.toLowerCase() === formData.email.toLowerCase() && a.type === 'partner')
+      );
+      filtered.unshift(newApp);
+      localStorage.setItem('ain_applications', JSON.stringify(filtered));
+      window.dispatchEvent(new Event('storage'));
 
       setIsSubmitted(true);
       toast.success('Your partnership proposal has been submitted successfully!');
@@ -394,9 +506,9 @@ export default function Partner() {
   return (
     <div className="bg-[#FAF9F5] min-h-screen py-12 md:py-16 px-4 sm:px-6 lg:px-8">
       <Helmet>
-        <title>Partner With Us | ESPA Foundation</title>
+        <title>Become a Partner | ESPA Foundation</title>
         <meta name="description" content="Collaborate with ESPA Foundation to expand educational access, donate technological equipment, and drive measurable social impact." />
-        <meta property="og:title" content="Partner With Us | ESPA Foundation" />
+        <meta property="og:title" content="Become a Partner | ESPA Foundation" />
         <meta property="og:description" content="Collaborate with ESPA Foundation to expand educational access, donate technological equipment, and drive measurable social impact." />
       </Helmet>
 
@@ -416,7 +528,7 @@ export default function Partner() {
         {/* Page Header */}
         <div className="text-center max-w-3xl mx-auto mb-10">
           <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-[#003828] mb-4">
-            Partner With Us
+            Become a Partner
           </h1>
           <p className="font-sans text-base sm:text-lg text-stone-600 leading-relaxed max-w-2xl mx-auto text-center">
             <span className="block">Collaborate with ESPA Foundation to expand educational equity,</span>
@@ -454,21 +566,25 @@ export default function Partner() {
                   onClick={() => {
                     setIsSubmitted(false);
                     setFormData({
-                      first_name: '',
-                      last_name: '',
+                      full_name: '',
                       email: '',
                       phone: '',
+                      phone_country_code: '+92',
                       designation: '',
                       country: '',
                       city: '',
                       organization: '',
                       website: '',
+                      org_country: '',
+                      org_city: '',
                       partnership_type: '',
                       proposal: '',
                       timeline_or_goals: ''
                     });
-                    setSelectedCountryCode('');
-                    setCustomCity('');
+                    setSelectedPersonalCountryCode('');
+                    setCustomPersonalCity('');
+                    setSelectedOrgCountryCode('');
+                    setCustomOrgCity('');
                     setTouched({});
                     setHasSubmittedAttempt(false);
                   }}
@@ -486,115 +602,34 @@ export default function Partner() {
                   Personal Information<span className="text-red-500">*</span>
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* First Name */}
+                  {/* Line 1 - Col 1: Representative Full Name */}
                   <div>
                     <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-2">
-                      Representative First Name<span className="text-red-500">*</span>
+                      Representative Full Name<span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
-                      name="first_name"
-                      value={formData.first_name}
-                      maxLength={50}
+                      name="full_name"
+                      value={formData.full_name}
+                      maxLength={70}
                       onChange={handleChange}
-                      onBlur={() => markTouched('first_name')}
-                      placeholder="Enter Your First Name"
+                      onBlur={() => markTouched('full_name')}
+                      placeholder="Enter Your Full Name"
                       required
                       className={`w-full px-4 py-3.5 bg-white border rounded-xl text-stone-900 text-sm font-medium transition-all shadow-xs placeholder-stone-400 focus:outline-none ${
-                        shouldShowError('first_name')
+                        shouldShowError('full_name')
                           ? 'border-red-500 ring-1 ring-red-500'
                           : 'border-stone-200 focus:border-[#003828] focus:ring-1 focus:ring-[#003828]'
                       }`}
                     />
-                    {shouldShowError('first_name') && (
+                    {shouldShowError('full_name') && (
                       <p className="mt-1.5 text-xs text-red-600 font-medium animate-in fade-in slide-in-from-top-0.5">
-                        {validationErrors.first_name}
+                        {validationErrors.full_name}
                       </p>
                     )}
                   </div>
 
-                  {/* Last Name */}
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-2">
-                      Representative Last Name<span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      name="last_name"
-                      value={formData.last_name}
-                      maxLength={50}
-                      onChange={handleChange}
-                      onBlur={() => markTouched('last_name')}
-                      placeholder="Enter Your Last Name"
-                      required
-                      className={`w-full px-4 py-3.5 bg-white border rounded-xl text-stone-900 text-sm font-medium transition-all shadow-xs placeholder-stone-400 focus:outline-none ${
-                        shouldShowError('last_name')
-                          ? 'border-red-500 ring-1 ring-red-500'
-                          : 'border-stone-200 focus:border-[#003828] focus:ring-1 focus:ring-[#003828]'
-                      }`}
-                    />
-                    {shouldShowError('last_name') && (
-                      <p className="mt-1.5 text-xs text-red-600 font-medium animate-in fade-in slide-in-from-top-0.5">
-                        {validationErrors.last_name}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Official Work Email */}
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-2">
-                      Official Work Email<span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={formData.email}
-                      maxLength={100}
-                      onChange={handleChange}
-                      onBlur={() => markTouched('email')}
-                      placeholder="Enter Your Work Email"
-                      required
-                      className={`w-full px-4 py-3.5 bg-white border rounded-xl text-stone-900 text-sm font-medium transition-all shadow-xs placeholder-stone-400 focus:outline-none ${
-                        shouldShowError('email')
-                          ? 'border-red-500 ring-1 ring-red-500'
-                          : 'border-stone-200 focus:border-[#003828] focus:ring-1 focus:ring-[#003828]'
-                      }`}
-                    />
-                    {shouldShowError('email') && (
-                      <p className="mt-1.5 text-xs text-red-600 font-medium animate-in fade-in slide-in-from-top-0.5">
-                        {validationErrors.email}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Phone Number */}
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-2">
-                      Phone Number<span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="tel"
-                      name="phone"
-                      value={formData.phone}
-                      maxLength={25}
-                      onChange={handleChange}
-                      onBlur={() => markTouched('phone')}
-                      placeholder="Enter Your Phone Number"
-                      required
-                      className={`w-full px-4 py-3.5 bg-white border rounded-xl text-stone-900 text-sm font-medium transition-all shadow-xs placeholder-stone-400 focus:outline-none ${
-                        shouldShowError('phone')
-                          ? 'border-red-500 ring-1 ring-red-500'
-                          : 'border-stone-200 focus:border-[#003828] focus:ring-1 focus:ring-[#003828]'
-                      }`}
-                    />
-                    {shouldShowError('phone') && (
-                      <p className="mt-1.5 text-xs text-red-600 font-medium animate-in fade-in slide-in-from-top-0.5">
-                        {validationErrors.phone}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Designation */}
+                  {/* Line 1 - Col 2: Designation / Role in Organization */}
                   <div>
                     <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-2">
                       Designation / Role in Organization<span className="text-red-500">*</span>
@@ -621,15 +656,59 @@ export default function Partner() {
                     )}
                   </div>
 
-                  {/* Country */}
+                  {/* Line 2 - Col 1: Phone Number with Country Code */}
+                  <div>
+                    <PhoneCountryInput
+                      id="partner-phone"
+                      name="phone"
+                      label="Phone Number"
+                      required
+                      phoneCode={formData.phone_country_code || '+92'}
+                      onPhoneCodeChange={(code) => setFormData(prev => ({ ...prev, phone_country_code: code }))}
+                      phoneNumber={formData.phone}
+                      onPhoneNumberChange={(val) => setFormData(prev => ({ ...prev, phone: val }))}
+                      placeholder="Enter phone number"
+                      error={shouldShowError('phone') ? validationErrors.phone : undefined}
+                      onBlur={() => markTouched('phone')}
+                    />
+                  </div>
+
+                  {/* Line 2 - Col 2: Official Work Email */}
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-2">
+                      Official Work Email<span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      maxLength={100}
+                      onChange={handleChange}
+                      onBlur={() => markTouched('email')}
+                      placeholder="Enter Your Work Email"
+                      required
+                      className={`w-full px-4 py-3.5 bg-white border rounded-xl text-stone-900 text-sm font-medium transition-all shadow-xs placeholder-stone-400 focus:outline-none ${
+                        shouldShowError('email')
+                          ? 'border-red-500 ring-1 ring-red-500'
+                          : 'border-stone-200 focus:border-[#003828] focus:ring-1 focus:ring-[#003828]'
+                      }`}
+                    />
+                    {shouldShowError('email') && (
+                      <p className="mt-1.5 text-xs text-red-600 font-medium animate-in fade-in slide-in-from-top-0.5">
+                        {validationErrors.email}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Line 3 - Col 1: Country */}
                   <div>
                     <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-2">
                       Country<span className="text-red-500">*</span>
                     </label>
                     <SearchableDropdown
                       options={countryOptions}
-                      value={selectedCountryCode}
-                      onChange={handleCountrySelect}
+                      value={selectedPersonalCountryCode}
+                      onChange={handlePersonalCountrySelect}
                       placeholder="Select Country"
                       searchPlaceholder="Search country..."
                       error={shouldShowError('country') ? validationErrors.country : undefined}
@@ -641,6 +720,82 @@ export default function Partner() {
                       </p>
                     )}
                   </div>
+
+                  {/* Line 3 - Col 2: City */}
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-2">
+                      City<span className="text-red-500">*</span>
+                    </label>
+                    {availablePersonalCities.length > 0 ? (
+                      <SearchableDropdown
+                        options={personalCityOptions}
+                        value={formData.city}
+                        onChange={handlePersonalCitySelect}
+                        placeholder={selectedPersonalCountryCode ? 'Select City' : 'Select Country First'}
+                        searchPlaceholder="Search city..."
+                        disabled={!selectedPersonalCountryCode}
+                        disabledMessage="Select Country First"
+                        error={shouldShowError('city') ? validationErrors.city : undefined}
+                        onBlur={() => markTouched('city')}
+                        allowCustomOption={true}
+                        customOptionLabel="Other / Not Listed"
+                      />
+                    ) : (
+                      <input
+                        type="text"
+                        name="city"
+                        value={customPersonalCity}
+                        maxLength={100}
+                        onChange={(e) => {
+                          setCustomPersonalCity(e.target.value);
+                          markTouched('city');
+                        }}
+                        onBlur={() => markTouched('city')}
+                        placeholder={selectedPersonalCountryCode ? 'Enter Your City' : 'Select Country First'}
+                        disabled={!selectedPersonalCountryCode}
+                        className={`w-full px-4 py-3.5 bg-white border rounded-xl text-stone-900 text-sm font-medium transition-all shadow-xs placeholder-stone-400 focus:outline-none disabled:bg-stone-50 disabled:text-stone-400 ${
+                          shouldShowError('city')
+                            ? 'border-red-500 ring-1 ring-red-500'
+                            : 'border-stone-200 focus:border-[#003828] focus:ring-1 focus:ring-[#003828]'
+                        }`}
+                      />
+                    )}
+                    {shouldShowError('city') && (
+                      <p className="mt-1.5 text-xs text-red-600 font-medium animate-in fade-in slide-in-from-top-0.5">
+                        {validationErrors.city}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Custom Personal City Input if Other / Not Listed is selected */}
+                  {availablePersonalCities.length > 0 && formData.city === 'Other / Not Listed' && (
+                    <div className="sm:col-span-2 animate-in fade-in slide-in-from-top-1">
+                      <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-2">
+                        Enter Your City Name<span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={customPersonalCity}
+                        maxLength={100}
+                        onChange={(e) => {
+                          setCustomPersonalCity(e.target.value);
+                          markTouched('city');
+                        }}
+                        onBlur={() => markTouched('city')}
+                        placeholder="Enter Your City Name"
+                        className={`w-full px-4 py-3.5 bg-white border rounded-xl text-stone-900 text-sm font-medium transition-all shadow-xs placeholder-stone-400 focus:outline-none ${
+                          shouldShowError('city')
+                            ? 'border-red-500 ring-1 ring-red-500'
+                            : 'border-stone-200 focus:border-[#003828] focus:ring-1 focus:ring-[#003828]'
+                        }`}
+                      />
+                      {shouldShowError('city') && (
+                        <p className="mt-1.5 text-xs text-red-600 font-medium animate-in fade-in slide-in-from-top-0.5">
+                          {validationErrors.city}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -692,44 +847,105 @@ export default function Partner() {
                     />
                   </div>
 
-                  {/* Headquarters City */}
+                  {/* Headquarters Country (Unlinked from Personal) */}
                   <div>
                     <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-2">
-                      Headquarters City / Base
+                      Headquarters Country<span className="text-red-500">*</span>
                     </label>
-                    {availableCities.length > 0 ? (
+                    <SearchableDropdown
+                      options={countryOptions}
+                      value={selectedOrgCountryCode}
+                      onChange={handleOrgCountrySelect}
+                      placeholder="Select Headquarters Country"
+                      searchPlaceholder="Search country..."
+                      error={shouldShowError('org_country') ? validationErrors.org_country : undefined}
+                      onBlur={() => markTouched('org_country')}
+                    />
+                    {shouldShowError('org_country') && (
+                      <p className="mt-1.5 text-xs text-red-600 font-medium animate-in fade-in slide-in-from-top-0.5">
+                        {validationErrors.org_country}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Headquarters City (Unlinked from Personal) */}
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-2">
+                      Headquarters City / Base<span className="text-red-500">*</span>
+                    </label>
+                    {availableOrgCities.length > 0 ? (
                       <SearchableDropdown
-                        options={cityOptions}
-                        value={formData.city}
-                        onChange={handleCitySelect}
-                        placeholder={selectedCountryCode ? 'Select City' : 'Select Country First'}
+                        options={orgCityOptions}
+                        value={formData.org_city}
+                        onChange={handleOrgCitySelect}
+                        placeholder={selectedOrgCountryCode ? 'Select Headquarters City' : 'Select Country First'}
                         searchPlaceholder="Search city..."
-                        disabled={!selectedCountryCode}
+                        disabled={!selectedOrgCountryCode}
                         disabledMessage="Select Country First"
-                        onBlur={() => markTouched('city')}
+                        error={shouldShowError('org_city') ? validationErrors.org_city : undefined}
+                        onBlur={() => markTouched('org_city')}
                         allowCustomOption={true}
                         customOptionLabel="Other / Not Listed"
                       />
                     ) : (
                       <input
                         type="text"
-                        name="city"
-                        value={customCity}
+                        name="org_city"
+                        value={customOrgCity}
                         maxLength={100}
                         onChange={(e) => {
-                          setCustomCity(e.target.value);
-                          markTouched('city');
+                          setCustomOrgCity(e.target.value);
+                          markTouched('org_city');
                         }}
-                        onBlur={() => markTouched('city')}
-                        placeholder={selectedCountryCode ? 'Enter Your City' : 'Select Country First'}
-                        disabled={!selectedCountryCode}
-                        className="w-full px-4 py-3.5 bg-white border border-stone-200 rounded-xl text-stone-900 text-sm font-medium transition-all shadow-xs placeholder-stone-400 focus:outline-none focus:border-[#003828] focus:ring-1 focus:ring-[#003828] disabled:bg-stone-50 disabled:text-stone-400"
+                        onBlur={() => markTouched('org_city')}
+                        placeholder={selectedOrgCountryCode ? 'Enter Headquarters City' : 'Select Country First'}
+                        disabled={!selectedOrgCountryCode}
+                        className={`w-full px-4 py-3.5 bg-white border rounded-xl text-stone-900 text-sm font-medium transition-all shadow-xs placeholder-stone-400 focus:outline-none disabled:bg-stone-50 disabled:text-stone-400 ${
+                          shouldShowError('org_city')
+                            ? 'border-red-500 ring-1 ring-red-500'
+                            : 'border-stone-200 focus:border-[#003828] focus:ring-1 focus:ring-[#003828]'
+                        }`}
                       />
+                    )}
+                    {shouldShowError('org_city') && (
+                      <p className="mt-1.5 text-xs text-red-600 font-medium animate-in fade-in slide-in-from-top-0.5">
+                        {validationErrors.org_city}
+                      </p>
                     )}
                   </div>
 
+                  {/* Custom Org City Input if Other / Not Listed is selected */}
+                  {availableOrgCities.length > 0 && formData.org_city === 'Other / Not Listed' && (
+                    <div className="sm:col-span-2 animate-in fade-in slide-in-from-top-1">
+                      <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-2">
+                        Enter Headquarters City Name<span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={customOrgCity}
+                        maxLength={100}
+                        onChange={(e) => {
+                          setCustomOrgCity(e.target.value);
+                          markTouched('org_city');
+                        }}
+                        onBlur={() => markTouched('org_city')}
+                        placeholder="Enter Headquarters City Name"
+                        className={`w-full px-4 py-3.5 bg-white border rounded-xl text-stone-900 text-sm font-medium transition-all shadow-xs placeholder-stone-400 focus:outline-none ${
+                          shouldShowError('org_city')
+                            ? 'border-red-500 ring-1 ring-red-500'
+                            : 'border-stone-200 focus:border-[#003828] focus:ring-1 focus:ring-[#003828]'
+                        }`}
+                      />
+                      {shouldShowError('org_city') && (
+                        <p className="mt-1.5 text-xs text-red-600 font-medium animate-in fade-in slide-in-from-top-0.5">
+                          {validationErrors.org_city}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
                   {/* Partnership Category */}
-                  <div>
+                  <div className="sm:col-span-2">
                     <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-2">
                       Partnership Category<span className="text-red-500">*</span>
                     </label>
@@ -827,17 +1043,10 @@ export default function Partner() {
                 <div className="flex items-center gap-3">
                   <button
                     type="button"
-                    onClick={handleBack}
-                    className="border border-[#003828] text-[#003828] bg-white px-6 py-3.5 rounded-full font-bold text-sm tracking-wide hover:bg-[#003828] hover:text-white hover:border-[#003828] transition-all inline-flex items-center justify-center shadow-2xs cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
                     onClick={handleClearDraft}
                     className="border border-stone-300 text-stone-600 bg-white px-6 py-3.5 rounded-full font-bold text-sm tracking-wide hover:text-red-600 hover:border-red-300 hover:bg-red-50/50 transition-colors cursor-pointer shadow-2xs"
                   >
-                    Clear Draft
+                    Discard
                   </button>
                 </div>
                 <button

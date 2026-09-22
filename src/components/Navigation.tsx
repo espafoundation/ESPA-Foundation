@@ -9,6 +9,18 @@ export default function Navigation() {
   const { isAuthenticated, user, logout } = useAuth();
   const location = useLocation();
 
+  const getFirstName = (u: any) => {
+    if (!u) return "Dashboard";
+    if (u.first_name && typeof u.first_name === 'string' && u.first_name.trim()) {
+      return u.first_name.trim();
+    }
+    const raw = u.name || u.fullName || '';
+    if (typeof raw === 'string' && raw.trim()) {
+      return raw.trim().split(/\s+/)[0];
+    }
+    return "Dashboard";
+  };
+
   // Close mobile menu on route change
   useEffect(() => {
     setIsMobileMenuOpen(false);
@@ -32,7 +44,7 @@ export default function Navigation() {
       className="fixed top-0 left-0 right-0 z-[999] px-4 sm:px-6 md:px-8 py-3 sm:py-4 flex items-center justify-between bg-white shadow-xs border-b border-[#003828]/5"
     >
       <Link to="/" className="flex items-center gap-2 z-50 relative" aria-label="ESPA Foundation Home">
-        <svg className="h-7 md:h-9 text-[#003828] w-auto" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg className="h-[32px] text-[#003828] w-auto" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
           <g clipPath="url(#clip0_350_59)">
             <path d="M188.9 99.9202V203.487H21.8804V299.761H188.9V412.08H0V512H313.618V0H0V99.9202H188.9Z" fill="currentColor"/>
             <path d="M512.211 0V99.9202H303.618V207.863H459.698V304.866H303.618V512H251.001L251 0H512.211Z" fill="currentColor"/>
@@ -73,18 +85,18 @@ export default function Navigation() {
           <Link to="/donate" className="hidden md:flex text-sm font-medium tracking-wide text-white bg-[#003828] border border-[#003828] px-5 py-2.5 rounded-full hover:bg-white hover:text-[#003828] hover:border-[#003828] transition-all items-center gap-2">Donate</Link>
           {isAuthenticated ? (
             <Link 
-              to={user?.role?.includes("library") ? "/library/dashboard" : "/management"}
+              to={user?.role?.includes("library") ? "/library/dashboard" : "/portal"}
               onClick={() => {
                 if (typeof window !== 'undefined') {
-                  window.localStorage.removeItem('ain_activeTab');
+                  window.localStorage.setItem('ain_activeTab', JSON.stringify('dashboard'));
                 }
               }}
               className="hidden md:flex text-sm font-medium tracking-wide text-[#003828] bg-white border border-[#003828] px-5 py-2.5 rounded-full hover:bg-[#003828] hover:text-white hover:border-[#003828] transition-all items-center gap-2"
             >
-              {user?.name || "Dashboard"}
+              {getFirstName(user)}
             </Link>
           ) : (
-            <Link to="/login" className="hidden md:flex text-sm font-medium tracking-wide text-[#003828] bg-white border border-[#003828] px-5 py-2.5 rounded-full hover:bg-[#003828] hover:text-white hover:border-[#003828] transition-all items-center gap-2">
+            <Link to="/portal" className="hidden md:flex text-sm font-medium tracking-wide text-[#003828] bg-white border border-[#003828] px-5 py-2.5 rounded-full hover:bg-[#003828] hover:text-white hover:border-[#003828] transition-all items-center gap-2">
               Login
             </Link>
           )}
@@ -113,8 +125,8 @@ export default function Navigation() {
               <Link to="/donate" onClick={() => setIsMobileMenuOpen(false)} className="text-sm font-medium text-white bg-[#003828] border border-[#003828] px-4 py-3 rounded-full hover:bg-white hover:text-[#003828] hover:border-[#003828] transition-all text-center mb-2 block touch-manipulation">Donate</Link>
               {isAuthenticated ? (
                 <div className="flex flex-col gap-2">
-                  <Link to={user?.role?.includes("library") ? "/library/dashboard" : "/management"} onClick={() => { setIsMobileMenuOpen(false); if (typeof window !== 'undefined') window.localStorage.removeItem('ain_activeTab'); }} className="text-sm font-medium text-[#003828] bg-white border border-[#003828] px-4 py-3 rounded-full hover:bg-[#003828] hover:text-white hover:border-[#003828] transition-all text-center touch-manipulation">
-                    {user?.name || "Dashboard"}
+                  <Link to={user?.role?.includes("library") ? "/library/dashboard" : "/portal"} onClick={() => { setIsMobileMenuOpen(false); if (typeof window !== 'undefined') window.localStorage.setItem('ain_activeTab', JSON.stringify('dashboard')); }} className="text-sm font-medium text-[#003828] bg-white border border-[#003828] px-4 py-3 rounded-full hover:bg-[#003828] hover:text-white hover:border-[#003828] transition-all text-center touch-manipulation">
+                    {getFirstName(user)}
                   </Link>
                   <button 
                     onClick={() => { setIsMobileMenuOpen(false); logout(); }}
@@ -124,7 +136,7 @@ export default function Navigation() {
                   </button>
                 </div>
               ) : (
-                <Link to="/login" onClick={() => setIsMobileMenuOpen(false)} className="text-sm font-medium text-[#003828] bg-white border border-[#003828] px-4 py-3 rounded-full hover:bg-[#003828] hover:text-white hover:border-[#003828] transition-all text-center mb-2 touch-manipulation">
+                <Link to="/portal" onClick={() => setIsMobileMenuOpen(false)} className="text-sm font-medium text-[#003828] bg-white border border-[#003828] px-4 py-3 rounded-full hover:bg-[#003828] hover:text-white hover:border-[#003828] transition-all text-center mb-2 touch-manipulation">
                   Login
                 </Link>
               )}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import ReCAPTCHA from 'react-google-recaptcha';
 import toast from 'react-hot-toast';
 import { Country, City } from 'country-state-city';
@@ -13,6 +13,7 @@ import {
   EyeOff
 } from 'lucide-react';
 import SearchableDropdown, { DropdownOption } from '../components/SearchableDropdown';
+import PhoneCountryInput from '../components/PhoneCountryInput';
 import { RECAPTCHA_SITE_KEY } from '../config/recaptcha';
 
 const STORAGE_KEY = 'espa_ambassador_form_draft';
@@ -45,10 +46,12 @@ export default function Ambassador() {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
 
   const [formData, setFormData] = useState({
-    first_name: '',
-    last_name: '',
+    full_name: '',
     email: '',
     phone: '',
+    phone_country_code: '+92',
+    whatsapp: '',
+    whatsapp_country_code: '+92',
     password: '',
     confirm_password: '',
     gender: '',
@@ -92,7 +95,7 @@ export default function Ambassador() {
   const availableCities = useMemo(() => {
     if (!selectedCountryCode) return [];
     const rawCities = City.getCitiesOfCountry(selectedCountryCode) || [];
-    const uniqueNames = Array.from(new Set(rawCities.map(c => c.name.trim()))).filter(Boolean);
+    const uniqueNames = Array.from(new Set(rawCities.map(c => (c?.name || '').trim()))).filter(Boolean);
     return uniqueNames.sort((a, b) => a.localeCompare(b));
   }, [selectedCountryCode]);
 
@@ -118,22 +121,17 @@ export default function Ambassador() {
   const validationErrors = useMemo(() => {
     const errs: Record<string, string> = {};
 
-    // First Name
-    if (!formData.first_name.trim()) {
-      errs.first_name = 'First Name is required';
-    } else if (formData.first_name.length > 50) {
-      errs.first_name = 'First Name cannot exceed 50 characters';
-    }
-
-    // Last Name
-    if (!formData.last_name.trim()) {
-      errs.last_name = 'Last Name is required';
-    } else if (formData.last_name.length > 50) {
-      errs.last_name = 'Last Name cannot exceed 50 characters';
+    // Full Name
+    if (!formData.full_name?.trim()) {
+      errs.full_name = 'Full Name is required';
+    } else if (formData.full_name.trim().length < 2) {
+      errs.full_name = 'Please enter your full name';
+    } else if (formData.full_name.length > 70) {
+      errs.full_name = 'Full Name cannot exceed 70 characters';
     }
 
     // Email
-    if (!formData.email.trim()) {
+    if (!formData.email?.trim()) {
       errs.email = 'Email Address is required';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
       errs.email = 'Please enter a valid email address';
@@ -142,10 +140,17 @@ export default function Ambassador() {
     }
 
     // Phone
-    if (!formData.phone.trim()) {
+    if (!formData.phone?.trim()) {
       errs.phone = 'Phone Number is required';
     } else if (formData.phone.length > 25) {
       errs.phone = 'Phone Number cannot exceed 25 characters';
+    }
+
+    // WhatsApp
+    if (!formData.whatsapp?.trim()) {
+      errs.whatsapp = 'WhatsApp Number is required';
+    } else if (formData.whatsapp.length > 25) {
+      errs.whatsapp = 'WhatsApp Number cannot exceed 25 characters';
     }
 
     // Password: min 8 chars, 1 uppercase, 1 lowercase, 1 symbol
@@ -179,44 +184,47 @@ export default function Ambassador() {
     }
 
     // Country
-    if (!formData.country.trim()) {
+    if (!formData.country?.trim()) {
       errs.country = 'Country is required';
     }
 
     // City
-    if (!formData.city.trim() && !customCity.trim()) {
+    const effectiveCity = formData.city === 'Other / Not Listed' || availableCities.length === 0
+      ? (customCity || '').trim()
+      : (formData.city || '').trim();
+    if (!effectiveCity) {
       errs.city = 'City is required';
-    } else if (formData.city === 'Other / Not Listed' && !customCity.trim()) {
-      errs.city = 'Please specify your city name';
+    } else if (effectiveCity.length > 100) {
+      errs.city = 'City cannot exceed 100 characters';
     }
 
     // Institution
-    if (!formData.institution.trim()) {
+    if (!formData.institution?.trim()) {
       errs.institution = 'University, College, or Organization is required';
     }
 
     // Department or Major
-    if (!formData.department_or_major.trim()) {
+    if (!formData.department_or_major?.trim()) {
       errs.department_or_major = 'Department, Major, or Field is required';
     }
 
     // Social / LinkedIn
-    if (!formData.social.trim()) {
+    if (!formData.social?.trim()) {
       errs.social = 'LinkedIn or Social profile link is required';
     }
 
     // Motivation
-    if (!formData.motivation.trim()) {
+    if (!formData.motivation?.trim()) {
       errs.motivation = 'Please share your motivation for becoming an Ambassador';
     } else if (formData.motivation.trim().length < 15) {
       errs.motivation = 'Motivation must be at least 15 characters';
     }
 
     return errs;
-  }, [formData, customCity]);
+  }, [formData, customCity, availableCities.length]);
 
   const shouldShowError = (field: string) => {
-    return Boolean((hasSubmittedAttempt || touched[field]) && validationErrors[field]);
+    return Boolean(hasSubmittedAttempt && validationErrors[field]);
   };
 
   // Restore draft from local storage on mount with 48h expiration
@@ -237,19 +245,19 @@ export default function Ambassador() {
       }
 
       if (parsed?.formData) {
-        let first_name = parsed.formData.first_name || '';
-        let last_name = parsed.formData.last_name || '';
-        if (!first_name && parsed.formData.name) {
-          const parts = parsed.formData.name.trim().split(' ');
-          first_name = parts[0] || '';
-          last_name = parts.slice(1).join(' ') || '';
+        let full_name = parsed.formData.full_name || '';
+        if (!full_name) {
+          const first = parsed.formData.first_name || '';
+          const last = parsed.formData.last_name || '';
+          full_name = `${first} ${last}`.trim() || parsed.formData.name || '';
         }
 
         setFormData(prev => ({
           ...prev,
           ...parsed.formData,
-          first_name,
-          last_name
+          full_name,
+          phone_country_code: parsed.formData.phone_country_code || '+92',
+          whatsapp_country_code: parsed.formData.whatsapp_country_code || '+92'
         }));
 
         if (parsed.formData.countryCode) {
@@ -270,7 +278,7 @@ export default function Ambassador() {
 
     const timer = setTimeout(() => {
       try {
-        const hasContent = Object.values(formData).some(val => typeof val === 'string' && val.trim() !== '') || Boolean(customCity.trim());
+        const hasContent = Object.values(formData).some(val => typeof val === 'string' && val.trim() !== '') || Boolean((customCity || '').trim());
         if (!hasContent) return;
 
         const draft = {
@@ -294,10 +302,12 @@ export default function Ambassador() {
   const handleClearDraft = () => {
     localStorage.removeItem(STORAGE_KEY);
     setFormData({
-      first_name: '',
-      last_name: '',
+      full_name: '',
       email: '',
       phone: '',
+      phone_country_code: '+92',
+      whatsapp: '',
+      whatsapp_country_code: '+92',
       password: '',
       confirm_password: '',
       gender: '',
@@ -351,8 +361,12 @@ export default function Ambassador() {
     markTouched('city');
   };
 
-  const candidateFullName = `${formData.first_name} ${formData.last_name}`.trim();
-  const finalCity = formData.city === 'Other / Not Listed' ? customCity.trim() : (formData.city || customCity).trim();
+  const candidateFullName = (formData.full_name || '').trim();
+  const firstName = candidateFullName.split(/\s+/)[0] || '';
+  const lastName = candidateFullName.split(/\s+/).slice(1).join(' ') || '';
+  const fullPhone = `${formData.phone_country_code || '+92'} ${formData.phone || ''}`.trim();
+  const fullWhatsApp = `${formData.whatsapp_country_code || '+92'} ${formData.whatsapp || ''}`.trim();
+  const finalCity = formData.city === 'Other / Not Listed' ? (customCity || '').trim() : (formData.city || customCity || '').trim();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -375,16 +389,18 @@ export default function Ambassador() {
       // Clear saved draft on successful submission
       localStorage.removeItem(STORAGE_KEY);
 
-      // 1. Save to local storage for administrative portal sync
-      const apps = JSON.parse(localStorage.getItem('ain_applications') || '[]');
-      apps.unshift({
-        id: Date.now().toString(),
+      // 1. Dispatch to backend API with consistent unique ID
+      const appId = `app_amb_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+      const newApp = {
+        id: appId,
         type: 'ambassador',
         name: candidateFullName,
-        first_name: formData.first_name,
-        last_name: formData.last_name,
+        first_name: firstName,
+        last_name: lastName,
         email: formData.email,
-        phone: formData.phone,
+        phone: fullPhone,
+        whatsapp: fullWhatsApp,
+        password: formData.password,
         gender: formData.gender,
         dob: formData.dob,
         country: formData.country,
@@ -398,21 +414,20 @@ export default function Ambassador() {
         experience: formData.experience,
         date: new Date().toISOString(),
         status: 'Pending'
-      });
-      localStorage.setItem('ain_applications', JSON.stringify(apps));
-      window.dispatchEvent(new Event('storage'));
-      window.dispatchEvent(new CustomEvent('ain_applications_updated'));
+      };
 
-      // 2. Dispatch to backend API
       const response = await fetch('/api/ambassador', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          id: appId,
           name: candidateFullName,
-          first_name: formData.first_name,
-          last_name: formData.last_name,
+          first_name: firstName,
+          last_name: lastName,
           email: formData.email,
-          phone: formData.phone,
+          phone: fullPhone,
+          whatsapp: fullWhatsApp,
+          password: formData.password,
           institution: formData.institution,
           city: `${finalCity}, ${formData.country}`,
           social: formData.social,
@@ -426,6 +441,16 @@ export default function Ambassador() {
         const errorData = await response.json().catch(() => ({}));
         console.warn('Backend ambassador endpoint warning:', errorData.error);
       }
+
+      // 2. Save to local storage for administrative portal sync with deduplication
+      const apps = JSON.parse(localStorage.getItem('ain_applications') || '[]');
+      const filtered = apps.filter((a: any) => 
+        a.id !== appId && 
+        !(a.email && a.email.toLowerCase() === formData.email.toLowerCase() && a.type === 'ambassador')
+      );
+      filtered.unshift(newApp);
+      localStorage.setItem('ain_applications', JSON.stringify(filtered));
+      window.dispatchEvent(new Event('storage'));
 
       setIsSubmitted(true);
       toast.success('Your ambassador application has been submitted successfully!');
@@ -501,10 +526,12 @@ export default function Ambassador() {
                   onClick={() => {
                     setIsSubmitted(false);
                     setFormData({
-                      first_name: '',
-                      last_name: '',
+                      full_name: '',
                       email: '',
                       phone: '',
+                      phone_country_code: '+92',
+                      whatsapp: '',
+                      whatsapp_country_code: '+92',
                       password: '',
                       confirm_password: '',
                       gender: '',
@@ -536,57 +563,31 @@ export default function Ambassador() {
                 <h3 className="text-[18px] font-bold text-[#003828] uppercase tracking-wider">
                   Personal Information<span className="text-red-500">*</span>
                 </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* First Name */}
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-2">
-                      First Name<span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      name="first_name"
-                      value={formData.first_name}
-                      maxLength={50}
-                      onChange={handleChange}
-                      onBlur={() => markTouched('first_name')}
-                      placeholder="Enter Your First Name"
-                      required
-                      className={`w-full px-4 py-3.5 bg-white border rounded-xl text-stone-900 text-sm font-medium transition-all shadow-xs placeholder-stone-400 focus:outline-none ${
-                        shouldShowError('first_name')
-                          ? 'border-red-500 ring-1 ring-red-500'
-                          : 'border-stone-200 focus:border-[#003828] focus:ring-1 focus:ring-[#003828]'
-                      }`}
-                    />
-                    {shouldShowError('first_name') && (
-                      <p className="mt-1.5 text-xs text-red-600 font-medium animate-in fade-in slide-in-from-top-0.5">
-                        {validationErrors.first_name}
-                      </p>
-                    )}
-                  </div>
 
-                  {/* Last Name */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Full Name */}
                   <div>
                     <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-2">
-                      Last Name<span className="text-red-500">*</span>
+                      Full Name<span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
-                      name="last_name"
-                      value={formData.last_name}
-                      maxLength={50}
+                      name="full_name"
+                      value={formData.full_name}
+                      maxLength={70}
                       onChange={handleChange}
-                      onBlur={() => markTouched('last_name')}
-                      placeholder="Enter Your Last Name"
+                      onBlur={() => markTouched('full_name')}
+                      placeholder="Enter Your Full Name"
                       required
                       className={`w-full px-4 py-3.5 bg-white border rounded-xl text-stone-900 text-sm font-medium transition-all shadow-xs placeholder-stone-400 focus:outline-none ${
-                        shouldShowError('last_name')
+                        shouldShowError('full_name')
                           ? 'border-red-500 ring-1 ring-red-500'
                           : 'border-stone-200 focus:border-[#003828] focus:ring-1 focus:ring-[#003828]'
                       }`}
                     />
-                    {shouldShowError('last_name') && (
+                    {shouldShowError('full_name') && (
                       <p className="mt-1.5 text-xs text-red-600 font-medium animate-in fade-in slide-in-from-top-0.5">
-                        {validationErrors.last_name}
+                        {validationErrors.full_name}
                       </p>
                     )}
                   </div>
@@ -620,29 +621,36 @@ export default function Ambassador() {
 
                   {/* Phone Number */}
                   <div>
-                    <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-2">
-                      Phone Number<span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="tel"
+                    <PhoneCountryInput
+                      id="ambassador-phone"
                       name="phone"
-                      value={formData.phone}
-                      maxLength={25}
-                      onChange={handleChange}
-                      onBlur={() => markTouched('phone')}
-                      placeholder="Enter Your Phone Number"
+                      label="Phone Number"
+                      phoneCode={formData.phone_country_code || '+92'}
+                      onPhoneCodeChange={(code) => setFormData(prev => ({ ...prev, phone_country_code: code }))}
+                      phoneNumber={formData.phone}
+                      onPhoneNumberChange={(val) => setFormData(prev => ({ ...prev, phone: val }))}
+                      placeholder="Enter phone number"
                       required
-                      className={`w-full px-4 py-3.5 bg-white border rounded-xl text-stone-900 text-sm font-medium transition-all shadow-xs placeholder-stone-400 focus:outline-none ${
-                        shouldShowError('phone')
-                          ? 'border-red-500 ring-1 ring-red-500'
-                          : 'border-stone-200 focus:border-[#003828] focus:ring-1 focus:ring-[#003828]'
-                      }`}
+                      error={shouldShowError('phone') ? validationErrors.phone : undefined}
+                      onBlur={() => markTouched('phone')}
                     />
-                    {shouldShowError('phone') && (
-                      <p className="mt-1.5 text-xs text-red-600 font-medium animate-in fade-in slide-in-from-top-0.5">
-                        {validationErrors.phone}
-                      </p>
-                    )}
+                  </div>
+
+                  {/* WhatsApp Number */}
+                  <div>
+                    <PhoneCountryInput
+                      id="ambassador-whatsapp"
+                      name="whatsapp"
+                      label="WhatsApp Number"
+                      phoneCode={formData.whatsapp_country_code || '+92'}
+                      onPhoneCodeChange={(code) => setFormData(prev => ({ ...prev, whatsapp_country_code: code }))}
+                      phoneNumber={formData.whatsapp}
+                      onPhoneNumberChange={(val) => setFormData(prev => ({ ...prev, whatsapp: val }))}
+                      placeholder="Enter WhatsApp number"
+                      required
+                      error={shouldShowError('whatsapp') ? validationErrors.whatsapp : undefined}
+                      onBlur={() => markTouched('whatsapp')}
+                    />
                   </div>
 
                   {/* Password */}
@@ -1053,18 +1061,12 @@ export default function Ambassador() {
               {/* Submit & Action Buttons */}
               <div className="pt-4 border-t border-stone-100 flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <Link
-                    to="/"
-                    className="border border-[#003828] text-[#003828] bg-white px-6 py-3.5 rounded-full font-bold text-sm tracking-wide hover:bg-[#003828] hover:text-white hover:border-[#003828] transition-all inline-flex items-center justify-center shadow-2xs"
-                  >
-                    Cancel
-                  </Link>
                   <button
                     type="button"
                     onClick={handleClearDraft}
                     className="border border-stone-300 text-stone-600 bg-white px-6 py-3.5 rounded-full font-bold text-sm tracking-wide hover:text-red-600 hover:border-red-300 hover:bg-red-50/50 transition-colors cursor-pointer shadow-2xs"
                   >
-                    Clear Draft
+                    Discard
                   </button>
                 </div>
                 <button

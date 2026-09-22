@@ -1,6 +1,6 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import ReCAPTCHA from 'react-google-recaptcha';
 import toast from 'react-hot-toast';
 import { Country, City } from 'country-state-city';
@@ -21,6 +21,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import SearchableDropdown, { DropdownOption } from '../components/SearchableDropdown';
+import PhoneCountryInput from '../components/PhoneCountryInput';
 import { RECAPTCHA_SITE_KEY } from '../config/recaptcha';
 
 interface LanguageSkill {
@@ -51,6 +52,17 @@ export default function Volunteer() {
     }
   };
 
+  const handleGoHome = () => {
+    sessionStorage.removeItem('espa_restore_target');
+    sessionStorage.removeItem('espa_last_section');
+    sessionStorage.removeItem('espa_scroll_/');
+    navigate('/');
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    setTimeout(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    }, 50);
+  };
+
   const recaptchaRef = useRef<ReCAPTCHA>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -59,11 +71,11 @@ export default function Volunteer() {
 
   // Email verification (OTP) states
   const [isVerifyingEmail, setIsVerifyingEmail] = useState(false);
-  const [verificationOtp, setVerificationOtp] = useState('');
   const [enteredOtp, setEnteredOtp] = useState(['', '', '', '', '', '']);
   const [otpError, setOtpError] = useState('');
   const [resendCooldown, setResendCooldown] = useState(0);
   const [isFinalizing, setIsFinalizing] = useState(false);
+  const [isResending, setIsResending] = useState(false);
   const [cachedRecaptchaToken, setCachedRecaptchaToken] = useState<string | null>(null);
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -73,10 +85,12 @@ export default function Volunteer() {
 
   // Form states
   const [formData, setFormData] = useState({
-    first_name: '',
-    last_name: '',
+    full_name: '',
     email: '',
     phone: '',
+    phone_country_code: '+92',
+    whatsapp: '',
+    whatsapp_country_code: '+92',
     password: '',
     confirm_password: '',
     gender: '',
@@ -113,7 +127,7 @@ export default function Volunteer() {
   const availableCities = useMemo(() => {
     if (!selectedCountryCode) return [];
     const rawCities = City.getCitiesOfCountry(selectedCountryCode) || [];
-    const uniqueNames = Array.from(new Set(rawCities.map(c => c.name.trim()))).filter(Boolean);
+    const uniqueNames = Array.from(new Set(rawCities.map(c => (c?.name || '').trim()))).filter(Boolean);
     return uniqueNames.sort((a, b) => a.localeCompare(b));
   }, [selectedCountryCode]);
 
@@ -152,34 +166,42 @@ export default function Volunteer() {
   const validationErrors = useMemo(() => {
     const errs: Record<string, string> = {};
 
-    // First Name
-    if (!formData.first_name.trim()) {
-      errs.first_name = 'First Name is required';
-    } else if (formData.first_name.length > 50) {
-      errs.first_name = 'First Name cannot exceed 50 characters';
-    }
-
-    // Last Name
-    if (!formData.last_name.trim()) {
-      errs.last_name = 'Last Name is required';
-    } else if (formData.last_name.length > 50) {
-      errs.last_name = 'Last Name cannot exceed 50 characters';
+    // Full Name
+    if (!formData.full_name?.trim()) {
+      errs.full_name = 'Full Name is required';
+    } else if (formData.full_name.trim().length < 2) {
+      errs.full_name = 'Full Name must be at least 2 characters';
+    } else if (formData.full_name.length > 100) {
+      errs.full_name = 'Full Name cannot exceed 100 characters';
     }
 
     // Email
-    if (!formData.email.trim()) {
+    if (!formData.email?.trim()) {
       errs.email = 'Email Address is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
-      errs.email = 'Please enter a valid email address';
+    } else if (!formData.email.includes('@')) {
+      errs.email = 'Email Address must include an "@" symbol';
+    } else if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(formData.email.trim())) {
+      errs.email = 'Please enter a valid email address (e.g. name@example.com)';
     } else if (formData.email.length > 100) {
       errs.email = 'Email Address cannot exceed 100 characters';
     }
 
     // Phone
-    if (!formData.phone.trim()) {
+    if (!formData.phone?.trim()) {
       errs.phone = 'Phone Number is required';
+    } else if (formData.phone.replace(/[^0-9]/g, '').length < 6) {
+      errs.phone = 'Please enter a valid phone number';
     } else if (formData.phone.length > 25) {
       errs.phone = 'Phone Number cannot exceed 25 characters';
+    }
+
+    // WhatsApp
+    if (!formData.whatsapp?.trim()) {
+      errs.whatsapp = 'WhatsApp Number is required';
+    } else if (formData.whatsapp.replace(/[^0-9]/g, '').length < 6) {
+      errs.whatsapp = 'Please enter a valid WhatsApp number';
+    } else if (formData.whatsapp.length > 25) {
+      errs.whatsapp = 'WhatsApp Number cannot exceed 25 characters';
     }
 
     // Password: min 8 chars, 1 uppercase, 1 lowercase, 1 symbol
@@ -219,8 +241,8 @@ export default function Volunteer() {
 
     // City
     const effectiveCity = formData.city === 'Other / Not Listed' || availableCities.length === 0
-      ? customCity.trim()
-      : formData.city.trim();
+      ? (customCity || '').trim()
+      : (formData.city || '').trim();
     if (!effectiveCity) {
       errs.city = 'City is required';
     } else if (effectiveCity.length > 100) {
@@ -248,18 +270,18 @@ export default function Volunteer() {
     }
 
     // Motivation
-    if (!formData.motivation.trim()) {
+    if (!formData.motivation?.trim()) {
       errs.motivation = 'Reason for volunteering is required';
-    } else if (formData.motivation.length > 1000) {
+    } else if (formData.motivation.trim().length > 1000) {
       errs.motivation = 'Reason cannot exceed 1000 characters';
     }
 
     return errs;
   }, [formData, customCity, availableCities.length, languages.length, targets, libraryRole]);
 
-  // Determine whether to display error for a given field
+  // Determine whether to display error for a given field (only appears after user clicked Submit)
   const shouldShowError = (field: string) => {
-    return (touched[field] || hasSubmittedAttempt) && !!validationErrors[field];
+    return hasSubmittedAttempt && !!validationErrors[field];
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -351,12 +373,16 @@ export default function Volunteer() {
         }
 
         if (parsed.formData) {
+          const loadedFullName = parsed.formData.full_name || 
+            (parsed.formData.first_name ? `${parsed.formData.first_name} ${parsed.formData.last_name || ''}`.trim() : '');
           setFormData(prev => ({
             ...prev,
-            first_name: parsed.formData.first_name || '',
-            last_name: parsed.formData.last_name || '',
+            full_name: loadedFullName,
             email: parsed.formData.email || '',
             phone: parsed.formData.phone || '',
+            phone_country_code: parsed.formData.phone_country_code || '+92',
+            whatsapp: parsed.formData.whatsapp || '',
+            whatsapp_country_code: parsed.formData.whatsapp_country_code || '+92',
             password: parsed.formData.password || '',
             confirm_password: parsed.formData.confirm_password || '',
             gender: parsed.formData.gender || '',
@@ -393,7 +419,8 @@ export default function Volunteer() {
     if (isSubmitted || isVerifyingEmail) return;
 
     const hasAnyContent = Boolean(
-      formData.first_name || formData.last_name || formData.email || formData.phone ||
+      formData.full_name || formData.email || formData.phone ||
+      formData.whatsapp ||
       formData.password || formData.confirm_password || formData.gender || formData.dob ||
       formData.city || formData.country || formData.availability || formData.motivation ||
       languages.length > 0 || targets.foundation || targets.library
@@ -425,10 +452,12 @@ export default function Volunteer() {
   const handleClearDraft = () => {
     localStorage.removeItem(STORAGE_KEY);
     setFormData({
-      first_name: '',
-      last_name: '',
+      full_name: '',
       email: '',
       phone: '',
+      phone_country_code: '+92',
+      whatsapp: '',
+      whatsapp_country_code: '+92',
       password: '',
       confirm_password: '',
       gender: '',
@@ -491,23 +520,36 @@ export default function Volunteer() {
     otpInputRefs.current[nextIdx]?.focus();
   };
 
-  const handleAutoFillOtp = () => {
-    if (!verificationOtp) return;
-    const digits = verificationOtp.split('').slice(0, 6);
-    setEnteredOtp(digits);
+  const handleResendOtp = async () => {
+    if (resendCooldown > 0 || isResending) return;
+    setIsResending(true);
     setOtpError('');
-    otpInputRefs.current[5]?.focus();
-    toast.success('Demo verification code auto-filled!');
-  };
 
-  const handleResendOtp = () => {
-    if (resendCooldown > 0) return;
-    const newCode = Math.floor(100000 + Math.random() * 900000).toString();
-    setVerificationOtp(newCode);
-    setEnteredOtp(['', '', '', '', '', '']);
-    setOtpError('');
-    setResendCooldown(30);
-    toast.success(`New verification code sent to ${formData.email}!`);
+    try {
+      const response = await fetch('/api/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email,
+          recaptchaToken: cachedRecaptchaToken || 'verified_token',
+          purpose: 'volunteer_application'
+        })
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to resend verification code');
+      }
+
+      setEnteredOtp(['', '', '', '', '', '']);
+      setResendCooldown(60);
+      otpInputRefs.current[0]?.focus();
+      toast.success(`A new verification code was sent to ${formData.email}!`);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to resend verification code.');
+    } finally {
+      setIsResending(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -530,16 +572,37 @@ export default function Volunteer() {
     setIsSubmitting(true);
     setCachedRecaptchaToken(recaptchaToken);
 
-    // Simulate OTP generation and sending to user's registered email
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    setVerificationOtp(code);
-    setEnteredOtp(['', '', '', '', '', '']);
-    setOtpError('');
-    setResendCooldown(30);
+    try {
+      // Real-time OTP sender to applicant's email address
+      const response = await fetch('/api/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email,
+          recaptchaToken,
+          purpose: 'volunteer_application'
+        })
+      });
 
-    setIsSubmitting(false);
-    setIsVerifyingEmail(true);
-    toast.success(`Verification code sent to ${formData.email}!`);
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send verification code. Please check your email address.');
+      }
+
+      setEnteredOtp(['', '', '', '', '', '']);
+      setOtpError('');
+      setResendCooldown(60);
+      setIsVerifyingEmail(true);
+      toast.success(`Verification code sent to ${formData.email}! Please check your inbox.`);
+      setTimeout(() => {
+        otpInputRefs.current[0]?.focus();
+      }, 100);
+    } catch (err: any) {
+      console.error('Error sending verification code:', err);
+      toast.error(err.message || 'Failed to send verification code.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleFinalizeAccount = async () => {
@@ -549,45 +612,67 @@ export default function Volunteer() {
       return;
     }
 
-    if (fullOtp !== verificationOtp) {
-      setOtpError('Incorrect verification code. Please check your email and try again.');
-      return;
-    }
-
     setIsFinalizing(true);
     setOtpError('');
 
-    const effectiveCity = formData.city === 'Other / Not Listed' || availableCities.length === 0
-      ? customCity.trim()
-      : formData.city.trim();
-
-    const fullName = `${formData.first_name} ${formData.last_name}`.trim();
-    const volunteerTargetText = targets.foundation && targets.library
-      ? 'ESPA Foundation & ESPA Digital Library (Both)'
-      : (targets.library ? 'ESPA Digital Library' : 'ESPA Foundation');
-
-    let computedArea = '';
-    if (targets.foundation && targets.library) {
-      computedArea = `ESPA Foundation & Digital Library (${libraryRole})`;
-    } else if (targets.library) {
-      computedArea = `Digital Library (${libraryRole})`;
-    } else {
-      computedArea = 'ESPA Foundation';
-    }
-
-    const formattedLanguages = languages.map(l => `${l.language} (${l.fluency})`);
-
     try {
-      // 1. Save to local storage for administrative portal sync
-      const apps = JSON.parse(localStorage.getItem('ain_applications') || '[]');
-      apps.unshift({
-        id: Date.now().toString(),
+      // Validate OTP with server-side validator
+      const verifyRes = await fetch('/api/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email,
+          otp: fullOtp
+        })
+      });
+
+      const verifyData = await verifyRes.json().catch(() => ({}));
+      if (!verifyRes.ok || !verifyData.valid) {
+        setOtpError(verifyData.error || 'Invalid or expired verification code. Please try again.');
+        setIsFinalizing(false);
+        return;
+      }
+
+      const effectiveCity = formData.city === 'Other / Not Listed' || availableCities.length === 0
+        ? (customCity || '').trim()
+        : (formData.city || '').trim();
+
+      const fullName = (formData.full_name || '').trim();
+      const firstName = fullName.split(/\s+/)[0] || '';
+      const lastName = fullName.split(/\s+/).slice(1).join(' ') || '';
+      const fullPhone = `${formData.phone_country_code || '+92'} ${formData.phone || ''}`.trim();
+      const fullWhatsApp = `${formData.whatsapp_country_code || '+92'} ${formData.whatsapp || ''}`.trim();
+
+      const volunteerTargetText = targets.foundation && targets.library
+        ? 'ESPA Foundation & ESPA Digital Library (Both)'
+        : (targets.library ? 'ESPA Digital Library' : 'ESPA Foundation');
+
+      let computedArea = '';
+      if (targets.foundation && targets.library) {
+        computedArea = `ESPA Foundation & Digital Library (${libraryRole})`;
+      } else if (targets.library) {
+        computedArea = `Digital Library (${libraryRole})`;
+      } else {
+        computedArea = 'ESPA Foundation';
+      }
+
+      const formattedLanguages = languages.map(l => `${l.language} (${l.fluency})`);
+      const appId = `app_vol_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+
+      const newAppRecord = {
+        id: appId,
         type: 'volunteer',
         name: fullName,
-        first_name: formData.first_name,
-        last_name: formData.last_name,
+        full_name: fullName,
+        first_name: firstName,
+        last_name: lastName,
         email: formData.email,
-        phone: formData.phone,
+        phone: fullPhone,
+        phone_country_code: formData.phone_country_code || '+92',
+        phone_number: formData.phone,
+        whatsapp: fullWhatsApp,
+        whatsapp_country_code: formData.whatsapp_country_code || '+92',
+        whatsapp_number: formData.whatsapp,
         password: formData.password,
         gender: formData.gender,
         dob: formData.dob,
@@ -602,21 +687,21 @@ export default function Volunteer() {
         date: new Date().toISOString(),
         status: 'Pending',
         emailVerified: true
-      });
-      localStorage.setItem('ain_applications', JSON.stringify(apps));
-      window.dispatchEvent(new Event('storage'));
-      window.dispatchEvent(new CustomEvent('ain_applications_updated'));
+      };
 
-      // 2. Dispatch to backend API
+      // 1. Dispatch to backend API with consistent unique ID
       const response = await fetch('/api/volunteer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          id: appId,
           name: fullName,
-          first_name: formData.first_name,
-          last_name: formData.last_name,
+          full_name: fullName,
+          first_name: firstName,
+          last_name: lastName,
           email: formData.email,
-          phone: formData.phone,
+          phone: fullPhone,
+          whatsapp: fullWhatsApp,
           password: formData.password,
           gender: formData.gender,
           dob: formData.dob,
@@ -636,6 +721,16 @@ export default function Volunteer() {
         const errorData = await response.json().catch(() => ({}));
         console.warn('Backend volunteer endpoint response:', errorData.error);
       }
+
+      // 2. Save to local storage for administrative portal sync, preventing duplicates
+      const apps = JSON.parse(localStorage.getItem('ain_applications') || '[]');
+      const filteredApps = apps.filter((a: any) => 
+        a.id !== appId && 
+        !(a.email && a.email.toLowerCase() === formData.email.toLowerCase() && a.type === 'volunteer')
+      );
+      filteredApps.unshift(newAppRecord);
+      localStorage.setItem('ain_applications', JSON.stringify(filteredApps));
+      window.dispatchEvent(new Event('storage'));
 
       // Clear the local storage draft once finalized!
       localStorage.removeItem(STORAGE_KEY);
@@ -661,14 +756,14 @@ export default function Volunteer() {
     return 'ESPA Foundation';
   };
 
-  const candidateFullName = `${formData.first_name} ${formData.last_name}`.trim();
+  const candidateFullName = formData.full_name?.trim() || '';
 
   return (
     <div className="bg-[#FAF9F5] min-h-screen py-12 md:py-16 px-4 sm:px-6 lg:px-8">
       <Helmet>
-        <title>Volunteer With Us | ESPA Foundation</title>
+        <title>Become a Volunteer | ESPA Foundation</title>
         <meta name="description" content="Join our mission as a volunteer at ESPA Foundation or ESPA Digital Library. Empower communities through education and open digital access." />
-        <meta property="og:title" content="Volunteer With Us | ESPA Foundation" />
+        <meta property="og:title" content="Become a Volunteer | ESPA Foundation" />
         <meta property="og:description" content="Join our mission as a volunteer at ESPA Foundation or ESPA Digital Library. Empower communities through education and open digital access." />
       </Helmet>
 
@@ -688,11 +783,11 @@ export default function Volunteer() {
         {/* Page Header */}
         <div className="text-center max-w-3xl mx-auto mb-10">
           <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-[#003828] mb-4">
-            Volunteer With Us
+            Become a Volunteer
           </h1>
           <p className="font-sans text-base sm:text-lg text-stone-600 leading-relaxed max-w-xl mx-auto text-center">
-            <span className="block">Join our mission to empower communities through education</span>
-            <span className="block">and open access to knowledge.</span>
+            <span className="block">Join our mission to empower communities</span>
+            <span className="block">through education and open access to knowledge.</span>
           </p>
         </div>
 
@@ -705,27 +800,27 @@ export default function Volunteer() {
                 <CheckCircle2 size={44} className="text-[#003828]" />
               </div>
               <h2 className="font-display text-2xl sm:text-3xl font-bold text-stone-900 mb-3">
-                Thank you for your application!
+                Application Submitted!
               </h2>
               <p className="text-stone-600 mb-2 leading-relaxed">
-                Thank you, <span className="font-semibold text-stone-900">{candidateFullName || 'Applicant'}</span>, for applying to volunteer with <span className="font-semibold text-[#003828]">{getTargetSummary()}</span>.
+                Thank you, <span className="font-semibold text-stone-900">{candidateFullName || 'Applicant'}</span>, for applying to volunteer with <span className="font-semibold text-[#003828]">ESPA Foundation</span>.
               </p>
               <p className="text-sm text-stone-500 mb-8 leading-relaxed">
-                Our coordination team has received your application and will review your details shortly. We will contact you at <span className="font-medium text-stone-800">{formData.email}</span> with orientation and next steps.
+                Your application has been successfully received and will be reviewed shortly. You will receive an email at <span className="font-medium text-stone-800">{formData.email}</span> with an update on the status of your application and any further information regarding the next steps.
               </p>
               <div className="flex justify-center">
                 <button
                   type="button"
-                  onClick={handleBack}
+                  onClick={handleGoHome}
                   className="bg-[#003828] text-white border border-[#003828] px-8 py-3.5 rounded-full font-bold text-sm hover:bg-white hover:text-[#003828] hover:border-[#003828] transition-all text-center inline-flex items-center gap-2 shadow-sm cursor-pointer"
                 >
                   <ArrowLeft size={16} />
-                  Return to Home
+                  Home
                 </button>
               </div>
             </div>
           ) : isVerifyingEmail ? (
-            /* Mock Email Verification Step (OTP) */
+            /* Real-Time Email Verification Step (OTP) */
             <div className="py-6 sm:py-8 max-w-lg mx-auto animate-in fade-in zoom-in-95 duration-200">
               <div className="text-center mb-6">
                 <div className="w-16 h-16 bg-[#003828]/10 text-[#003828] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-2xs">
@@ -735,36 +830,8 @@ export default function Volunteer() {
                   Verify Your Email
                 </h2>
                 <p className="text-sm text-stone-600 leading-relaxed">
-                  We have sent a 6-digit OTP code to <span className="font-semibold text-stone-900">{formData.email}</span>. Please enter the code below to finalize your volunteer account.
+                  We have sent a 6-digit verification code to <span className="font-semibold text-stone-900">{formData.email}</span>. Please enter the code below to finalize your volunteer application.
                 </p>
-              </div>
-
-              {/* Mock Email Preview / Auto-fill Helper Banner */}
-              <div className="mb-6 p-4 bg-[#003828]/5 border border-[#003828]/20 rounded-2xl shadow-2xs">
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <div className="flex items-center gap-2">
-                    <Sparkles size={16} className="text-[#003828]" />
-                    <span className="text-xs font-bold text-[#003828] uppercase tracking-wider">
-                      Mock Email Verification Simulation
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleAutoFillOtp}
-                    className="text-xs font-bold text-[#003828] hover:text-[#00261B] bg-white px-2.5 py-1 rounded-lg border border-[#003828]/30 shadow-2xs hover:bg-[#003828]/10 transition-colors cursor-pointer"
-                  >
-                    Auto-fill Code
-                  </button>
-                </div>
-                <p className="text-xs text-stone-600 mb-1">
-                  In production, this code is delivered to your inbox. For demonstration purposes, your mock OTP code is:
-                </p>
-                <div className="flex items-center justify-between mt-2 pt-2 border-t border-[#003828]/20">
-                  <span className="font-mono text-xl font-bold text-[#003828] tracking-widest bg-white px-3 py-1 rounded-lg border border-[#003828]/30">
-                    {verificationOtp}
-                  </span>
-                  <span className="text-[11px] text-stone-500">Subject: ESPA Verification Code</span>
-                </div>
               </div>
 
               {/* 6-Digit Input Grid */}
@@ -812,12 +879,12 @@ export default function Volunteer() {
                   {isFinalizing ? (
                     <>
                       <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-                      <span>Finalizing Account...</span>
+                      <span>Verifying & Finalizing...</span>
                     </>
                   ) : (
                     <>
                       <ShieldCheck size={18} />
-                      <span>Verify & Finalize Account</span>
+                      <span>Verify & Finalize Application</span>
                     </>
                   )}
                 </button>
@@ -843,10 +910,11 @@ export default function Volunteer() {
                       <button
                         type="button"
                         onClick={handleResendOtp}
-                        className="text-[#003828] hover:text-[#00261B] font-bold flex items-center gap-1 cursor-pointer"
+                        disabled={isResending}
+                        className="text-[#003828] hover:text-[#00261B] font-bold flex items-center gap-1 cursor-pointer disabled:opacity-50"
                       >
-                        <RotateCcw size={13} />
-                        Resend Code
+                        <RotateCcw size={13} className={isResending ? 'animate-spin' : ''} />
+                        {isResending ? 'Sending...' : 'Resend Code'}
                       </button>
                     )}
                   </div>
@@ -860,57 +928,31 @@ export default function Volunteer() {
                 <h3 className="text-[18px] font-bold text-[#003828] uppercase tracking-wider">
                   Personal Information<span className="text-red-500">*</span>
                 </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* First Name */}
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-2">
-                      First Name<span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      name="first_name"
-                      value={formData.first_name}
-                      maxLength={50}
-                      onChange={handleChange}
-                      onBlur={() => markTouched('first_name')}
-                      placeholder="Enter Your First Name"
-                      required
-                      className={`w-full px-4 py-3.5 bg-white border rounded-xl text-stone-900 text-sm font-medium transition-all shadow-xs placeholder-stone-400 focus:outline-none ${
-                        shouldShowError('first_name')
-                          ? 'border-red-500 ring-1 ring-red-500'
-                          : 'border-stone-200 focus:border-[#003828] focus:ring-1 focus:ring-[#003828]'
-                      }`}
-                    />
-                    {shouldShowError('first_name') && (
-                      <p className="mt-1.5 text-xs text-red-600 font-medium animate-in fade-in slide-in-from-top-0.5">
-                        {validationErrors.first_name}
-                      </p>
-                    )}
-                  </div>
 
-                  {/* Last Name */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Full Name */}
                   <div>
                     <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-2">
-                      Last Name<span className="text-red-500">*</span>
+                      Full Name<span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
-                      name="last_name"
-                      value={formData.last_name}
-                      maxLength={50}
+                      name="full_name"
+                      value={formData.full_name}
+                      maxLength={100}
                       onChange={handleChange}
-                      onBlur={() => markTouched('last_name')}
-                      placeholder="Enter Your Last Name"
+                      onBlur={() => markTouched('full_name')}
+                      placeholder="Enter Your Full Name"
                       required
                       className={`w-full px-4 py-3.5 bg-white border rounded-xl text-stone-900 text-sm font-medium transition-all shadow-xs placeholder-stone-400 focus:outline-none ${
-                        shouldShowError('last_name')
+                        shouldShowError('full_name')
                           ? 'border-red-500 ring-1 ring-red-500'
                           : 'border-stone-200 focus:border-[#003828] focus:ring-1 focus:ring-[#003828]'
                       }`}
                     />
-                    {shouldShowError('last_name') && (
+                    {shouldShowError('full_name') && (
                       <p className="mt-1.5 text-xs text-red-600 font-medium animate-in fade-in slide-in-from-top-0.5">
-                        {validationErrors.last_name}
+                        {validationErrors.full_name}
                       </p>
                     )}
                   </div>
@@ -944,29 +986,36 @@ export default function Volunteer() {
 
                   {/* Phone Number */}
                   <div>
-                    <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-2">
-                      Phone Number<span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="tel"
+                    <PhoneCountryInput
+                      id="volunteer-phone"
                       name="phone"
-                      value={formData.phone}
-                      maxLength={25}
-                      onChange={handleChange}
-                      onBlur={() => markTouched('phone')}
-                      placeholder="Enter Your Phone Number"
+                      label="Phone Number"
+                      phoneCode={formData.phone_country_code}
+                      onPhoneCodeChange={(code) => setFormData(prev => ({ ...prev, phone_country_code: code }))}
+                      phoneNumber={formData.phone}
+                      onPhoneNumberChange={(val) => setFormData(prev => ({ ...prev, phone: val }))}
+                      placeholder="Enter phone number"
                       required
-                      className={`w-full px-4 py-3.5 bg-white border rounded-xl text-stone-900 text-sm font-medium transition-all shadow-xs placeholder-stone-400 focus:outline-none ${
-                        shouldShowError('phone')
-                          ? 'border-red-500 ring-1 ring-red-500'
-                          : 'border-stone-200 focus:border-[#003828] focus:ring-1 focus:ring-[#003828]'
-                      }`}
+                      error={shouldShowError('phone') ? validationErrors.phone : undefined}
+                      onBlur={() => markTouched('phone')}
                     />
-                    {shouldShowError('phone') && (
-                      <p className="mt-1.5 text-xs text-red-600 font-medium animate-in fade-in slide-in-from-top-0.5">
-                        {validationErrors.phone}
-                      </p>
-                    )}
+                  </div>
+
+                  {/* WhatsApp Number */}
+                  <div>
+                    <PhoneCountryInput
+                      id="volunteer-whatsapp"
+                      name="whatsapp"
+                      label="WhatsApp Number"
+                      phoneCode={formData.whatsapp_country_code}
+                      onPhoneCodeChange={(code) => setFormData(prev => ({ ...prev, whatsapp_country_code: code }))}
+                      phoneNumber={formData.whatsapp}
+                      onPhoneNumberChange={(val) => setFormData(prev => ({ ...prev, whatsapp: val }))}
+                      placeholder="Enter WhatsApp number"
+                      required
+                      error={shouldShowError('whatsapp') ? validationErrors.whatsapp : undefined}
+                      onBlur={() => markTouched('whatsapp')}
+                    />
                   </div>
 
                   {/* Password */}
@@ -1279,7 +1328,7 @@ export default function Volunteer() {
                     <button
                       type="button"
                       onClick={handleAddLanguage}
-                      disabled={!languageInput.trim()}
+                      disabled={!(languageInput || '').trim()}
                       className="w-full py-2.5 bg-[#003828] text-white text-xs font-bold rounded-xl border border-[#003828] hover:bg-white hover:text-[#003828] hover:border-[#003828] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1.5 shrink-0 cursor-pointer shadow-xs"
                     >
                       <Plus size={14} />
@@ -1306,7 +1355,7 @@ export default function Volunteer() {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full min-w-0">
                   {/* Option 1: ESPA Foundation (Clickable Card) */}
                   <div
                     onClick={() => toggleTarget('foundation')}
@@ -1318,7 +1367,7 @@ export default function Volunteer() {
                         toggleTarget('foundation');
                       }
                     }}
-                    className={`relative p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between select-none ${
+                    className={`relative p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between select-none overflow-hidden min-w-0 ${
                       targets.foundation
                         ? 'border-[#003828] bg-[#003828]/5 shadow-xs'
                         : shouldShowError('targets')
@@ -1326,12 +1375,13 @@ export default function Volunteer() {
                         : 'border-stone-200 bg-white hover:border-stone-300'
                     }`}
                   >
-                    <div className="flex items-center justify-between gap-3 mb-2.5">
-                      <div className="h-12 flex items-center">
+                    <div className="flex items-center justify-between gap-3 mb-2.5 min-w-0 w-full">
+                      <div className="h-10 min-h-[40px] flex items-center min-w-0 shrink overflow-hidden">
                         <img 
                           src="/ESPA%20Foundation.svg" 
                           alt="ESPA Foundation" 
-                          className="h-[38px] sm:h-[41px] w-auto object-contain select-none"
+                          style={{ height: '40px', maxHeight: '40px', maxWidth: '100%', width: 'auto' }}
+                          className="h-10 max-h-[40px] w-auto max-w-full object-contain object-left select-none"
                         />
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
@@ -1363,7 +1413,7 @@ export default function Volunteer() {
                         toggleTarget('library');
                       }
                     }}
-                    className={`relative p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between select-none ${
+                    className={`relative p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between select-none overflow-hidden min-w-0 ${
                       targets.library
                         ? 'border-[#003828] bg-[#003828]/5 shadow-xs'
                         : shouldShowError('targets')
@@ -1371,12 +1421,13 @@ export default function Volunteer() {
                         : 'border-stone-200 bg-white hover:border-stone-300'
                     }`}
                   >
-                    <div className="flex items-center justify-between gap-3 mb-2.5">
-                      <div className="h-12 flex items-center">
+                    <div className="flex items-center justify-between gap-3 mb-2.5 min-w-0 w-full">
+                      <div className="h-10 min-h-[40px] flex items-center min-w-0 shrink overflow-hidden">
                         <img 
                           src="/ESPA%20Digital%20Library.svg" 
                           alt="ESPA Digital Library" 
-                          className="h-[43px] sm:h-[47px] w-auto object-contain select-none"
+                          style={{ height: '40px', maxHeight: '40px', maxWidth: '100%', width: 'auto' }}
+                          className="h-10 max-h-[40px] w-auto max-w-full object-contain object-left select-none"
                         />
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
@@ -1583,18 +1634,12 @@ export default function Volunteer() {
               {/* Submit & Action Buttons */}
               <div className="pt-4 border-t border-stone-100 flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <Link
-                    to="/"
-                    className="border border-[#003828] text-[#003828] bg-white px-6 py-3.5 rounded-full font-bold text-sm tracking-wide hover:bg-[#003828] hover:text-white hover:border-[#003828] transition-all inline-flex items-center justify-center shadow-2xs"
-                  >
-                    Cancel
-                  </Link>
                   <button
                     type="button"
                     onClick={handleClearDraft}
                     className="border border-stone-300 text-stone-600 bg-white px-6 py-3.5 rounded-full font-bold text-sm tracking-wide hover:text-red-600 hover:border-red-300 hover:bg-red-50/50 transition-colors cursor-pointer shadow-2xs"
                   >
-                    Clear Draft
+                    Discard
                   </button>
                 </div>
                 <button
