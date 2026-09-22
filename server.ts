@@ -268,7 +268,7 @@ app.patch('/api/applications/:id', async (req, res) => {
     const subject = 'APPLICATION UPDATE: ESPA Foundation';
 
     const text = isApproved
-      ? `Dear ${applicantName},\n\nYour application to volunteer with ESPA Foundation has been approved.\n\nYou can now access the Portal on ESPA Digital Library using the following credentials:\n\nEmail: ${applicantEmail}\nPassword: ${applicantPassword}\n\nPlease keep your login credentials secure and do not share your password with anyone.\n\nFurther information regarding your volunteer role and responsibilities will be available through the ESPA Digital Library.\n\nWelcome to ESPA Foundation. We look forward to having you contribute to our mission.\n\nESPA Foundation\nFrom Exclusion to Education.`
+      ? `Dear ${applicantName},\n\nYour application to volunteer with ESPA Foundation has been approved.\n\nYou can now access the Portal on ESPA Digital Library (https://library.espafoundation.social/login) using the following credentials:\n\nEmail: ${applicantEmail}\nPassword: ${applicantPassword}\n\nPlease keep your login credentials secure and do not share your password with anyone.\n\nFurther information regarding your volunteer role and responsibilities will be available through the ESPA Digital Library.\n\nWelcome to ESPA Foundation. We look forward to having you contribute to our mission.\n\nESPA Foundation\nFrom Exclusion to Education.`
       : `Dear ${applicantName},\n\nThank you for your interest in volunteering with ESPA Foundation and for taking the time to submit your application.\n\nAfter careful review, we regret to inform you that we will not be moving forward with your application at this time.\n\nWe appreciate your interest in supporting ESPA Foundation and encourage you to stay connected with us for future volunteer opportunities.\n\nThank you for your time and understanding.\n\nESPA Foundation\nFrom Exclusion to Education.`;
 
     try {
@@ -276,7 +276,10 @@ app.patch('/api/applications/:id', async (req, res) => {
         from: '"ESPA Foundation" <foundationespa@gmail.com>',
         to: applicantEmail,
         subject,
-        text
+        text,
+        html: isApproved
+          ? `<p>Dear ${applicantName},</p><p>Your application to volunteer with ESPA Foundation has been approved.</p><p>You can now access the Portal on <a href="https://library.espafoundation.social/login">ESPA Digital Library</a> using the following credentials:</p><p>Email: ${applicantEmail}<br />Password: ${applicantPassword}</p><p>Please keep your login credentials secure and do not share your password with anyone.</p><p>Further information regarding your volunteer role and responsibilities will be available through the ESPA Digital Library.</p><p>Welcome to ESPA Foundation. We look forward to having you contribute to our mission.</p><p>ESPA Foundation<br />From Exclusion to Education.</p>`
+          : undefined
       });
       emailSent = true;
       console.log(`Successfully sent ${normalizedStatus} plain text email to ${applicantEmail}`);
@@ -1121,3 +1124,4 @@ if (process.env.NODE_ENV !== 'production') {
 app.listen(Number(port), "0.0.0.0", () => {
   console.log(`Server is running on port ${port}`);
 });
+
