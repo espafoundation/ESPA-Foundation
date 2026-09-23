@@ -810,13 +810,15 @@ export default function ManagementPortal() {
   const [tempUser, setTempUser] = useState(null);
 
   useEffect(() => {
+    // Ensure 2FA is strictly opt-in and not falsely forced on
     setTwoFactorConfig(prev => {
-      const authEnabled = Boolean(prev?.authEnabled || prev?.authenticatorEnabled);
+      const emailEnabled = Boolean(prev?.emailEnabled && prev?.enabled);
+      const authEnabled = Boolean((prev?.authEnabled || prev?.authenticatorEnabled) && prev?.enabled);
       return {
-        emailEnabled: Boolean(prev?.emailEnabled),
+        emailEnabled,
         authEnabled,
-        requireForLogin: Boolean(prev?.emailEnabled || authEnabled),
-        enabled: Boolean(prev?.emailEnabled || authEnabled),
+        requireForLogin: Boolean(emailEnabled || authEnabled),
+        enabled: Boolean(emailEnabled || authEnabled),
         authSecret: prev?.authSecret || (authEnabled ? generateTotpSecret() : null)
       };
     });
@@ -1063,12 +1065,47 @@ export default function ManagementPortal() {
   const [loginPassword, setLoginPassword] = useState('');
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [loginError, setLoginError] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [otpCode, setOtpCode] = useState('');
   const [otpError, setOtpError] = useState('');
 
+  // Initial check for server-authenticated session on mount
+  useEffect(() => {
+    let isMounted = true;
+    fetch('/api/auth/me', { credentials: 'include' })
+      .then(res => res.json())
+      .then(data => {
+        if (!isMounted) return;
+        if (data?.authenticated && data?.user && !currentUser) {
+          setCurrentUser(data.user);
+        }
+      })
+      .catch(() => {});
+    return () => { isMounted = false; };
+  }, [currentUser, setCurrentUser]);
+
+  // Sync users to server store for seamless server authentication
+  useEffect(() => {
+    if (Array.isArray(users) && users.length > 0) {
+      fetch('/api/users/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ users })
+      }).catch(() => {});
+    }
+  }, [users]);
+
   const startTwoFactor = async (user) => {
-    const emailOn = Boolean(twoFactorConfig?.emailEnabled);
-    const authOn = Boolean(twoFactorConfig?.authEnabled && twoFactorConfig?.authSecret);
+    // Only prompt for 2FA if the specific user has explicitly turned on 2FA on their account
+    if (!user?.twoFactorEnabled) {
+      setCurrentUser(user);
+      setActiveTab('dashboard');
+      addLog(`${user.name} logged in`);
+      return;
+    }
+
+    const emailOn = Boolean(twoFactorConfig?.emailEnabled || user?.twoFactorEmailEnabled);
+    const authOn = Boolean((twoFactorConfig?.authEnabled && twoFactorConfig?.authSecret) || user?.twoFactorTotpEnabled);
     if (!emailOn && !authOn) {
       setCurrentUser(user);
       setActiveTab('dashboard');
@@ -1107,36 +1144,57 @@ export default function ManagementPortal() {
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoginError('');
-    const localUser = users?.find(u => 
-      ((u.email || '').toLowerCase() === loginEmail.toLowerCase() || 
-       (u.username && u.username.toLowerCase() === loginEmail.toLowerCase())) && 
-      u.password === loginPassword && u.active !== false
-    );
-    const user = localUser?.role === 'Admin' ? null : localUser;
-    if (!user) {
-      try {
-        const response = await fetch('/api/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: loginEmail.trim(), password: loginPassword })
-        });
-        const data = await response.json();
-        if (!response.ok || !data?.success || !data?.user) throw new Error(data?.error || 'Invalid credentials');
-        const serverUser = { ...data.user, id: data.user.id || 'A01', username: data.user.email, role: 'Admin', active: true };
-        setUsers(prev => {
-          const list = Array.isArray(prev) ? prev : [];
-          const existing = list.find(u => String(u.id) === String(serverUser.id) || (u.email && u.email.toLowerCase() === serverUser.email.toLowerCase()));
-          const next = existing ? list.map(u => (String(u.id) === String(serverUser.id) || (u.email && u.email.toLowerCase() === serverUser.email.toLowerCase())) ? { ...u, ...serverUser } : u) : [serverUser, ...list];
-          return next;
-        });
-        await startTwoFactor(serverUser);
-        return;
-      } catch (error) {
-        setLoginError(error.message || 'Invalid credentials');
+    setIsLoggingIn(true);
+
+    try {
+      // Flow: Login page -> POST /api/login -> server validates credentials -> server creates authenticated session -> dashboard
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          email: loginEmail.trim(),
+          password: loginPassword
+        })
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data?.success || !data?.user) {
+        throw new Error(data?.error || 'Invalid credentials');
+      }
+
+      const authUser = {
+        ...data.user,
+        active: true
+      };
+
+      // Only enter 2FA if the specific user has explicitly turned on 2FA
+      if (data.requires2FA && authUser.twoFactorEnabled) {
+        await startTwoFactor(authUser);
         return;
       }
+
+      // NO OTP: Server authenticated session established -> Immediately enter Dashboard
+      setCurrentUser(authUser);
+      setActiveTab('dashboard');
+      setRequires2FA(false);
+      setTempUser(null);
+      setLoginError('');
+
+      setUsers(prev => {
+        const list = Array.isArray(prev) ? prev : [];
+        const existing = list.find(u => String(u.id) === String(authUser.id) || (u.email && u.email.toLowerCase() === (authUser.email || '').toLowerCase()));
+        return existing
+          ? list.map(u => (String(u.id) === String(authUser.id) || (u.email && u.email.toLowerCase() === (authUser.email || '').toLowerCase())) ? { ...u, ...authUser } : u)
+          : [authUser, ...list];
+      });
+
+      addLog(`${authUser.name} logged in`);
+    } catch (error) {
+      setLoginError(error.message || 'Invalid credentials');
+    } finally {
+      setIsLoggingIn(false);
     }
-    await startTwoFactor(user);
   };
 
   const handle2FALogin = async (e) => {
@@ -1229,7 +1287,10 @@ export default function ManagementPortal() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/logout', { method: 'POST', credentials: 'include' });
+    } catch (e) {}
     if (currentUser?.name) {
       addLog(`${currentUser.name} logged out`);
     }
@@ -1368,8 +1429,8 @@ export default function ManagementPortal() {
                 </div>
               )}
 
-              <button type="submit" className="w-full py-3.5 bg-[#003828] text-[#FDFCFB] rounded-full font-bold border border-[#003828] hover:bg-white hover:text-[#003828] hover:border-[#003828] transition-all transform hover:-translate-y-0.5 shadow-md flex items-center justify-center text-sm mt-8 cursor-pointer">
-                Sign In
+              <button type="submit" disabled={isLoggingIn} className="w-full py-3.5 bg-[#003828] text-[#FDFCFB] rounded-full font-bold border border-[#003828] hover:bg-white hover:text-[#003828] hover:border-[#003828] transition-all transform hover:-translate-y-0.5 shadow-md flex items-center justify-center text-sm mt-8 cursor-pointer disabled:opacity-60">
+                {isLoggingIn ? 'Signing In...' : 'Sign In'}
               </button>
 
             </form>

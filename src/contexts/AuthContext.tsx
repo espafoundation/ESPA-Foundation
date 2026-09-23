@@ -63,14 +63,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [syncUser]);
 
+  // Check server-authenticated session on mount
+  useEffect(() => {
+    let isMounted = true;
+    fetch('/api/auth/me', { credentials: 'include' })
+      .then(res => res.json())
+      .then(data => {
+        if (!isMounted) return;
+        if (data?.authenticated && data?.user) {
+          setUser(data.user);
+          try {
+            window.localStorage.setItem('espa_currentUser', JSON.stringify(data.user));
+            window.localStorage.removeItem('ain_currentUser');
+          } catch (e) {}
+        }
+      })
+      .catch(() => {});
+    return () => { isMounted = false; };
+  }, []);
+
   const isAuthenticated = !!(user && typeof user === 'object' && (user.id || user.email || user.username));
 
   const login = async (email: string, pass: string) => {
-    // Legacy API login (mostly unused now)
-    return false;
+    try {
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email: email.trim(), password: pass })
+      });
+      const data = await response.json();
+      if (!response.ok || !data?.success || !data?.user) {
+        throw new Error(data?.error || 'Invalid credentials');
+      }
+      setUser(data.user);
+      try {
+        window.localStorage.setItem('espa_currentUser', JSON.stringify(data.user));
+        window.localStorage.removeItem('ain_currentUser');
+        window.dispatchEvent(new Event('espa_user_changed'));
+      } catch (e) {}
+      return true;
+    } catch (e: any) {
+      toast.error(e.message || 'Login failed');
+      return false;
+    }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await fetch('/api/logout', { method: 'POST', credentials: 'include' });
+    } catch (e) {}
     setUser(null);
     try {
       window.localStorage.removeItem('espa_currentUser');

@@ -261,6 +261,12 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
                               .catch(err => { setVerificationError(err.message || 'Unable to send verification code.'); });
                           } else {
                             setTwoFactorConfig({...twoFactorConfig, emailEnabled: false, enabled: Boolean(twoFactorConfig.authEnabled), requireForLogin: Boolean(twoFactorConfig.authEnabled)});
+                            if (!twoFactorConfig.authEnabled) {
+                              if (currentUser) currentUser.twoFactorEnabled = false;
+                              if (setUsers && globalUsers) {
+                                setUsers(globalUsers.map(u => u.id === currentUser?.id ? { ...u, twoFactorEnabled: false } : u));
+                              }
+                            }
                             showToast('Email 2FA disabled', 'info');
                             addLog(`Email 2FA disabled for ${currentUser.name}`);
                           }
@@ -283,6 +289,12 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
                             setIsAuthModalOpen(true);
                           } else {
                             setTwoFactorConfig({...twoFactorConfig, authEnabled: false, enabled: Boolean(twoFactorConfig.emailEnabled), requireForLogin: Boolean(twoFactorConfig.emailEnabled)});
+                            if (!twoFactorConfig.emailEnabled) {
+                              if (currentUser) currentUser.twoFactorEnabled = false;
+                              if (setUsers && globalUsers) {
+                                setUsers(globalUsers.map(u => u.id === currentUser?.id ? { ...u, twoFactorEnabled: false } : u));
+                              }
+                            }
                             showToast('Authenticator 2FA disabled', 'info');
                             addLog(`Authenticator 2FA disabled for ${currentUser.name}`);
                           }
@@ -743,6 +755,10 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
                         return;
                       }
                       setTwoFactorConfig({...twoFactorConfig, emailEnabled: true, enabled: true, requireForLogin: true});
+                      if (currentUser) currentUser.twoFactorEnabled = true;
+                      if (setUsers && globalUsers) {
+                        setUsers(globalUsers.map(u => u.id === currentUser?.id ? { ...u, twoFactorEnabled: true } : u));
+                      }
                       setIsEmailModalOpen(false);
                       setVerificationCode('');
                       setVerificationError('');
@@ -811,6 +827,10 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
                       const isValid = await verifyTOTP(verificationCode, secret);
                       if (isValid) {
                         setTwoFactorConfig({...twoFactorConfig, authEnabled: true, authSecret: secret, enabled: true, requireForLogin: true});
+                        if (currentUser) currentUser.twoFactorEnabled = true;
+                        if (setUsers && globalUsers) {
+                          setUsers(globalUsers.map(u => u.id === currentUser?.id ? { ...u, twoFactorEnabled: true } : u));
+                        }
                         setIsAuthModalOpen(false);
                         setVerificationCode('');
                         showToast('Two-Factor Authentication is active. Your account is secured.', 'success');
