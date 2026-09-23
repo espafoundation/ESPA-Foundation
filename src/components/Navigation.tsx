@@ -66,9 +66,6 @@ export default function Navigation() {
             </span>
             <div className="absolute top-full left-0 mt-0 w-48 bg-white border border-[#003828]/10 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 py-2 flex flex-col overflow-hidden z-[100]">
               <a href="https://library.espafoundation.social" className="px-4 py-2.5 text-sm hover:bg-[#003828]/5 transition-colors">Digital Library</a>
-              <a href="https://esign.espafoundation.social" className="px-4 py-2.5 text-sm hover:bg-[#003828]/5 transition-colors">Digital Signature</a>
-              <a href="https://pos.espafoundation.social" className="px-4 py-2.5 text-sm hover:bg-[#003828]/5 transition-colors">Point-of-Sale</a>
-              <a href="https://ecard.espafoundation.social" className="px-4 py-2.5 text-sm hover:bg-[#003828]/5 transition-colors">Virtual Card</a>
             </div>
           </div>
           
@@ -145,9 +142,6 @@ export default function Navigation() {
                 Services
               </span>
               <a href="https://library.espafoundation.social" onClick={() => setIsMobileMenuOpen(false)} className="text-sm font-medium text-[#003828] hover:text-[#003828]/80 transition-colors py-1">Digital Library</a>
-              <a href="https://esign.espafoundation.social" onClick={() => setIsMobileMenuOpen(false)} className="text-sm font-medium text-[#003828] hover:text-[#003828]/80 transition-colors py-1">Digital Signature</a>
-              <a href="https://pos.espafoundation.social" onClick={() => setIsMobileMenuOpen(false)} className="text-sm font-medium text-[#003828] hover:text-[#003828]/80 transition-colors py-1">Point-of-Sale</a>
-              <a href="https://ecard.espafoundation.social" onClick={() => setIsMobileMenuOpen(false)} className="text-sm font-medium text-[#003828] hover:text-[#003828]/80 transition-colors py-1">Virtual Card</a>
             </div>
             
             <div className="flex flex-col gap-3 pt-3 border-t border-stone-100">

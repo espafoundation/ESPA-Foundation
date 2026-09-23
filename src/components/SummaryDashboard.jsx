@@ -661,6 +661,23 @@ export default function SummaryDashboard({ funds, currentUser, setActiveTab, use
     return list.length + approved.length;
   }, [effectiveUsers, effectiveApplications]);
 
+  // Count registered donors
+  const donorCount = useMemo(() => {
+    const list = effectiveUsers.filter(u => (u?.role || '').toLowerCase() === 'donor');
+    const donorIdentifiers = new Set(list.map(u => (u?.email || u?.name || '').toLowerCase().trim()).filter(Boolean));
+    
+    (funds?.transactions || []).forEach(tx => {
+      if (tx.type === 'donation') {
+        const identifier = (tx.donorEmail || tx.donorName || '').toLowerCase().trim();
+        if (identifier) {
+          donorIdentifiers.add(identifier);
+        }
+      }
+    });
+
+    return Math.max(list.length, donorIdentifiers.size);
+  }, [effectiveUsers, funds?.transactions]);
+
   // Financial calculations
   let totalDonationsPKR = 0;
   let totalDonationsUSD = 0;
@@ -683,40 +700,28 @@ export default function SummaryDashboard({ funds, currentUser, setActiveTab, use
   const availablePKR = Number(funds?.pkr !== undefined ? funds.pkr : (totalDonationsPKR - totalAllocationsPKR)) || 0;
   const availableUSD = Number(funds?.usd !== undefined ? funds.usd : (totalDonationsUSD - totalAllocationsUSD)) || 0;
 
-  const totalFundsPKR = totalDonationsPKR > 0 ? totalDonationsPKR : (availablePKR + totalAllocationsPKR);
-  const totalFundsUSD = totalDonationsUSD > 0 ? totalDonationsUSD : (availableUSD + totalAllocationsUSD);
-
   const gridCards = [
-    // Row 1: Funds, Available, Allocated
-    {
-      title: 'Funds',
-      primary: `PKR ${totalFundsPKR.toLocaleString()}`,
-      secondary: `$${totalFundsUSD.toLocaleString()} USD`,
-      footerText: 'Gross Collections & Inflow',
-      tab: 'funds',
-      icon: Wallet,
-      iconBg: 'bg-[#003828]/10',
-      iconColor: 'text-[#003828]'
-    },
+    // Row 1: Available, Allocated, Donors
     {
       title: 'Available',
       primary: `PKR ${availablePKR.toLocaleString()}`,
       secondary: `$${availableUSD.toLocaleString()} USD`,
       footerText: 'Ready for Allocation',
-      tab: 'funds',
-      icon: CircleDollarSign,
-      iconBg: 'bg-emerald-100',
-      iconColor: 'text-emerald-700'
+      tab: 'funds'
     },
     {
       title: 'Allocated',
       primary: `PKR ${totalAllocationsPKR.toLocaleString()}`,
       secondary: `$${totalAllocationsUSD.toLocaleString()} USD`,
       footerText: 'Program Disbursements',
-      tab: 'funds',
-      icon: ArrowRightLeft,
-      iconBg: 'bg-amber-100',
-      iconColor: 'text-amber-800'
+      tab: 'funds'
+    },
+    {
+      title: 'Donors',
+      primary: String(donorCount),
+      secondary: `${donorCount === 1 ? '1 Donor' : `${donorCount} Donors`} Registered`,
+      footerText: 'Philanthropic Patrons',
+      tab: 'donors'
     },
     // Row 2: Volunteers, Ambassadors, Partners
     {
@@ -724,30 +729,21 @@ export default function SummaryDashboard({ funds, currentUser, setActiveTab, use
       primary: String(volunteerCount),
       secondary: `${volunteerCount === 1 ? '1 Volunteer' : `${volunteerCount} Volunteers`} Registered`,
       footerText: 'Community Service Force',
-      tab: 'volunteers',
-      icon: HeartHandshake,
-      iconBg: 'bg-[#003828]/10',
-      iconColor: 'text-[#003828]'
+      tab: 'volunteers'
     },
     {
       title: 'Ambassadors',
       primary: String(ambassadorCount),
       secondary: `${ambassadorCount === 1 ? '1 Ambassador' : `${ambassadorCount} Ambassadors`} Enrolled`,
       footerText: 'Youth & Campus Outreach',
-      tab: 'ambassadors',
-      icon: Globe,
-      iconBg: 'bg-sky-100',
-      iconColor: 'text-sky-700'
+      tab: 'ambassadors'
     },
     {
       title: 'Partners',
       primary: String(partnerCount),
       secondary: `${partnerCount === 1 ? '1 Partner' : `${partnerCount} Partners`} Partnered`,
       footerText: 'Corporate & Institutional Alliances',
-      tab: 'partners',
-      icon: Briefcase,
-      iconBg: 'bg-indigo-100',
-      iconColor: 'text-indigo-700'
+      tab: 'partners'
     }
   ];
 
@@ -762,7 +758,7 @@ export default function SummaryDashboard({ funds, currentUser, setActiveTab, use
         </div>
       </div>
 
-      {/* 6 Grids in 3x2: Funds, Available, Allocated, Volunteers, Ambassadors, Partners */}
+      {/* 6 Grids in 3x2: Available, Allocated, Donors, Volunteers, Ambassadors, Partners */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {gridCards.map((card, idx) => (
           <div
@@ -771,13 +767,10 @@ export default function SummaryDashboard({ funds, currentUser, setActiveTab, use
             className="bg-white rounded-2xl border border-stone-200/80 shadow-2xs hover:shadow-md hover:border-[#003828]/40 transition-all p-6 flex flex-col justify-between cursor-pointer group"
           >
             <div>
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-xs font-bold uppercase tracking-wider text-stone-500 group-hover:text-[#003828] transition-colors">
+              <div className="mb-4">
+                <h3 className="text-[16px] font-bold text-stone-800 group-hover:text-[#003828] transition-colors">
                   {card.title}
-                </span>
-                <div className={`w-10 h-10 rounded-xl ${card.iconBg} ${card.iconColor} flex items-center justify-center transition-transform group-hover:scale-105 shadow-2xs`}>
-                  <card.icon size={20} />
-                </div>
+                </h3>
               </div>
               <div className="text-3xl font-extrabold text-stone-900 tracking-tight">
                 {card.primary}
@@ -789,8 +782,8 @@ export default function SummaryDashboard({ funds, currentUser, setActiveTab, use
 
             <div className="mt-5 pt-3 border-t border-stone-100 flex items-center justify-between text-xs font-medium text-stone-400 group-hover:text-[#003828] transition-colors">
               <span>{card.footerText}</span>
-              <span className="flex items-center gap-1 font-semibold group-hover:translate-x-0.5 transition-transform text-[#003828]">
-                Manage <ChevronRight size={13} />
+              <span className="font-semibold text-[#003828]">
+                Manage
               </span>
             </div>
           </div>

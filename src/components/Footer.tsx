@@ -26,11 +26,7 @@ export default function Footer() {
                 <div>
           <h4 className="font-bold text-base mb-6 text-white/90">Services</h4>
           <div className="flex flex-col gap-3 text-white/50 text-sm">
-            <Link to="/pos" className="hover:text-white transition-colors">Point-of-Sale</Link>
             <Link to="/library/login" className="hover:text-white transition-colors">Digital Library</Link>
-            <Link to="/portal" className="hover:text-white transition-colors">Alliance Portal</Link>
-            <Link to="/vcard/login" className="hover:text-white transition-colors">Virtual Card</Link>
-            <Link to="/signature" className="hover:text-white transition-colors">Digital Signature</Link>
           </div>
         </div>
         <div>
