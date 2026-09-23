@@ -4,7 +4,7 @@ import {
   Briefcase, ExternalLink, Calendar, MapPin, Building, Award, 
   User, ArrowLeft, Clock, 
   ChevronDown, CheckCircle2, XCircle, AlertCircle, MessageSquare,
-  Eye, Edit, Copy
+  Eye, Edit, Copy, Trash2, Save
 } from 'lucide-react';
 import { ActionMenu } from './SharedComponents';
 
@@ -14,6 +14,30 @@ export const normalizeStatus = (raw) => {
   if (s === 'approved') return 'Approved';
   if (s === 'rejected') return 'Rejected';
   return 'Pending';
+};
+
+const NON_EDITABLE_APPLICATION_FIELDS = new Set(['id', 'created_at', 'updated_at']);
+
+const humanizeField = (key) => String(key || '')
+  .replace(/([a-z])([A-Z])/g, '$1 $2')
+  .replace(/_/g, ' ')
+  .replace(/\b\w/g, c => c.toUpperCase());
+
+const formatEditValue = (value) => {
+  if (value === null || value === undefined) return '';
+  if (Array.isArray(value) || (typeof value === 'object' && value !== null)) return JSON.stringify(value, null, 2);
+  return String(value);
+};
+
+const parseEditValue = (value, original) => {
+  const text = String(value ?? '');
+  if (Array.isArray(original) || (typeof original === 'object' && original !== null)) {
+    if (!text.trim()) return Array.isArray(original) ? [] : {};
+    try { return JSON.parse(text); } catch { return original; }
+  }
+  if (typeof original === 'boolean') return text === 'true';
+  if (typeof original === 'number') return text === '' ? null : Number(text);
+  return text;
 };
 
 export function CopyableDetail({ 
@@ -123,6 +147,84 @@ export default function ApplicationsView({
   const [selectedApp, setSelectedApp] = useState(null);
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [isProcessingStatus, setIsProcessingStatus] = useState(false);
+
+  const [editingApp, setEditingApp] = useState(null);
+  const [editDraft, setEditDraft] = useState({});
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+
+  const openEditModal = (app) => {
+    setEditingApp(app);
+    setEditDraft(Object.fromEntries(
+      Object.entries(app || {}).filter(([key]) => !NON_EDITABLE_APPLICATION_FIELDS.has(key))
+        .map(([key, value]) => [key, formatEditValue(value)])
+    ));
+  };
+
+  const hasEditChanges = editingApp && Object.keys(editDraft).some(key => editDraft[key] !== formatEditValue(editingApp[key]));
+
+  const closeEditModal = () => {
+    if (hasEditChanges && !window.confirm('You have unsaved changes. Discard them?')) return;
+    setEditingApp(null);
+    setEditDraft({});
+  };
+
+  const handleSaveApplication = async () => {
+    if (!editingApp || isSavingEdit) return;
+    if (!window.confirm('Save these changes to this application?')) return;
+
+    setIsSavingEdit(true);
+    try {
+      const updates = {};
+      Object.entries(editDraft).forEach(([key, value]) => {
+        updates[key] = parseEditValue(value, editingApp[key]);
+      });
+
+      const response = await fetch('/api/applications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: editingApp.id, updates })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data?.error || 'Failed to update application.');
+
+      const updatedApp = data.application || { ...editingApp, ...updates };
+      setApplications(prev => (prev || []).map(app => String(app.id) === String(editingApp.id) ? updatedApp : app));
+      setSelectedApp(prev => prev && String(prev.id) === String(editingApp.id) ? updatedApp : prev);
+      setEditingApp(null);
+      setEditDraft({});
+      if (showToast) showToast('Application updated successfully.', 'success');
+      if (addLog) addLog(`Edited application ${editingApp.id}`);
+    } catch (error) {
+      console.error('Error editing application:', error);
+      if (showToast) showToast(error.message || 'Failed to update application.', 'error');
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  const handleDeleteApplication = async (app) => {
+    if (!app || !app.id) return;
+    if (!window.confirm(`Delete the application from ${app.name || app.email || 'this applicant'}? This cannot be undone.`)) return;
+
+    try {
+      const response = await fetch('/api/applications', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: app.id })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data?.error || 'Failed to delete application.');
+
+      setApplications(prev => (prev || []).filter(item => String(item.id) !== String(app.id)));
+      if (setUsers) setUsers(prev => (prev || []).filter(user => String(user.applicationId || '') !== String(app.id)));
+      if (selectedApp && String(selectedApp.id) === String(app.id)) handleBackToApplications();
+      if (showToast) showToast('Application deleted successfully.', 'success');
+      if (addLog) addLog(`Deleted application ${app.id}`);
+    } catch (error) {
+      console.error('Error deleting application:', error);
+      if (showToast) showToast(error.message || 'Failed to delete application.', 'error');
+    }
+  };
 
   // Reset to applications hero page whenever navigation tab is clicked
   useEffect(() => {
@@ -260,6 +362,8 @@ export default function ApplicationsView({
 
   const handleUpdateStatus = async (id, newStatusRaw) => {
     if (isProcessingStatus) return;
+    const nextStatus = normalizeStatus(newStatusRaw);
+    if (!window.confirm(`Are you sure you want to mark this application as ${nextStatus}?`)) return;
     setIsProcessingStatus(true);
     const newStatus = normalizeStatus(newStatusRaw);
     const targetApp = applications.find(a => 
@@ -452,6 +556,52 @@ export default function ApplicationsView({
     }
   };
 
+  const editModal = editingApp && (
+    <div className="fixed inset-0 z-[300] bg-stone-950/60 backdrop-blur-sm flex items-center justify-center p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) closeEditModal(); }}>
+      <div className="bg-white w-full max-w-5xl max-h-[90vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden" onMouseDown={e => e.stopPropagation()}>
+        <div className="px-6 py-5 border-b border-stone-200 flex items-center justify-between shrink-0">
+          <div>
+            <h2 className="text-xl font-bold text-stone-900">Edit Application</h2>
+            <p className="text-sm text-stone-500 mt-1">Edit the complete stored application, from A to Z.</p>
+          </div>
+          <button type="button" onClick={closeEditModal} className="p-2 rounded-full text-stone-400 hover:text-stone-800 hover:bg-stone-100" title="Close"><X size={20} /></button>
+        </div>
+        <div className="p-6 overflow-y-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {Object.entries(editDraft).map(([key, value]) => {
+              const original = editingApp[key];
+              const isLong = ['message', 'motivation', 'proposal', 'skills', 'languages', 'timeline_or_goals'].includes(key) || String(value).length > 160;
+              const isStatus = key === 'status';
+              const isType = key === 'type';
+              const isBoolean = typeof original === 'boolean';
+              return (
+                <div key={key} className={isLong ? 'md:col-span-2' : ''}>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-1.5">{humanizeField(key)}</label>
+                  {isStatus ? (
+                    <select value={value} onChange={e => setEditDraft(prev => ({ ...prev, [key]: e.target.value }))} className="w-full px-3.5 py-2.5 border border-stone-200 rounded-xl bg-white text-sm outline-none focus:border-[#003828] focus:ring-1 focus:ring-[#003828]"><option value="Pending">Pending</option><option value="Approved">Approved</option><option value="Rejected">Rejected</option></select>
+                  ) : isType ? (
+                    <select value={value} onChange={e => setEditDraft(prev => ({ ...prev, [key]: e.target.value }))} className="w-full px-3.5 py-2.5 border border-stone-200 rounded-xl bg-white text-sm outline-none focus:border-[#003828] focus:ring-1 focus:ring-[#003828]"><option value="volunteer">Volunteer</option><option value="ambassador">Ambassador</option><option value="partner">Partner</option></select>
+                  ) : isBoolean ? (
+                    <select value={value} onChange={e => setEditDraft(prev => ({ ...prev, [key]: e.target.value }))} className="w-full px-3.5 py-2.5 border border-stone-200 rounded-xl bg-white text-sm outline-none focus:border-[#003828]"><option value="true">True</option><option value="false">False</option></select>
+                  ) : isLong ? (
+                    <textarea value={value} onChange={e => setEditDraft(prev => ({ ...prev, [key]: e.target.value }))} rows={key === 'languages' ? 5 : 4} className="w-full px-3.5 py-2.5 border border-stone-200 rounded-xl bg-white text-sm outline-none focus:border-[#003828] focus:ring-1 focus:ring-[#003828] resize-y" />
+                  ) : (
+                    <input type={key === 'email' ? 'email' : key === 'dob' ? 'date' : 'text'} value={value} onChange={e => setEditDraft(prev => ({ ...prev, [key]: e.target.value }))} className="w-full px-3.5 py-2.5 border border-stone-200 rounded-xl bg-white text-sm outline-none focus:border-[#003828] focus:ring-1 focus:ring-[#003828]" />
+                  )}
+                  {(Array.isArray(original) || (typeof original === 'object' && original !== null)) && <p className="text-[11px] text-stone-400 mt-1">Use valid JSON for structured data.</p>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        <div className="px-6 py-4 border-t border-stone-200 flex items-center justify-end gap-3 shrink-0">
+          <button type="button" onClick={closeEditModal} className="px-5 py-2.5 rounded-full border border-stone-200 text-stone-700 text-sm font-semibold hover:bg-stone-50">Discard</button>
+          <button type="button" disabled={isSavingEdit} onClick={handleSaveApplication} className="px-5 py-2.5 rounded-full bg-[#003828] text-white text-sm font-semibold hover:bg-[#00281c] disabled:opacity-60 flex items-center gap-2"><Save size={16} />{isSavingEdit ? 'Saving...' : 'Save Changes'}</button>
+        </div>
+      </div>
+    </div>
+  );
+
   // ==========================================
   // DEDICATED APPLICATION DETAIL PAGE VIEW
   // ==========================================
@@ -462,7 +612,9 @@ export default function ApplicationsView({
     const isPending = currentStatus === 'Pending';
 
     return (
-      <div className="h-full flex flex-col tracking-tight relative overflow-y-auto pr-1 pb-12">
+      <>
+        {editModal}
+        <div className="h-full flex flex-col tracking-tight relative overflow-y-auto pr-1 pb-12">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-6 shrink-0">
           <div>
@@ -554,6 +706,11 @@ export default function ApplicationsView({
                   </button>
                 </div>
               )}
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button type="button" onMouseDown={(e) => e.stopPropagation()} onClick={(e) => { e.preventDefault(); e.stopPropagation(); openEditModal(selectedApp); }} className="relative z-40 pointer-events-auto p-2.5 rounded-xl border border-stone-200 text-stone-500 hover:text-[#003828] hover:bg-[#003828]/5 cursor-pointer" title="Edit entire application" aria-label="Edit entire application"><Edit size={17} /></button>
+                <button type="button" onMouseDown={(e) => e.stopPropagation()} onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteApplication(selectedApp); }} className="relative z-40 pointer-events-auto p-2.5 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 cursor-pointer" title="Delete application" aria-label="Delete application"><Trash2 size={17} /></button>
+              </div>
             </div>
 
             {/* Quick Summary Strip */}
@@ -838,6 +995,7 @@ export default function ApplicationsView({
           )}
         </div>
       </div>
+      </>
     );
   }
 
@@ -845,7 +1003,9 @@ export default function ApplicationsView({
   // APPLICATIONS TABLE LIST VIEW
   // ==========================================
   return (
-    <div className="space-y-0 h-full flex flex-col tracking-tight relative overflow-hidden">
+    <>
+      {editModal}
+      <div className="space-y-0 h-full flex flex-col tracking-tight relative overflow-hidden">
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-6 shrink-0">
         <div>
@@ -931,14 +1091,9 @@ export default function ApplicationsView({
                         </span>
                       </td>
                       <td className="w-[18%] px-6 py-4 text-center" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-center">
-                          <button
-                            onClick={() => handleOpenAppPage(app)}
-                            className="p-2 text-stone-400 hover:text-[#003828] hover:bg-[#003828]/10 rounded-full transition-colors cursor-pointer"
-                            title="Edit Application"
-                          >
-                            <Edit size={18} />
-                          </button>
+                        <div className="flex items-center justify-center gap-1">
+                          <button onClick={() => openEditModal(app)} className="p-2 text-stone-400 hover:text-[#003828] hover:bg-[#003828]/10 rounded-full transition-colors cursor-pointer" title="Edit entire application"><Edit size={18} /></button>
+                          <button onClick={() => handleDeleteApplication(app)} className="p-2 text-stone-400 hover:text-rose-700 hover:bg-rose-50 rounded-full transition-colors cursor-pointer" title="Delete application"><Trash2 size={18} /></button>
                         </div>
                       </td>
                     </tr>
@@ -949,6 +1104,7 @@ export default function ApplicationsView({
           )}
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

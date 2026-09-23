@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Download, Plus, Search, FileText, Calendar, Mail, Phone, Eye, History, X, Shield, ChevronDown, Edit } from 'lucide-react';
+import { Download, Plus, Search, FileText, Calendar, Mail, Phone, Eye, History, X, Shield, ChevronDown, Edit, Trash2, Save } from 'lucide-react';
 import DraggableModal from './DraggableModal';
 import MemberDetailsModal from './MemberDetailsModal';
 import { createPortal } from 'react-dom';
 
 const Portal = ({ children }) => createPortal(children, document.body);
 
-export default function MemberListView({ title, description, icon: Icon, members = [], onUpdateRole, onAddMember }) {
+export default function MemberListView({ title, description, icon: Icon, members = [], setMembers, onUpdateRole, onAddMember, showToast }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMember, setSelectedMember] = useState(null);
-  const [memberToChangeRole, setMemberToChangeRole] = useState(null);
+  const [editingMember, setEditingMember] = useState(null);
+  const [editDraft, setEditDraft] = useState({});
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   const draftKey = `ain_draft_${title.toLowerCase()}`;
@@ -97,6 +99,71 @@ export default function MemberListView({ title, description, icon: Icon, members
     m.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     m.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const openEditMember = (member) => {
+    setEditingMember(member);
+    setEditDraft(Object.fromEntries(
+      Object.entries(member || {}).filter(([key]) => !['id', 'applicationId'].includes(key))
+        .map(([key, value]) => [key, Array.isArray(value) || (typeof value === 'object' && value !== null) ? JSON.stringify(value, null, 2) : String(value ?? '')])
+    ));
+  };
+
+  const hasEditChanges = editingMember && Object.keys(editDraft).some(key => {
+    const original = editingMember[key];
+    const formatted = Array.isArray(original) || (typeof original === 'object' && original !== null) ? JSON.stringify(original, null, 2) : String(original ?? '');
+    return editDraft[key] !== formatted;
+  });
+
+  const closeEditMember = () => {
+    if (hasEditChanges && !window.confirm('You have unsaved changes. Discard them?')) return;
+    setEditingMember(null);
+    setEditDraft({});
+  };
+
+  const parseMemberValue = (key, value) => {
+    const original = editingMember?.[key];
+    if (Array.isArray(original) || (typeof original === 'object' && original !== null)) {
+      if (!String(value).trim()) return Array.isArray(original) ? [] : {};
+      try { return JSON.parse(value); } catch { return original; }
+    }
+    if (typeof original === 'boolean') return String(value) === 'true';
+    return value;
+  };
+
+  const handleSaveMember = () => {
+    if (!editingMember || isSavingEdit) return;
+    if (!window.confirm(`Save changes to ${editingMember.name || 'this user'}?`)) return;
+    setIsSavingEdit(true);
+    const updates = Object.fromEntries(Object.entries(editDraft).map(([key, value]) => [key, parseMemberValue(key, value)]));
+    const updatedMember = { ...editingMember, ...updates };
+    if (setMembers) {
+      setMembers(prev => {
+        const next = (prev || []).map(member => String(member.id) === String(editingMember.id) ? updatedMember : member);
+        try { window.localStorage.setItem('ain_users', JSON.stringify(next)); } catch (e) {}
+        return next;
+      });
+    } else if (onUpdateRole && updatedMember.role !== editingMember.role) {
+      onUpdateRole(editingMember.id, updatedMember.role);
+    }
+    setEditingMember(null);
+    setEditDraft({});
+    setIsSavingEdit(false);
+    if (showToast) showToast('User updated successfully.', 'success');
+  };
+
+  const handleDeleteMember = (member) => {
+    if (!member) return;
+    if (!window.confirm(`Delete ${member.name || 'this user'}? This cannot be undone.`)) return;
+    if (setMembers) {
+      setMembers(prev => {
+        const next = (prev || []).filter(item => String(item.id) !== String(member.id));
+        try { window.localStorage.setItem('ain_users', JSON.stringify(next)); } catch (e) {}
+        return next;
+      });
+    }
+    setSelectedMember(null);
+    if (showToast) showToast('User deleted successfully.', 'success');
+  };
 
   const handleExportCSV = () => {
     if (filteredMembers.length === 0) return;
@@ -347,14 +414,9 @@ export default function MemberListView({ title, description, icon: Icon, members
                       <span className="inline-block">{member.joinDate || (member.dateAdded ? new Date(member.dateAdded).toLocaleDateString() : 'N/A')}</span>
                     </td>
                     <td className="w-[18%] px-6 py-4 text-center">
-                      <div className="flex items-center justify-center">
-                        <button 
-                          onClick={() => setMemberToChangeRole(member)}
-                          className="p-2 text-stone-400 hover:text-[#003828] hover:bg-[#003828]/10 rounded-full transition-colors cursor-pointer"
-                          title="Edit Member"
-                        >
-                          <Edit size={18} />
-                        </button>
+                      <div className="flex items-center justify-center gap-1">
+                        <button onClick={() => openEditMember(member)} className="p-2 text-stone-400 hover:text-[#003828] hover:bg-[#003828]/10 rounded-full transition-colors cursor-pointer" title="Edit entire user record"><Edit size={18} /></button>
+                        <button onClick={() => handleDeleteMember(member)} className="p-2 text-stone-400 hover:text-rose-700 hover:bg-rose-50 rounded-full transition-colors cursor-pointer" title="Delete user"><Trash2 size={18} /></button>
                       </div>
                     </td>
                   </tr>
@@ -371,35 +433,33 @@ export default function MemberListView({ title, description, icon: Icon, members
       </div>
 
       {selectedMember && <MemberDetailsModal member={selectedMember} onClose={() => setSelectedMember(null)} />}
-      {memberToChangeRole && (
+      {editingMember && (
         <Portal>
-          <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-[190] animate-in fade-in duration-200" onClick={() => setMemberToChangeRole(null)} />
+          <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-[190]" onMouseDown={(e) => { if (e.target === e.currentTarget) closeEditMember(); }} />
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 pointer-events-none">
-            <DraggableModal className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl flex flex-col pointer-events-auto animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold text-stone-900 flex items-center gap-2">
-                  <Edit className="text-[#003828]" size={22} /> Edit Member Role
-                </h3>
-                <button onClick={() => setMemberToChangeRole(null)} className="p-2 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-full transition-colors">
-                  <X size={20} />
-                </button>
+            <DraggableModal className="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] shadow-2xl flex flex-col pointer-events-auto" onClick={e => e.stopPropagation()}>
+              <div className="p-6 border-b border-stone-200 flex items-center justify-between shrink-0">
+                <div><h3 className="text-xl font-bold text-stone-900 flex items-center gap-2"><Edit className="text-[#003828]" size={22} /> Edit User</h3><p className="text-sm text-stone-500 mt-1">Edit the complete user record, not just the role.</p></div>
+                <button onClick={closeEditMember} className="p-2 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-full transition-colors"><X size={20} /></button>
               </div>
-              <p className="text-sm text-stone-500 mb-6 font-medium">Select a new role for <span className="font-bold text-stone-800">{memberToChangeRole.name}</span>.</p>
-              
-              <div className="space-y-2 max-h-[40vh] overflow-y-auto no-scrollbar pb-2 pr-2">
-                {availableRoles.map(role => (
-                  <button
-                    key={role}
-                    onClick={() => {
-                      if (onUpdateRole) onUpdateRole(memberToChangeRole.id, role);
-                      setMemberToChangeRole(null);
-                    }}
-                    className={`w-full flex items-center justify-between p-3 rounded-full border transition-colors ${memberToChangeRole.role === role ? 'bg-[#003828]/5 border-[#003828]/20' : 'bg-white border-stone-100 hover:bg-stone-50 hover:border-stone-200'}`}
-                  >
-                    <span className={`font-semibold text-sm ${memberToChangeRole.role === role ? 'text-[#003828]' : 'text-stone-700'}`}>{role}</span>
-                    {memberToChangeRole.role === role && <span className="text-[10px] uppercase font-bold tracking-wider text-[#003828]/60 bg-[#003828]/10 px-2 py-0.5 rounded-full">Current</span>}
-                  </button>
-                ))}
+              <div className="p-6 overflow-y-auto"><div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {Object.entries(editDraft).map(([key, value]) => {
+                  const original = editingMember[key];
+                  const isLong = ['history', 'motivation', 'proposal', 'skills', 'languages', 'timeline_or_goals'].includes(key) || String(value).length > 160;
+                  const isRole = key === 'role';
+                  const isBoolean = typeof original === 'boolean';
+                  return <div key={key} className={isLong ? 'md:col-span-2' : ''}>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-1.5">{String(key).replace(/([a-z])([A-Z])/g, '$1 $2').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</label>
+                    {isRole ? <select value={value} onChange={e => setEditDraft(prev => ({...prev, [key]: e.target.value}))} className="w-full px-3.5 py-2.5 border border-stone-200 rounded-xl bg-white text-sm outline-none focus:border-[#003828]">{availableRoles.map(role => <option key={role} value={role}>{role}</option>)}</select>
+                    : isBoolean ? <select value={value} onChange={e => setEditDraft(prev => ({...prev, [key]: e.target.value}))} className="w-full px-3.5 py-2.5 border border-stone-200 rounded-xl bg-white text-sm outline-none focus:border-[#003828]"><option value="true">True</option><option value="false">False</option></select>
+                    : isLong ? <textarea value={value} onChange={e => setEditDraft(prev => ({...prev, [key]: e.target.value}))} rows={4} className="w-full px-3.5 py-2.5 border border-stone-200 rounded-xl bg-white text-sm outline-none focus:border-[#003828] resize-y" />
+                    : <input type={key === 'email' ? 'email' : key === 'dob' ? 'date' : 'text'} value={value} onChange={e => setEditDraft(prev => ({...prev, [key]: e.target.value}))} className="w-full px-3.5 py-2.5 border border-stone-200 rounded-xl bg-white text-sm outline-none focus:border-[#003828]" />}
+                  </div>;
+                })}
+              </div></div>
+              <div className="p-5 border-t border-stone-200 flex justify-end gap-3 shrink-0">
+                <button type="button" onClick={closeEditMember} className="px-5 py-2.5 rounded-full border border-stone-200 text-stone-700 text-sm font-semibold hover:bg-stone-50">Discard</button>
+                <button type="button" disabled={isSavingEdit} onClick={handleSaveMember} className="px-5 py-2.5 rounded-full bg-[#003828] text-white text-sm font-semibold hover:bg-[#00281c] disabled:opacity-60 flex items-center gap-2"><Save size={16} />{isSavingEdit ? 'Saving...' : 'Save Changes'}</button>
               </div>
             </DraggableModal>
           </div>
