@@ -78,8 +78,15 @@ function base32ToBuffer(base32) {
   }
   return output.buffer;
 }
-export async function verifyTOTP(token, secretBase32 = 'JBSWY3DPEHPK3PXP') {
-  if (token === '123456') return true; // Mock email 2FA bypass
+function generateTotpSecret(length = 32) {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  const bytes = new Uint8Array(length);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, b => alphabet[b % alphabet.length]).join('');
+}
+
+export async function verifyTOTP(token, secretBase32) {
+  if (!secretBase32 || !token) return false;
   if (!window.crypto || !window.crypto.subtle) return false; 
   try {
     const buffer = base32ToBuffer(secretBase32);
@@ -229,13 +236,13 @@ const sendEmailNotification = async (to, subject, text) => {
         text,
         html: `<div style="font-family: sans-serif; color: #1c1917; padding: 20px; max-width: 600px; margin: 0 auto; border: 1px solid #e7e5e4; border-radius: 8px;">
                  <div style="text-align: center; margin-bottom: 20px;">
-                   <img src="cid:logo" alt="AIN Management" width="180" style="display: inline-block;" />
+                   <img src="cid:logo" alt="ESPA Foundation" width="180" style="display: inline-block;" />
                  </div>
                  <div style="background-color: #f5f5f4; padding: 20px; border-radius: 6px; margin-bottom: 20px;">
                    ${text.replace(/\n/g, '<br/>')}
                  </div>
                  <div style="text-align: center; color: #78716c; font-size: 12px;">
-                   &copy; 2026 AIN Foundation. All Rights Reserved.
+                   &copy; 2026 ESPA Foundation. All Rights Reserved.
                  </div>
                </div>`
       })
@@ -756,7 +763,7 @@ export default function App() {
     }
   }, [activeTab, setActiveTab]);
   const [funds, setFunds] = useLocalStorage("ain_funds", { pkr: 0, usd: 0, transactions: [] });
-  const [currentUser, setCurrentUser] = useLocalStorage("ain_currentUser", null);
+  const [currentUser, setCurrentUser] = useState(null);
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   const [logs, setLogs] = useLocalStorage("ain_logs", []);
   
@@ -767,35 +774,36 @@ export default function App() {
       enabled: false
   });
   const [requires2FA, setRequires2FA] = useState(false);
+  const [twoFactorMethod, setTwoFactorMethod] = useState(null);
   const [tempUser, setTempUser] = useState(null);
 
-  const [users, setUsers] = useLocalStorage("ain_users", [
-    { id: 'A01', name: 'Admin', email: 'admin@ainmanagement.com', role: 'Admin', username: 'admin', password: '12345', active: true, dateAdded: new Date().toISOString() },
-    { id: 'P01', name: 'Tariq Mahmood', email: 'president@espa.com', role: 'President', username: 'president', password: '12345', active: true, dateAdded: new Date().toISOString() },
-    { id: 'VP01', name: 'Fatima Ali', email: 'vp@espa.com', role: 'Vice President', username: 'vp', password: '12345', active: true, dateAdded: new Date().toISOString() },
-    { id: 'GS01', name: 'Usama Khan', email: 'gensec@espa.com', role: 'General Secretary', username: 'gensec', password: '12345', active: true, dateAdded: new Date().toISOString() },
-    { id: 'JS01', name: 'Ayesha Malik', email: 'jointsec@espa.com', role: 'Joint Secretary', username: 'jointsec', password: '12345', active: true, dateAdded: new Date().toISOString() },
-    { id: 'T01', name: 'Bilal Ahmed', email: 'treasurer@espa.com', role: 'Treasurer', username: 'treasurer', password: '12345', active: true, dateAdded: new Date().toISOString() },
-    { id: 'EM01', name: 'Sana Rizvi', email: 'exec@espa.com', role: 'Executive Member', username: 'exec', password: '12345', active: true, dateAdded: new Date().toISOString() },
-    { id: 'GM01', name: 'Omar Farooq', email: 'genmember@espa.com', role: 'General Member', username: 'genmember', password: '12345', active: true, dateAdded: new Date().toISOString() },
-    { id: 'V01', name: 'Zainab Abbas', email: 'volunteer@espa.com', role: 'Volunteer', username: 'volunteer', password: '12345', active: true, dateAdded: new Date().toISOString() },
-    { id: 'AM01', name: 'Hamza Saeed', email: 'ambassador@espa.com', role: 'Ambassador', username: 'ambassador', password: '12345', active: true, dateAdded: new Date().toISOString() },
-    { id: 'PA01', name: 'TechCorp Solutions', email: 'partner@espa.com', role: 'Partner', username: 'partner', password: '12345', active: true, dateAdded: new Date().toISOString() },
-    { id: 'D01', name: 'Zafar Iqbal', email: 'donor@espa.com', role: 'Donor', username: 'donor', password: '12345', active: true, dateAdded: new Date().toISOString() }
-  ]);
-  const [hosts, setHosts] = useLocalStorage("ain_hosts", [{ id: 'H01', name: 'Sheraton Grand', type: 'Hotel', location: 'Dubai, UAE', status: 'Active', contact: 'manager@sheraton.com', dateAdded: new Date().toISOString() }]);
-  const [batches, setBatches] = useLocalStorage("ain_batches", [{ id: 'B01', name: 'Winter 2026 Batch', status: 'Upcoming', startDate: '2026-11-01', endDate: '2026-11-15', participants: 45, dateAdded: new Date().toISOString() }]);
-  const [rooms, setRooms] = useLocalStorage("ain_rooms", [{ id: 'R01', number: '101', type: 'Deluxe Suite', hostId: 'H01', status: 'Available', capacity: 2, dateAdded: new Date().toISOString() }]);
+  useEffect(() => {
+    setTwoFactorConfig(prev => {
+      const authEnabled = Boolean(prev?.authEnabled || prev?.authenticatorEnabled);
+      return {
+        emailEnabled: Boolean(prev?.emailEnabled),
+        authEnabled,
+        requireForLogin: Boolean(prev?.emailEnabled || authEnabled),
+        enabled: Boolean(prev?.emailEnabled || authEnabled),
+        authSecret: prev?.authSecret || (authEnabled ? generateTotpSecret() : null)
+      };
+    });
+  }, [setTwoFactorConfig]);
+
+  const [users, setUsers] = useLocalStorage("ain_users", []);
+  const [hosts, setHosts] = useLocalStorage("ain_hosts", []);
+  const [batches, setBatches] = useLocalStorage("ain_batches", []);
+  const [rooms, setRooms] = useLocalStorage("ain_rooms", []);
   
   const [archivedUsers, setArchivedUsers] = useLocalStorage("ain_archivedUsers", []);
   const [archivedHosts, setArchivedHosts] = useLocalStorage("ain_archivedHosts", []);
   const [archivedBatches, setArchivedBatches] = useLocalStorage("ain_archivedBatches", []);
   const [archivedRooms, setArchivedRooms] = useLocalStorage("ain_archivedRooms", []);
   
-  const [forms, setForms] = useLocalStorage("ain_forms", [{ id: 'F01', title: 'Membership Application', type: 'Registration', status: 'Active', responses: 12, dateAdded: new Date().toISOString() }]);
+  const [forms, setForms] = useLocalStorage("ain_forms", []);
   const [archivedForms, setArchivedForms] = useLocalStorage("ain_archivedForms", []);
-  const [agreements, setAgreements] = useLocalStorage("ain_agreements", [{ id: 'AG01', title: 'Non-Disclosure Agreement', parties: 'ESPA & TechCorp', status: 'Signed', validUntil: '2028-01-01', dateAdded: new Date().toISOString() }]);
-  const [flights, setFlights] = useLocalStorage("ain_flights", [{ id: 'FL01', airline: 'Emirates', flightNumber: 'EK202', origin: 'JFK', destination: 'DXB', departure: '2026-10-10T15:30', arrival: '2026-10-11T12:00', status: 'Scheduled' }]);
+  const [agreements, setAgreements] = useLocalStorage("ain_agreements", []);
+  const [flights, setFlights] = useLocalStorage("ain_flights", []);
   
   // New applications state
   const [applications, setApplications] = useLocalStorage("ain_applications", []);
@@ -896,7 +904,7 @@ export default function App() {
             phone: app.phone || '',
             role: targetRole,
             username: (app.email ? app.email.split('@')[0] : `${type}_${app.id}`),
-            password: app.password || '12345',
+            password: app.password || '',
             active: true,
             status: 'Active',
             dateAdded: app.date || new Date().toISOString(),
@@ -946,36 +954,55 @@ export default function App() {
     });
   }, [applications, setUsers]);
 
-  // Effect to clean up existing dummy names for users who already have them cached
+  // Normalize legacy development data without introducing dummy records.
   useEffect(() => {
     setUsers(currentUsers => {
-      if (!Array.isArray(currentUsers)) return currentUsers;
+      if (!Array.isArray(currentUsers)) return [];
       let changed = false;
-      const updatedUsers = currentUsers.map(u => {
-        if (u.name && u.name.startsWith('Dummy ')) {
-          changed = true;
-          switch (u.role) {
-            case 'President': return { ...u, name: 'Tariq Mahmood' };
-            case 'Vice President': return { ...u, name: 'Fatima Ali' };
-            case 'General Secretary': return { ...u, name: 'Usama Khan' };
-            case 'Joint Secretary': return { ...u, name: 'Ayesha Malik' };
-            case 'Treasurer': return { ...u, name: 'Bilal Ahmed' };
-            case 'Executive Member': return { ...u, name: 'Sana Rizvi' };
-            case 'General Member': return { ...u, name: 'Omar Farooq' };
-            case 'Volunteer': return { ...u, name: 'Zainab Abbas' };
-            case 'Ambassador': return { ...u, name: 'Hamza Saeed' };
-            case 'Partner': return { ...u, name: 'TechCorp Solutions' };
-            case 'Donor': return { ...u, name: 'Zafar Iqbal' };
-            default: return { ...u, name: u.role };
+      const dummyIds = new Set(['P01','VP01','GS01','JS01','T01','EM01','GM01','V01','AM01','PA01','D01']);
+      const next = currentUsers.filter(u => !(u?.email || '').includes('@ainmanagement.com') && !dummyIds.has(String(u?.id))).map(u => {
+        if (u?.id === 'A01' || u?.role === 'Admin') {
+          if (u.email !== 'admin@espafoundation.social' || u.username === 'admin') {
+            changed = true;
+            return { ...u, email: 'admin@espafoundation.social', username: 'admin@espafoundation.social' };
           }
         }
         return u;
       });
-      return changed ? updatedUsers : currentUsers;
+      return changed || next.length !== currentUsers.length ? next : currentUsers;
     });
   }, [setUsers]);
+
+  useEffect(() => {
+    const removeKnownDevSeeds = (key, ids) => {
+      try {
+        const raw = localStorage.getItem(key);
+        if (!raw) return;
+        const data = JSON.parse(raw);
+        if (!Array.isArray(data)) return;
+        const next = data.filter(item => !ids.has(String(item?.id)));
+        if (next.length !== data.length) localStorage.setItem(key, JSON.stringify(next));
+      } catch (e) {}
+    };
+    removeKnownDevSeeds('ain_hosts', new Set(['H01']));
+    removeKnownDevSeeds('ain_batches', new Set(['B01']));
+    removeKnownDevSeeds('ain_rooms', new Set(['R01']));
+    removeKnownDevSeeds('ain_forms', new Set(['F01']));
+    removeKnownDevSeeds('ain_agreements', new Set(['AG01']));
+    removeKnownDevSeeds('ain_flights', new Set(['FL01']));
+    removeKnownDevSeeds('ain_applications', new Set(['app_vol_001','app_amb_002','app_part_003']));
+  }, []);
+
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [globalUser, setGlobalUser] = useState(null); 
+  const [globalUser, setGlobalUser] = useState(null);
+
+  useEffect(() => {
+    if (!currentUser?.id || !Array.isArray(users)) return;
+    const fresh = users.find(u => String(u.id) === String(currentUser.id));
+    if (fresh && JSON.stringify(fresh) !== JSON.stringify(currentUser)) {
+      setCurrentUser(fresh);
+    }
+  }, [users]); 
 
   const showToast = useCallback((message, type = 'success') => {
     setToast({ show: true, message, type });
@@ -988,7 +1015,7 @@ export default function App() {
       action,
       timestamp: new Date().toISOString(),
       user: currentUser ? currentUser.name : 'System'
-    }, ...prev].slice(0, 50));
+    }, ...prev]);
   }, [currentUser, setLogs]);
 
   const [loginEmail, setLoginEmail] = useState('');
@@ -998,78 +1025,124 @@ export default function App() {
   const [otpCode, setOtpCode] = useState('');
   const [otpError, setOtpError] = useState('');
 
-  const handleLogin = (e) => {
+  const startTwoFactor = async (user) => {
+    const emailOn = Boolean(twoFactorConfig?.emailEnabled);
+    const authOn = Boolean(twoFactorConfig?.authEnabled && twoFactorConfig?.authSecret);
+    if (!emailOn && !authOn) {
+      setCurrentUser(user);
+      setActiveTab('dashboard');
+      addLog(`${user.name} logged in`);
+      return;
+    }
+
+    setTempUser(user);
+    setOtpCode('');
+    setOtpError('');
+    if (emailOn) {
+      setTwoFactorMethod(authOn ? 'choose' : 'email');
+      if (authOn) {
+        setRequires2FA(true);
+      } else {
+        try {
+          const response = await fetch('/api/send-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: user.email, purpose: 'management' })
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data?.error || 'Unable to send email code.');
+          setRequires2FA(true);
+        } catch (error) {
+          setLoginError(error.message || 'Unable to send email verification code.');
+          setTempUser(null);
+        }
+      }
+    } else {
+      setTwoFactorMethod('authenticator');
+      setRequires2FA(true);
+    }
+  };
+
+  const handleLogin = async (e) => {
     e.preventDefault();
-    const user = users?.find(u => 
-      (u.email.toLowerCase() === loginEmail.toLowerCase() || 
+    setLoginError('');
+    const localUser = users?.find(u => 
+      ((u.email || '').toLowerCase() === loginEmail.toLowerCase() || 
        (u.username && u.username.toLowerCase() === loginEmail.toLowerCase())) && 
       u.password === loginPassword && u.active !== false
     );
-    
-    if (user) {
-        if (twoFactorConfig.enabled && twoFactorConfig.requireForLogin && user.id === 'A01') {
-            setTempUser(user);
-            setRequires2FA(true);
-            setLoginError('');
-        } else {
-            setCurrentUser(user);
-            setActiveTab('dashboard');
-            addLog(`${user.name} logged in`);
-            setLoginError('');
-        }
-    } else {
-      setLoginError('Invalid credentials');
-    }
-  };
-
-  const handleQuickLogin = (username, password = '12345') => {
-    setLoginEmail(username);
-    setLoginPassword(password);
-    setLoginError('');
-    const user = users?.find(u => 
-      (u.email.toLowerCase() === username.toLowerCase() || 
-       (u.username && u.username.toLowerCase() === username.toLowerCase())) && 
-      u.password === password && u.active !== false
-    );
-    
-    if (user) {
-      if (twoFactorConfig.enabled && twoFactorConfig.requireForLogin && user.id === 'A01') {
-        setTempUser(user);
-        setRequires2FA(true);
-        setLoginError('');
-      } else {
-        setCurrentUser(user);
-        setActiveTab('dashboard');
-        addLog(`${user.name} logged in`);
-        setLoginError('');
+    const user = localUser?.role === 'Admin' ? null : localUser;
+    if (!user) {
+      try {
+        const response = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: loginEmail.trim(), password: loginPassword })
+        });
+        const data = await response.json();
+        if (!response.ok || !data?.success || !data?.user) throw new Error(data?.error || 'Invalid credentials');
+        const serverUser = { ...data.user, id: data.user.id || 'A01', username: data.user.email, active: true };
+        setUsers(prev => {
+          const list = Array.isArray(prev) ? prev : [];
+          const existing = list.find(u => String(u.id) === String(serverUser.id));
+          const next = existing ? list.map(u => String(u.id) === String(serverUser.id) ? { ...u, ...serverUser } : u) : [serverUser, ...list];
+          return next;
+        });
+        await startTwoFactor(serverUser);
+        return;
+      } catch (error) {
+        setLoginError(error.message || 'Invalid credentials');
+        return;
       }
     }
+    await startTwoFactor(user);
   };
 
   const handle2FALogin = async (e) => {
-      e.preventDefault();
-      if (otpCode.length === 6) {
-          const isValid = await verifyTOTP(otpCode);
-          if (isValid) {
-              setCurrentUser(tempUser);
-              setActiveTab('dashboard');
-              addLog(`${tempUser.name} logged in via 2FA`);
-              setRequires2FA(false);
-              setTempUser(null);
-              setOtpCode('');
-              setOtpError('');
-          } else {
-              setOtpError('Invalid Code. Please try again.');
-          }
-      } else {
-          setOtpError('Please enter a valid 6-digit code');
+    e.preventDefault();
+    if (!tempUser || otpCode.length !== 6) {
+      setOtpError('Please enter a valid 6-digit code');
+      return;
+    }
+    try {
+      let isValid = false;
+      if (twoFactorMethod === 'email') {
+        const response = await fetch('/api/verify-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: tempUser.email, otp: otpCode })
+        });
+        const data = await response.json();
+        isValid = response.ok && data?.valid === true;
+      } else if (twoFactorMethod === 'authenticator') {
+        isValid = await verifyTOTP(otpCode, twoFactorConfig?.authSecret);
       }
+      if (!isValid) {
+        setOtpError('Invalid code. Please try again.');
+        return;
+      }
+      setCurrentUser(tempUser);
+      setActiveTab('dashboard');
+      addLog(`${tempUser.name} logged in via ${twoFactorMethod === 'email' ? 'email' : 'authenticator'} 2FA`);
+      setRequires2FA(false);
+      setTempUser(null);
+      setTwoFactorMethod(null);
+      setOtpCode('');
+      setOtpError('');
+    } catch (error) {
+      setOtpError(error.message || 'Verification failed.');
+    }
+  };
+
+  const handleQuickLogin = () => {
+    setLoginError('Demo accounts have been disabled. Please use your real account credentials.');
   };
 
   const [pendingTab, setPendingTab] = useState(null);
   const [showTabChangeConfirm, setShowTabChangeConfirm] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [applicationsNavTrigger, setApplicationsNavTrigger] = useState(0);
+  const tabHistoryRef = useRef([]);
 
   const handleTabChange = (id) => {
     if (id === 'applications') {
@@ -1080,6 +1153,7 @@ export default function App() {
       setPendingTab(id);
       setShowTabChangeConfirm(true);
     } else {
+      if (activeTab !== id) tabHistoryRef.current.push(activeTab);
       setActiveTab(id);
       setIsMobileMenuOpen(false);
     }
@@ -1097,12 +1171,21 @@ export default function App() {
       setApplicationsNavTrigger(prev => prev + 1);
       window.dispatchEvent(new CustomEvent('ain_reset_applications_hero'));
     }
+    if (pendingTab && activeTab !== pendingTab) tabHistoryRef.current.push(activeTab);
     setActiveTab(pendingTab);
     setShowTabChangeConfirm(false);
     setIsMobileMenuOpen(false);
     setPendingTab(null);
   };
 
+
+  const goBackTab = () => {
+    const previous = tabHistoryRef.current.pop();
+    if (previous) {
+      setActiveTab(previous);
+      setIsMobileMenuOpen(false);
+    }
+  };
 
   const handleLogout = () => {
     addLog(`${currentUser.name} logged out`);
@@ -1119,11 +1202,17 @@ export default function App() {
                   <div className="w-16 h-16 bg-[#003828]/10 rounded-full flex items-center justify-center mb-6">
                       <Shield size={32} className="text-[#003828]" />
                   </div>
-                  <h2 className="text-2xl font-bold text-stone-900 mb-2">Two-Factor Auth</h2>
+                  <h2 className="text-2xl font-bold text-stone-900 mb-2">Two-Factor Authentication</h2>
                   <p className="text-stone-500 text-sm mb-6 text-center">
-                      Enter the 6-digit code from your authenticator app or email to continue.<br/><span className="text-xs font-mono mt-2 inline-block bg-stone-100 px-2 py-1 rounded text-stone-600 border border-stone-200">Test OTP: 123456</span>
+                      Enter the 6-digit code from your selected verification method to continue.
                   </p>
                   
+                  {twoFactorMethod === 'choose' && (
+                    <div className="w-full grid grid-cols-2 gap-2 mb-5">
+                      <button type="button" onClick={async () => { setTwoFactorMethod('email'); setOtpCode(''); setOtpError(''); try { const r = await fetch('/api/send-otp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: tempUser.email, purpose: 'management' }) }); const d = await r.json(); if (!r.ok) throw new Error(d?.error || 'Unable to send email code.'); } catch (err) { setOtpError(err.message); } }} className="py-2.5 rounded-xl border border-stone-200 font-semibold text-sm hover:bg-stone-50">Email</button>
+                      <button type="button" onClick={() => { setTwoFactorMethod('authenticator'); setOtpCode(''); setOtpError(''); }} className="py-2.5 rounded-xl border border-stone-200 font-semibold text-sm hover:bg-stone-50">Authenticator</button>
+                    </div>
+                  )}
                   <form onSubmit={handle2FALogin} className="w-full">
                       <div className="mb-6">
                           <input 
@@ -1241,29 +1330,6 @@ export default function App() {
                 Sign In <ArrowRightLeft size={16} />
               </button>
 
-              <div className="pt-6 border-t border-stone-100">
-                <p className="text-[11px] font-bold text-stone-400 uppercase tracking-wider text-center mb-3">
-                  Quick Access Demo Accounts (Password: 12345)
-                </p>
-                <div className="flex flex-wrap gap-1.5 justify-center">
-                  {[
-                    { label: 'Admin', user: 'admin' },
-                    { label: 'Volunteer', user: 'volunteer' },
-                    { label: 'Ambassador', user: 'ambassador' },
-                    { label: 'Partner', user: 'partner' },
-                    { label: 'Donor', user: 'donor' }
-                  ].map(btn => (
-                    <button
-                      key={btn.user}
-                      type="button"
-                      onClick={() => handleQuickLogin(btn.user)}
-                      className="px-2.5 py-1 text-xs font-semibold bg-stone-100 hover:bg-[#003828] hover:text-white text-stone-700 rounded-lg transition-colors cursor-pointer"
-                    >
-                      {btn.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
             </form>
           </div>
         </div>
@@ -1304,12 +1370,12 @@ export default function App() {
       case 'partners': return <MemberListView key="Partners" title="Partners" description="List of all registered Partners." icon={Briefcase} members={users.filter(u => u.role === 'Partner')} setMembers={setUsers} onUpdateRole={handleUpdateRole} onAddMember={(newM) => setUsers(prev => [newM, ...prev])} showToast={showToast} />;
       case 'donors': return <MemberListView key="Donors" title="Donors" description="List of all registered Donors." icon={HandCoins} members={users.filter(u => u.role === 'Donor')} setMembers={setUsers} onUpdateRole={handleUpdateRole} onAddMember={(newM) => setUsers(prev => [newM, ...prev])} showToast={showToast} />;
       case 'funds': return <FundsView key="funds" funds={funds} setFunds={setFunds} users={users} addLog={addLog} showToast={showToast} />;
-      case 'settings': return <SettingsView key="settings" currentUser={currentUser} setCurrentUser={setCurrentUser} globalUsers={users} setUsers={setUsers} showToast={showToast} addLog={addLog} twoFactorConfig={twoFactorConfig} setTwoFactorConfig={setTwoFactorConfig} setActiveTab={setActiveTab} funds={funds} setFunds={setFunds} />;
+      case 'settings': return <SettingsView key="settings" currentUser={currentUser} setCurrentUser={setCurrentUser} globalUsers={users} setUsers={setUsers} showToast={showToast} addLog={addLog} twoFactorConfig={twoFactorConfig} setTwoFactorConfig={setTwoFactorConfig} setActiveTab={setActiveTab} onNavigate={handleTabChange} funds={funds} setFunds={setFunds} logs={logs} setLogs={setLogs} />;
       case 'applications': return <ApplicationsView key="applications" applications={applications} setApplications={setApplications} users={users} setUsers={setUsers} showToast={showToast} addLog={addLog} setActiveTab={setActiveTab} resetTrigger={applicationsNavTrigger} />;
       case 'activity': return (
           <div className="space-y-0 h-full flex flex-col tracking-tight relative overflow-hidden">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-6 shrink-0">
-              <button onClick={() => handleTabChange('settings')} className="p-2 bg-white border border-stone-200 text-stone-600 hover:bg-stone-50 rounded-full transition-colors shadow-sm">
+              <button onClick={goBackTab} className="p-2 bg-white border border-stone-200 text-stone-600 hover:bg-stone-50 rounded-full transition-colors shadow-sm">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
               </button>
               <div>
@@ -1358,7 +1424,7 @@ export default function App() {
             </div>
           </div>
         );
-      case 'archives': return <ArchivesView archivedHosts={archivedHosts} setArchivedHosts={setArchivedHosts} setHosts={setHosts} hosts={hosts} archivedUsers={archivedUsers} setArchivedUsers={setArchivedUsers} setUsers={setUsers} users={users} archivedBatches={archivedBatches} setArchivedBatches={setArchivedBatches} setBatches={setBatches} batches={batches} archivedRooms={archivedRooms} setArchivedRooms={setArchivedRooms} setRooms={setRooms} rooms={rooms} showToast={showToast} addLog={addLog} setActiveTab={setActiveTab} />;
+      case 'archives': return <ArchivesView onBack={goBackTab} archivedHosts={archivedHosts} setArchivedHosts={setArchivedHosts} setHosts={setHosts} hosts={hosts} archivedUsers={archivedUsers} setArchivedUsers={setArchivedUsers} setUsers={setUsers} users={users} archivedBatches={archivedBatches} setArchivedBatches={setArchivedBatches} setBatches={setBatches} batches={batches} archivedRooms={archivedRooms} setArchivedRooms={setArchivedRooms} setRooms={setRooms} rooms={rooms} showToast={showToast} addLog={addLog} setActiveTab={setActiveTab} />;
       case 'roles': return <SummaryDashboard funds={funds} currentUser={currentUser} />;
       default: return <SummaryDashboard funds={funds} currentUser={currentUser} />;
     }

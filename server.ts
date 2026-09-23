@@ -88,71 +88,7 @@ async function verifyRecaptcha(token: string) {
 }
 
 // In-memory persistent applications store
-const serverApplications: any[] = [
-  {
-    id: 'app_vol_001',
-    type: 'volunteer',
-    name: 'Ayesha Tariq',
-    first_name: 'Ayesha',
-    last_name: 'Tariq',
-    email: 'ayesha.tariq@gmail.com',
-    password: 'Password123!',
-    phone: '+92 300 1234567',
-    gender: 'Female',
-    dob: '1998-05-14',
-    city: 'Lahore',
-    country: 'Pakistan',
-    volunteer_target: 'ESPA Digital Library',
-    library_role: 'Metadata Curator',
-    languages: ['Urdu', 'English', 'Punjabi'],
-    area_of_interest: 'Digital Library Content Curation & Cataloging',
-    availability: 'Part-time (10-15 hrs/week)',
-    skills: 'Cataloging, Library Science, Digital Archiving',
-    message: 'I am passionate about open educational access and want to help catalog rare Urdu and science literature for the ESPA Digital Library.',
-    date: new Date(Date.now() - 3 * 86400000).toISOString(),
-    status: 'Pending'
-  },
-  {
-    id: 'app_amb_002',
-    type: 'ambassador',
-    name: 'Bilal Qureshi',
-    first_name: 'Bilal',
-    last_name: 'Qureshi',
-    email: 'bilal.q@nust.edu.pk',
-    password: 'Password123!',
-    phone: '+92 321 9876543',
-    city: 'Islamabad',
-    country: 'Pakistan',
-    institution: 'NUST University',
-    department: 'Software Engineering & Social Club',
-    current_status: 'Undergraduate Student',
-    social: 'https://linkedin.com/in/bilal-qureshi-demo',
-    experience: 'Organized NUST annual book drive and youth leadership workshops.',
-    message: 'I would be honored to represent ESPA on campus, onboard 50+ students as library contributors, and lead book collection drives.',
-    date: new Date(Date.now() - 2 * 86400000).toISOString(),
-    status: 'Pending'
-  },
-  {
-    id: 'app_part_003',
-    type: 'partner',
-    name: 'Dr. Tariq Mehmood',
-    first_name: 'Tariq',
-    last_name: 'Mehmood',
-    organization: 'Global EduTech Foundation',
-    company: 'Global EduTech Foundation',
-    designation: 'Director of Outreach',
-    email: 'tariq@edutechglobal.org',
-    phone: '+1 415 555 0192',
-    city: 'San Francisco & Lahore',
-    country: 'United States',
-    website: 'https://edutechglobal.org',
-    partnership_type: 'Academic Alliance & Digital Content Sharing',
-    proposal: 'We would love to co-curate digital STEM textbooks and provide free cloud infrastructure for 10 ESPA rural reading centers.',
-    timeline_or_goals: 'Launch pilot in 3 regional libraries within Q2 2026.',
-    date: new Date(Date.now() - 1 * 86400000).toISOString(),
-    status: 'Approved'
-  }
-];
+const serverApplications: any[] = [];
 
 // In-memory persistent OTP store for real-time verification (10 min expiry)
 interface OtpEntry {
@@ -207,6 +143,28 @@ app.post('/api/applications', (req, res) => {
     res.status(500).json({ error: 'Failed to record application' });
   }
 });
+
+app.patch('/api/applications', async (req, res) => {
+  const { id, updates = {} } = req.body || {};
+  if (!id) return res.status(400).json({ error: 'Application ID is required.' });
+  const index = serverApplications.findIndex(a => String(a.id) === String(id));
+  if (index === -1) return res.status(404).json({ error: 'Application not found' });
+  const allowed = { ...updates };
+  delete allowed.id;
+  delete allowed.created_at;
+  serverApplications[index] = { ...serverApplications[index], ...allowed, updated_at: new Date().toISOString() };
+  return res.json({ success: true, application: serverApplications[index] });
+});
+
+app.delete('/api/applications', (req, res) => {
+  const { id } = req.body || {};
+  if (!id) return res.status(400).json({ error: 'Application ID is required.' });
+  const index = serverApplications.findIndex(a => String(a.id) === String(id));
+  if (index === -1) return res.status(404).json({ error: 'Application not found' });
+  const [deleted] = serverApplications.splice(index, 1);
+  return res.json({ success: true, application: deleted });
+});
+
 
 app.patch('/api/applications/:id', async (req, res) => {
   const { id } = req.params;
@@ -946,16 +904,17 @@ app.post('/api/login', loginLimiter, (req, res) => {
   }
 
   // Check against environment variables
-  const validEmail = process.env.ADMIN_EMAIL || 'admin';
-  const validPassword = process.env.ADMIN_PASSWORD || '12345'; // Fallback for dev only
+  const validEmail = process.env.ADMIN_EMAIL || 'admin@espafoundation.social';
+  const validPassword = process.env.ADMIN_PASSWORD;
 
-  if (email === validEmail && password === validPassword) {
+  if (validPassword && email.toLowerCase() === validEmail.toLowerCase() && password === validPassword) {
     // In a real app, generate JWT here
     return res.json({
       success: true,
       user: {
         email: validEmail,
-        name: 'Admin User',
+        id: 'A01',
+        name: process.env.ADMIN_NAME || 'Admin',
         role: 'admin'
       },
       token: 'mock-jwt-token'
@@ -967,18 +926,18 @@ app.post('/api/login', loginLimiter, (req, res) => {
 
 
 app.post('/api/send-otp', apiLimiter, async (req, res) => {
-  const { email, otp, recaptchaToken, purpose } = req.body;
+  const { email, recaptchaToken, purpose } = req.body;
   
   if (!email) return res.status(400).json({ error: 'Email address is required' });
   
   // Verify recaptcha if provided
-  if (recaptchaToken && recaptchaToken !== 'verified_token' && recaptchaToken !== 'test_token') {
+  if (purpose !== 'management' && recaptchaToken && recaptchaToken !== 'verified_token' && recaptchaToken !== 'test_token') {
     const isValid = await verifyRecaptcha(recaptchaToken);
     if (!isValid) return res.status(400).json({ error: 'reCAPTCHA verification failed' });
   }
 
   // Generate 6-digit random numeric OTP if not provided
-  const finalOtp = otp ? String(otp).trim() : Math.floor(100000 + Math.random() * 900000).toString();
+  const finalOtp = Math.floor(100000 + Math.random() * 900000).toString();
   const normalizedEmail = String(email).trim().toLowerCase();
 
   // Store OTP in-memory with 10-minute expiry

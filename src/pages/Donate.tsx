@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Copy, Check, CreditCard } from 'lucide-react';
+import { Copy, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useLocation } from 'react-router-dom';
 
@@ -38,122 +38,10 @@ const DetailRow = ({ label, value, subValue, highlight = false }: { label: strin
   );
 };
 
-const StripeCheckout = () => {
-  const [amount, setAmount] = useState('50');
-  const [loading, setLoading] = useState(false);
-
-  const handleCheckout = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    console.log('[Stripe Checkout] Initiating checkout for amount:', amount);
-    
-    try {
-      console.log('[Stripe Checkout] Sending POST request to /api/create-checkout-session...');
-      const response = await fetch('/api/create-checkout-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: Number(amount) }),
-      });
-      
-      console.log('[Stripe Checkout] Received response with status:', response.status);
-      
-      let data;
-      try {
-        data = await response.json();
-        console.log('[Stripe Checkout] Response JSON payload:', data);
-      } catch (parseError) {
-        console.error('[Stripe Checkout] Failed to parse JSON response:', parseError);
-        throw new Error('Invalid response from server');
-      }
-
-      if (response.ok && data.url) {
-        console.log('[Stripe Checkout] Success! Redirecting to Stripe URL:', data.url);
-        // If we are in an iframe (like AI Studio preview), Stripe will block it. Open in new tab.
-        if (window.top !== window.self) {
-          console.log('[Stripe Checkout] Detected iframe environment. Opening in a new tab.');
-          window.open(data.url, '_blank');
-        } else {
-          console.log('[Stripe Checkout] Detected top-level window. Redirecting in same tab.');
-          window.location.href = data.url;
-        }
-        
-        // Reset loading state after a short delay so the button doesn't stay stuck
-        setTimeout(() => {
-          setLoading(false);
-        }, 1500);
-      } else {
-        const errorMessage = data.error || `Server returned status ${response.status}`;
-        console.error('[Stripe Checkout] API Error:', errorMessage);
-        toast.error(`Payment Initiation Failed: ${errorMessage}`);
-        setLoading(false);
-      }
-    } catch (error: any) {
-      console.error('[Stripe Checkout] Network or Execution Error:', error);
-      toast.error(`Error: ${error.message || 'An unexpected error occurred. Please try again.'}`);
-      setLoading(false);
-    }
-  };
-
-  return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      className="bg-white rounded-3xl p-8 md:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.08)] max-w-2xl mx-auto mb-16 border border-stone-100"
-    >
-      <div className="flex justify-center mb-6">
-        <div className="w-16 h-16 bg-[#003828]/10 rounded-full flex items-center justify-center">
-          <CreditCard className="text-[#003828] w-8 h-8" />
-        </div>
-      </div>
-      <h3 className="text-2xl font-bold text-stone-900 mb-2 text-center">Donate via Credit / Debit Card</h3>
-      <p className="text-stone-500 text-center mb-8">Make a quick and secure online donation using Stripe.</p>
-      <form onSubmit={handleCheckout} className="flex flex-col sm:flex-row gap-4 items-center justify-center">
-        <div className="relative w-full sm:w-auto">
-          <span className="absolute left-5 top-1/2 -translate-y-1/2 text-stone-500 font-medium">$</span>
-          <input 
-            type="number" 
-            min="1" 
-            step="1"
-            required
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            className="w-full sm:w-48 pl-9 pr-5 py-3.5 rounded-full border border-stone-200 focus:outline-none focus:border-[#003828] focus:ring-1 focus:ring-[#003828] text-stone-900 font-medium text-lg"
-            placeholder="Amount"
-          />
-        </div>
-        <button 
-          type="submit" 
-          disabled={loading}
-          className="w-full sm:w-auto px-8 py-3.5 bg-[#003828] text-white border border-[#003828] font-semibold rounded-full hover:bg-white hover:text-[#003828] hover:border-[#003828] transition-all disabled:opacity-70 flex items-center justify-center gap-2 text-lg cursor-pointer shadow-sm"
-        >
-          {loading ? (
-            <>
-              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              Processing...
-            </>
-          ) : (
-             'Donate Now'
-          )}
-        </button>
-      </form>
-    </motion.div>
-  );
-};
-
 export default function Donate() {
   const location = useLocation();
 
   useEffect(() => {
-    // Debugging check to verify if the VITE_STRIPE_PUBLISHABLE_KEY is loaded correctly by Vite
-    // @ts-ignore
-  const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
-    if (publishableKey) {
-      console.log('[Stripe Setup] Publishable key found (starts with):', publishableKey.substring(0, 8) + '...');
-    } else {
-      console.warn('[Stripe Setup] VITE_STRIPE_PUBLISHABLE_KEY is missing or undefined in the environment variables.');
-    }
-
     const params = new URLSearchParams(location.search);
     if (params.get('success')) {
       toast.success('Thank you for your generous donation!', { duration: 5000 });
@@ -192,7 +80,6 @@ export default function Donate() {
           subtitle="You can support the ESPA Foundation directly by making a secure online donation or a bank transfer to one of our regional accounts below. Your contribution helps us expand educational access globally."
         />
 
-        <StripeCheckout />
 
         <div className="text-center mb-10">
           <h3 className="text-2xl font-bold text-stone-900">Or Donate via Bank Transfer</h3>

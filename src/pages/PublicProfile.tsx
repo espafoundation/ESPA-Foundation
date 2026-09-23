@@ -13,10 +13,7 @@ export default function PublicProfile() {
       const stored = localStorage.getItem('ain_users');
       if (stored) return JSON.parse(stored);
     } catch (e) {}
-    return [
-      { id: 'V01', name: 'Zainab Abbas', email: 'volunteer@espa.com', role: 'Volunteer', username: 'volunteer', city: 'Islamabad', country: 'Pakistan', dateAdded: '2024-01-15T00:00:00.000Z' },
-      { id: 'AM01', name: 'Hamza Saeed', email: 'ambassador@espa.com', role: 'Ambassador', username: 'ambassador', city: 'Lahore', country: 'Pakistan', dateAdded: '2023-11-20T00:00:00.000Z' },
-    ];
+    return [];
   })();
 
   const member = users.find((u: any) => 

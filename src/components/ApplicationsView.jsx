@@ -4,9 +4,9 @@ import {
   Briefcase, ExternalLink, Calendar, MapPin, Building, Award, 
   User, ArrowLeft, Clock, 
   ChevronDown, CheckCircle2, XCircle, AlertCircle, MessageSquare,
-  Eye, Edit, Copy, Trash2, Save
+  Eye, Edit, Trash2, Save
 } from 'lucide-react';
-import { ActionMenu } from './SharedComponents';
+import { ActionMenu, ConfirmModal } from './SharedComponents';
 
 export const normalizeStatus = (raw) => {
   if (!raw) return 'Pending';
@@ -92,7 +92,7 @@ export function CopyableDetail({
   return (
     <div 
       onClick={handleCopy}
-      title={`Click to copy ${label || ''}`}
+      title={value ? `Click to copy ${label || 'detail'}` : undefined}
       className={`p-3.5 bg-stone-50 hover:bg-emerald-50/50 rounded-2xl border border-stone-200/60 hover:border-emerald-300 transition-all cursor-pointer group relative active:scale-[0.99] select-none ${className}`}
     >
       <div className="flex items-center justify-between gap-1 mb-1">
@@ -100,30 +100,7 @@ export function CopyableDetail({
           {label}
         </span>
         <div className="flex items-center gap-1.5 shrink-0">
-          {copied ? (
-            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-100 px-1.5 py-0.5 rounded-md animate-in fade-in duration-150">
-              <Check size={11} strokeWidth={2.5} />
-              Copied!
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1 text-[10px] font-medium text-stone-400 group-hover:text-emerald-700 opacity-60 group-hover:opacity-100 transition-opacity">
-              <Copy size={11} />
-              <span className="hidden sm:inline">Copy</span>
-            </span>
-          )}
-          {actionIcon && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (onActionClick) onActionClick(e);
-              }}
-              className="p-0.5 text-stone-400 hover:text-emerald-700 transition-colors cursor-pointer"
-              title="Open link"
-            >
-              {actionIcon}
-            </button>
-          )}
+          {copied && <span className="text-[10px] font-bold text-emerald-800">Copied</span>}
         </div>
       </div>
       <div className="font-semibold text-stone-900 group-hover:text-[#003828] text-sm break-words transition-colors">
@@ -151,6 +128,7 @@ export default function ApplicationsView({
   const [editingApp, setEditingApp] = useState(null);
   const [editDraft, setEditDraft] = useState({});
   const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [confirm, setConfirm] = useState(null);
 
   const openEditModal = (app) => {
     setEditingApp(app);
@@ -163,15 +141,18 @@ export default function ApplicationsView({
   const hasEditChanges = editingApp && Object.keys(editDraft).some(key => editDraft[key] !== formatEditValue(editingApp[key]));
 
   const closeEditModal = () => {
-    if (hasEditChanges && !window.confirm('You have unsaved changes. Discard them?')) return;
+    if (hasEditChanges) { setConfirm({ title: 'Discard Changes', message: 'You have unsaved changes. Discard them?', confirmText: 'Discard', action: () => { setEditingApp(null); setEditDraft({}); } }); return; }
     setEditingApp(null);
     setEditDraft({});
   };
 
   const handleSaveApplication = async () => {
     if (!editingApp || isSavingEdit) return;
-    if (!window.confirm('Save these changes to this application?')) return;
+    setConfirm({ title: 'Save Changes', message: 'Save these changes to this application?', confirmText: 'Save', type: 'confirm', action: () => performSaveApplication() });
+  };
 
+  const performSaveApplication = async () => {
+    if (!editingApp || isSavingEdit) return;
     setIsSavingEdit(true);
     try {
       const updates = {};
@@ -204,8 +185,10 @@ export default function ApplicationsView({
 
   const handleDeleteApplication = async (app) => {
     if (!app || !app.id) return;
-    if (!window.confirm(`Delete the application from ${app.name || app.email || 'this applicant'}? This cannot be undone.`)) return;
+    setConfirm({ title: 'Delete Application', message: `Delete the application from ${app.name || app.email || 'this applicant'}? This action cannot be undone.`, confirmText: 'Delete', type: 'danger', action: () => performDeleteApplication(app) });
+  };
 
+  const performDeleteApplication = async (app) => {
     try {
       const response = await fetch('/api/applications', {
         method: 'DELETE',
@@ -360,17 +343,16 @@ export default function ApplicationsView({
     } catch (e) {}
   };
 
-  const handleUpdateStatus = async (id, newStatusRaw) => {
+  const handleUpdateStatus = (id, newStatusRaw) => {
     if (isProcessingStatus) return;
     const nextStatus = normalizeStatus(newStatusRaw);
-    if (!window.confirm(`Are you sure you want to mark this application as ${nextStatus}?`)) return;
-    setIsProcessingStatus(true);
-    const newStatus = normalizeStatus(newStatusRaw);
-    const targetApp = applications.find(a => 
-      String(a.id) === String(id) ||
-      (selectedApp && String(selectedApp.id) === String(id))
-    ) || (selectedApp && String(selectedApp.id) === String(id) ? selectedApp : null);
+    const target = applications.find(a => String(a.id) === String(id)) || selectedApp;
+    setConfirm({ title: `${nextStatus} Application`, message: `Are you sure you want to ${nextStatus.toLowerCase()} this application?`, confirmText: nextStatus, type: nextStatus === 'Rejected' ? 'danger' : 'confirm', action: () => performUpdateStatus(id, nextStatus, target) });
+  };
 
+  const performUpdateStatus = async (id, newStatus, targetApp) => {
+    if (isProcessingStatus) return;
+    setIsProcessingStatus(true);
     const targetEmail = (targetApp?.email || selectedApp?.email || '').toLowerCase().trim();
     const targetType = ((targetApp?.type || selectedApp?.type || '')).toLowerCase().trim();
 
@@ -438,7 +420,7 @@ export default function ApplicationsView({
               photo: '',
               role: targetRole,
               username: (targetApp.email ? targetApp.email.split('@')[0] : `${type}_${targetApp.id}`),
-              password: targetApp.password || 'Password123!',
+              password: targetApp.password || '',
               active: true,
               status: 'Active',
               dateAdded: targetApp.date || new Date().toISOString(),
@@ -707,10 +689,6 @@ export default function ApplicationsView({
                 </div>
               )}
 
-              <div className="flex items-center gap-2 shrink-0">
-                <button type="button" onMouseDown={(e) => e.stopPropagation()} onClick={(e) => { e.preventDefault(); e.stopPropagation(); openEditModal(selectedApp); }} className="relative z-40 pointer-events-auto p-2.5 rounded-xl border border-stone-200 text-stone-500 hover:text-[#003828] hover:bg-[#003828]/5 cursor-pointer" title="Edit entire application" aria-label="Edit entire application"><Edit size={17} /></button>
-                <button type="button" onMouseDown={(e) => e.stopPropagation()} onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteApplication(selectedApp); }} className="relative z-40 pointer-events-auto p-2.5 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 cursor-pointer" title="Delete application" aria-label="Delete application"><Trash2 size={17} /></button>
-              </div>
             </div>
 
             {/* Quick Summary Strip */}
@@ -1087,7 +1065,7 @@ export default function ApplicationsView({
                       </td>
                       <td className="w-[22%] px-6 py-4 text-stone-600 text-sm text-left">
                         <span className="inline-block">
-                          {app.date ? new Date(app.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'Recent'}
+                          {(app.created_at || app.date || app.dateAdded) ? new Date(app.created_at || app.date || app.dateAdded).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '—'}
                         </span>
                       </td>
                       <td className="w-[18%] px-6 py-4 text-center" onClick={(e) => e.stopPropagation()}>
@@ -1105,6 +1083,15 @@ export default function ApplicationsView({
         </div>
       </div>
       </div>
+      <ConfirmModal
+        isOpen={Boolean(confirm)}
+        title={confirm?.title || ''}
+        message={confirm?.message || ''}
+        confirmText={confirm?.confirmText || 'Confirm'}
+        type={confirm?.type || 'danger'}
+        onClose={() => setConfirm(null)}
+        onConfirm={() => { const action = confirm?.action; setConfirm(null); if (action) action(); }}
+      />
     </>
   );
 }

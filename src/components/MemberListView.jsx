@@ -3,6 +3,7 @@ import { Download, Plus, Search, FileText, Calendar, Mail, Phone, Eye, History, 
 import DraggableModal from './DraggableModal';
 import MemberDetailsModal from './MemberDetailsModal';
 import { createPortal } from 'react-dom';
+import { ConfirmModal } from './SharedComponents';
 
 const Portal = ({ children }) => createPortal(children, document.body);
 
@@ -12,6 +13,7 @@ export default function MemberListView({ title, description, icon: Icon, members
   const [editingMember, setEditingMember] = useState(null);
   const [editDraft, setEditDraft] = useState({});
   const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [confirm, setConfirm] = useState(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   const draftKey = `ain_draft_${title.toLowerCase()}`;
@@ -115,7 +117,7 @@ export default function MemberListView({ title, description, icon: Icon, members
   });
 
   const closeEditMember = () => {
-    if (hasEditChanges && !window.confirm('You have unsaved changes. Discard them?')) return;
+    if (hasEditChanges) { setConfirm({ title: 'Discard Changes', message: 'You have unsaved changes. Discard them?', confirmText: 'Discard', action: () => { setEditingMember(null); setEditDraft({}); } }); return; }
     setEditingMember(null);
     setEditDraft({});
   };
@@ -132,7 +134,11 @@ export default function MemberListView({ title, description, icon: Icon, members
 
   const handleSaveMember = () => {
     if (!editingMember || isSavingEdit) return;
-    if (!window.confirm(`Save changes to ${editingMember.name || 'this user'}?`)) return;
+    setConfirm({ title: 'Save Changes', message: `Save changes to ${editingMember.name || 'this user'}?`, confirmText: 'Save', type: 'confirm', action: () => performSaveMember() });
+  };
+
+  const performSaveMember = () => {
+    if (!editingMember || isSavingEdit) return;
     setIsSavingEdit(true);
     const updates = Object.fromEntries(Object.entries(editDraft).map(([key, value]) => [key, parseMemberValue(key, value)]));
     const updatedMember = { ...editingMember, ...updates };
@@ -153,7 +159,10 @@ export default function MemberListView({ title, description, icon: Icon, members
 
   const handleDeleteMember = (member) => {
     if (!member) return;
-    if (!window.confirm(`Delete ${member.name || 'this user'}? This cannot be undone.`)) return;
+    setConfirm({ title: 'Delete Member', message: `Delete ${member.name || 'this user'}? This action cannot be undone.`, confirmText: 'Delete', type: 'danger', action: () => performDeleteMember(member) });
+  };
+
+  const performDeleteMember = (member) => {
     if (setMembers) {
       setMembers(prev => {
         const next = (prev || []).filter(item => String(item.id) !== String(member.id));
@@ -467,6 +476,16 @@ export default function MemberListView({ title, description, icon: Icon, members
       )}
 
       
+      <ConfirmModal
+        isOpen={Boolean(confirm)}
+        title={confirm?.title || ''}
+        message={confirm?.message || ''}
+        confirmText={confirm?.confirmText || 'Confirm'}
+        type={confirm?.type || 'danger'}
+        onClose={() => setConfirm(null)}
+        onConfirm={() => { const action = confirm?.action; setConfirm(null); if (action) action(); }}
+      />
+
 
     </div>
   );

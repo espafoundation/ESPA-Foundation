@@ -8,12 +8,12 @@ const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
     user: process.env.EMAIL_USER || 'foundationespa@gmail.com',
-    pass: process.env.EMAIL_PASS || 'xzxp ilzw hiwu sjcr',
+    pass: process.env.EMAIL_PASS,
   },
 });
 
 function getSecret() {
-  return process.env.OTP_SECRET || process.env.RECAPTCHA_SECRET || 'espa-otp-development-secret';
+  return process.env.OTP_SECRET || '';
 }
 
 function sign(value) {
@@ -52,13 +52,14 @@ export default async function handler(req, res) {
   }
 
   const { email, recaptchaToken, purpose } = req.body || {};
+  if (!getSecret()) return res.status(500).json({ error: 'OTP_SECRET is not configured.' });
   const normalizedEmail = String(email || '').trim().toLowerCase();
 
   if (!normalizedEmail || !normalizedEmail.includes('@')) {
     return res.status(400).json({ error: 'A valid email address is required.' });
   }
 
-  if (!(await verifyRecaptcha(recaptchaToken))) {
+  if (purpose !== 'management' && !(await verifyRecaptcha(recaptchaToken))) {
     return res.status(400).json({ error: 'reCAPTCHA verification failed.' });
   }
 

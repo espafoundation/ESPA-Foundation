@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import { Settings, Save, Archive, Shield, Key, Info, CheckCircle2, AlertCircle, Mail, Smartphone, QrCode, Globe, User, Upload, Activity, Wallet, Trash2, Lock, Check } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { verifyTOTP } from './ManagementPortal';
-import { ToggleSwitch } from './SharedComponents';
+import { ToggleSwitch, ConfirmModal } from './SharedComponents';
 import { createPortal } from 'react-dom';
 import DraggableModal from './DraggableModal';
 
 const Portal = ({ children }) => { return createPortal(children, document.body); };
 
-export default function SettingsView({ currentUser, setCurrentUser, globalUsers, setUsers, showToast, addLog, twoFactorConfig, setTwoFactorConfig, setActiveTab, funds, setFunds }) {
+export default function SettingsView({ currentUser, setCurrentUser, globalUsers, setUsers, showToast, addLog, twoFactorConfig, setTwoFactorConfig, setActiveTab, onNavigate, funds, setFunds, logs, setLogs }) {
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -18,6 +18,7 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
   const [verificationCode, setVerificationCode] = useState('');
   const [verificationError, setVerificationError] = useState('');
   const [settingsTab, setSettingsTab] = useState('profile');
+  const [confirm, setConfirm] = useState(null);
 
   const handlePasswordChange = () => {
     if (!oldPassword || !newPassword || !confirmPassword) {
@@ -31,7 +32,7 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
     
     const user = globalUsers?.find(u => u.id === currentUser.id);
     if (!user) {
-        if (currentUser.id === 'A01' && (oldPassword === 'adminpass' || oldPassword === '12345' || oldPassword === 'admin')) {
+        if (currentUser.id === 'A01' && oldPassword === currentUser.password) {
             showToast('Admin password changed successfully', 'success');
             setOldPassword('');
             setNewPassword('');
@@ -143,14 +144,11 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
                                                 if (newName && newName !== currentUser.name) {
                                                     const updatedUsers = (globalUsers || []).map(u => u.id === currentUser.id ? { ...u, name: newName } : u);
                                                     setUsers(updatedUsers);
-                                                    if (setCurrentUser) setCurrentUser({ ...currentUser, name: newName });
+                                                    const updatedCurrentUser = { ...currentUser, name: newName };
+                                                    if (setCurrentUser) setCurrentUser(updatedCurrentUser);
                                                     try {
-                                                        const authStored = localStorage.getItem('ain_auth_user');
-                                                        if (authStored) {
-                                                            const parsed = JSON.parse(authStored);
-                                                            localStorage.setItem('ain_auth_user', JSON.stringify({ ...parsed, name: newName }));
-                                                        }
-                                                        localStorage.setItem('ain_currentUser', JSON.stringify({ ...currentUser, name: newName }));
+                                                        localStorage.setItem('ain_currentUser', JSON.stringify(updatedCurrentUser));
+                                                        localStorage.setItem('ain_users', JSON.stringify(updatedUsers));
                                                         window.dispatchEvent(new CustomEvent('ain_user_changed'));
                                                     } catch (err) {}
                                                     showToast('Master Admin name updated successfully', 'success');
@@ -250,12 +248,17 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
                         </div>
                       </div>
                       <ToggleSwitch 
-                        checked={twoFactorConfig.emailEnabled} 
+                        enabled={Boolean(twoFactorConfig?.emailEnabled)} 
                         onChange={(checked) => {
                           if (checked) {
+                            setVerificationCode('');
+                            setVerificationError('');
                             setIsEmailModalOpen(true);
+                            fetch('/api/send-otp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: currentUser.email, purpose: 'management' }) })
+                              .then(async r => { const d = await r.json(); if (!r.ok) throw new Error(d?.error || 'Unable to send verification code.'); showToast('Verification code sent to your email.', 'success'); })
+                              .catch(err => { setVerificationError(err.message || 'Unable to send verification code.'); });
                           } else {
-                            setTwoFactorConfig({...twoFactorConfig, emailEnabled: false, enabled: twoFactorConfig.authEnabled});
+                            setTwoFactorConfig({...twoFactorConfig, emailEnabled: false, enabled: Boolean(twoFactorConfig.authEnabled), requireForLogin: Boolean(twoFactorConfig.authEnabled)});
                             showToast('Email 2FA disabled', 'info');
                             addLog(`Email 2FA disabled for ${currentUser.name}`);
                           }
@@ -271,12 +274,13 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
                         </div>
                       </div>
                       <ToggleSwitch 
-                        checked={twoFactorConfig.authEnabled} 
+                        enabled={Boolean(twoFactorConfig?.authEnabled)} 
                         onChange={(checked) => {
                           if (checked) {
+                            if (!twoFactorConfig?.authSecret) setTwoFactorConfig({...twoFactorConfig, authSecret: randomBase32Secret()});
                             setIsAuthModalOpen(true);
                           } else {
-                            setTwoFactorConfig({...twoFactorConfig, authEnabled: false, enabled: twoFactorConfig.emailEnabled});
+                            setTwoFactorConfig({...twoFactorConfig, authEnabled: false, enabled: Boolean(twoFactorConfig.emailEnabled), requireForLogin: Boolean(twoFactorConfig.emailEnabled)});
                             showToast('Authenticator 2FA disabled', 'info');
                             addLog(`Authenticator 2FA disabled for ${currentUser.name}`);
                           }
@@ -642,25 +646,41 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
         {settingsTab === 'system' && (
           <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div onClick={() => setActiveTab('activity')} className="bg-white rounded-3xl border border-stone-200/60 shadow-sm p-8 flex flex-col hover:border-[#003828] hover:shadow-md transition-all cursor-pointer group">
+              <div onClick={() => (onNavigate || setActiveTab)('activity')} className="bg-white rounded-3xl border border-stone-200/60 shadow-sm p-8 flex flex-col hover:border-[#003828] hover:shadow-md transition-all cursor-pointer group">
                 <div className="w-12 h-12 bg-stone-100 rounded-full flex items-center justify-center mb-6 group-hover:bg-[#003828]/10 transition-colors">
                   <Activity size={24} className="text-stone-600 group-hover:text-[#003828] transition-colors" />
                 </div>
                 <h3 className="text-xl font-bold text-stone-900 mb-2">Activity Log</h3>
                 <p className="text-sm text-stone-500 font-medium">View a detailed system-wide audit trail of all actions performed by users.</p>
               </div>
-              <div onClick={() => setActiveTab('archives')} className="bg-white rounded-3xl border border-stone-200/60 shadow-sm p-8 flex flex-col hover:border-[#003828] hover:shadow-md transition-all cursor-pointer group">
+              <div onClick={() => (onNavigate || setActiveTab)('archives')} className="bg-white rounded-3xl border border-stone-200/60 shadow-sm p-8 flex flex-col hover:border-[#003828] hover:shadow-md transition-all cursor-pointer group">
                 <div className="w-12 h-12 bg-stone-100 rounded-full flex items-center justify-center mb-6 group-hover:bg-[#003828]/10 transition-colors">
                   <Archive size={24} className="text-stone-600 group-hover:text-[#003828] transition-colors" />
                 </div>
                 <h3 className="text-xl font-bold text-stone-900 mb-2">System Archives</h3>
                 <p className="text-sm text-stone-500 font-medium">Access and restore previously deleted or archived system records.</p>
               </div>
+              {(currentUser?.role === 'Admin' || currentUser?.id === 'A01') && (
+                <button type="button" onClick={() => setConfirm({ title: 'Reset Activity Log', message: 'This will permanently clear the activity log. Only the Master Admin can do this. Continue?', confirmText: 'Reset Log', type: 'danger', action: () => { setLogs([]); addLog('Master Admin reset the activity log'); showToast('Activity log reset.', 'success'); } })} className="text-left bg-white rounded-3xl border border-rose-200 shadow-sm p-8 flex flex-col hover:border-rose-400 hover:shadow-md transition-all cursor-pointer group">
+                  <div className="w-12 h-12 bg-rose-50 rounded-full flex items-center justify-center mb-6"><Trash2 size={24} className="text-rose-600" /></div>
+                  <h3 className="text-xl font-bold text-stone-900 mb-2">Reset Activity Log</h3>
+                  <p className="text-sm text-stone-500 font-medium">Permanently clear the audit trail. Restricted to the Master Admin.</p>
+                </button>
+              )}
             </div>
           </div>
         )}
       </div>
 
+      <ConfirmModal
+        isOpen={Boolean(confirm)}
+        title={confirm?.title || ''}
+        message={confirm?.message || ''}
+        confirmText={confirm?.confirmText || 'Confirm'}
+        type={confirm?.type || 'danger'}
+        onClose={() => setConfirm(null)}
+        onConfirm={() => { const action = confirm?.action; setConfirm(null); if (action) action(); }}
+      />
       <Portal>
         {isEmailModalOpen && (
           <>
@@ -699,23 +719,33 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   onClick={async () => {
-                    if (verificationCode.length === 6) {
-                      const isValid = await verifyTOTP(verificationCode);
-                      if (isValid) {
-                        setTwoFactorConfig({...twoFactorConfig, emailEnabled: true, enabled: true, requireForLogin: true});
-                        setIsEmailModalOpen(false);
-                        setVerificationCode('');
-                        showToast('Two-Factor Authentication is active. Your account is secured.', 'success');
-                        addLog(`Email 2FA enabled for ${currentUser.name}`);
-                      } else {
-                        setVerificationError('Invalid Code. Please try again.');
-                      }
-                    } else {
+                    if (verificationCode.length !== 6) {
                       setVerificationError('Please enter a valid 6-digit code');
+                      return;
                     }
-                  }} 
+                    try {
+                      const response = await fetch('/api/verify-otp', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email: currentUser.email, otp: verificationCode })
+                      });
+                      const data = await response.json();
+                      if (!response.ok || data?.valid !== true) {
+                        setVerificationError(data?.error || 'Invalid Code. Please try again.');
+                        return;
+                      }
+                      setTwoFactorConfig({...twoFactorConfig, emailEnabled: true, enabled: true, requireForLogin: true});
+                      setIsEmailModalOpen(false);
+                      setVerificationCode('');
+                      setVerificationError('');
+                      showToast('Two-Factor Authentication is active. Your account is secured.', 'success');
+                      addLog(`Email 2FA enabled for ${currentUser.name}`);
+                    } catch (err) {
+                      setVerificationError(err.message || 'Verification failed.');
+                    }
+                  }}
                   className="flex-1 px-4 py-3 font-semibold rounded-full transition-colors bg-[#003828] text-white border border-[#003828] hover:bg-white hover:text-[#003828] hover:border-[#003828]"
                 >
                   Activate
@@ -741,7 +771,7 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
               
               <div className="flex justify-center mb-6">
                 <div className="w-48 h-48 bg-white border-2 border-stone-200 rounded-2xl flex items-center justify-center">
-                  <QRCodeSVG value={`otpauth://totp/AIN%20Management:${currentUser?.email || currentUser?.username}?secret=JBSWY3DPEHPK3PXP&issuer=AIN%20Management`} size={160} />
+                  <QRCodeSVG value={`otpauth://totp/ESPA%20Foundation:${encodeURIComponent(currentUser?.email || currentUser?.username || '')}?secret=${twoFactorConfig?.authSecret || ''}&issuer=ESPA%20Foundation`} size={160} />
                 </div>
               </div>
               
@@ -771,9 +801,10 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
                 <button 
                   onClick={async () => {
                     if (verificationCode.length === 6) {
-                      const isValid = await verifyTOTP(verificationCode);
+                      const secret = twoFactorConfig?.authSecret || randomBase32Secret();
+                      const isValid = await verifyTOTP(verificationCode, secret);
                       if (isValid) {
-                        setTwoFactorConfig({...twoFactorConfig, authEnabled: true, enabled: true, requireForLogin: true});
+                        setTwoFactorConfig({...twoFactorConfig, authEnabled: true, authSecret: secret, enabled: true, requireForLogin: true});
                         setIsAuthModalOpen(false);
                         setVerificationCode('');
                         showToast('Two-Factor Authentication is active. Your account is secured.', 'success');

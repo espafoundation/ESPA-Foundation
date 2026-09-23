@@ -3,7 +3,7 @@ import crypto from 'node:crypto';
 const COOKIE_NAME = 'espa_otp';
 
 function getSecret() {
-  return process.env.OTP_SECRET || process.env.RECAPTCHA_SECRET || 'espa-otp-development-secret';
+  return process.env.OTP_SECRET || '';
 }
 
 function sign(value) {
@@ -34,6 +34,7 @@ export default function handler(req, res) {
   }
 
   const { email, otp } = req.body || {};
+  if (!getSecret()) return res.status(500).json({ error: 'OTP_SECRET is not configured.', valid: false });
   const normalizedEmail = String(email || '').trim().toLowerCase();
   const submittedOtp = String(otp || '').trim();
 
