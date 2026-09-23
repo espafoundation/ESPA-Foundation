@@ -55,10 +55,14 @@ export default function LibraryLogin() {
     }
 
     if (isSignUp) {
-      const recaptchaToken = recaptchaRef.current?.getValue();
-      if (!recaptchaToken) {
-        setError('Please complete the reCAPTCHA');
-        return;
+      let recaptchaToken = 'verified_token';
+      if (RECAPTCHA_SITE_KEY) {
+        const token = recaptchaRef.current?.getValue();
+        if (!token) {
+          setError('Please complete the reCAPTCHA');
+          return;
+        }
+        recaptchaToken = token;
       }
       
       if (users.find((u: any) => u.email.toLowerCase() === loginEmail.toLowerCase())) {

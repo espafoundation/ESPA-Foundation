@@ -25,9 +25,9 @@ interface PhoneCountryInputProps {
   id?: string;
   name?: string;
   label: string;
-  phoneCode: string;
+  phoneCode?: string;
   onPhoneCodeChange: (code: string) => void;
-  phoneNumber: string;
+  phoneNumber?: string;
   onPhoneNumberChange: (val: string) => void;
   placeholder?: string;
   required?: boolean;
@@ -40,9 +40,9 @@ export default function PhoneCountryInput({
   id = 'phone-input',
   name = 'phone',
   label,
-  phoneCode,
+  phoneCode = '+92',
   onPhoneCodeChange,
-  phoneNumber,
+  phoneNumber = '',
   onPhoneNumberChange,
   placeholder = 'Enter phone number',
   required = false,
@@ -57,7 +57,8 @@ export default function PhoneCountryInput({
 
   // Match currently selected country from dial code or default
   const selectedCountry = useMemo(() => {
-    const cleanCode = phoneCode.startsWith('+') ? phoneCode : `+${phoneCode}`;
+    const raw = typeof phoneCode === 'string' && phoneCode.trim() ? phoneCode.trim() : '+92';
+    const cleanCode = raw.startsWith('+') ? raw : `+${raw}`;
     return COUNTRY_PHONE_LIST.find(c => c.dialCode === cleanCode) || 
            COUNTRY_PHONE_LIST.find(c => c.isoCode === 'PK') || 
            COUNTRY_PHONE_LIST[0];

@@ -43,7 +43,6 @@
     "react-router-dom": "^7.18.2",
     "recharts": "^3.10.1",
     "signature_pad": "^5.1.4",
-    "stripe": "^22.6.2",
     "vite": "^6.2.3",
     "zod": "^4.4.3"
   },

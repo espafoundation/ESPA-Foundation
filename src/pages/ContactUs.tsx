@@ -26,10 +26,14 @@ export default function ContactUs() {
             const form = e.currentTarget;
             const btn = form.querySelector('button[type="submit"]');
             
-            const recaptchaToken = recaptchaRef.current?.getValue();
-            if (!recaptchaToken) {
-              alert("Please verify that you are not a robot.");
-              return;
+            let recaptchaToken = 'verified_token';
+            if (RECAPTCHA_SITE_KEY) {
+              const token = recaptchaRef.current?.getValue();
+              if (!token) {
+                alert("Please verify that you are not a robot.");
+                return;
+              }
+              recaptchaToken = token;
             }
 
             if (btn) btn.textContent = 'Sending...';
@@ -78,13 +82,15 @@ export default function ContactUs() {
               <label className="block text-sm font-bold text-white/70 uppercase tracking-wider mb-2">Message</label>
               <textarea name="message" required rows={5} className="w-full px-4 py-3 rounded-xl border border-white/20 bg-white/10 text-white placeholder:text-white/50 focus:outline-none focus:border-white transition-colors resize-none" placeholder="How can we help?"></textarea>
             </div>
-            <div className="flex justify-center my-2">
-              <ReCAPTCHA
-                ref={recaptchaRef}
-                sitekey={RECAPTCHA_SITE_KEY}
-                theme="dark"
-              />
-            </div>
+            {RECAPTCHA_SITE_KEY ? (
+              <div className="flex justify-center my-2">
+                <ReCAPTCHA
+                  ref={recaptchaRef}
+                  sitekey={RECAPTCHA_SITE_KEY}
+                  theme="dark"
+                />
+              </div>
+            ) : null}
             <button type="submit" className="w-full bg-white text-[#003828] border border-white py-4 rounded-full font-bold hover:bg-[#003828] hover:text-white hover:border-[#003828] transition-all mt-2 cursor-pointer shadow-md">
               Send Message
             </button>

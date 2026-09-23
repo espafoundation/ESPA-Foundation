@@ -407,10 +407,14 @@ export default function Partner() {
       return;
     }
 
-    const recaptchaToken = recaptchaRef.current?.getValue();
-    if (!recaptchaToken) {
-      toast.error('Please verify that you are not a robot.');
-      return;
+    let recaptchaToken = 'verified_token';
+    if (RECAPTCHA_SITE_KEY) {
+      const token = recaptchaRef.current?.getValue();
+      if (!token) {
+        toast.error('Please verify that you are not a robot.');
+        return;
+      }
+      recaptchaToken = token;
     }
 
     setIsSubmitting(true);
@@ -1032,12 +1036,14 @@ export default function Partner() {
               </div>
 
               {/* reCAPTCHA verification */}
-              <div className="pt-2 flex flex-col items-center sm:items-start">
-                <ReCAPTCHA
-                  ref={recaptchaRef}
-                  sitekey={RECAPTCHA_SITE_KEY}
-                />
-              </div>
+              {RECAPTCHA_SITE_KEY ? (
+                <div className="pt-2 flex flex-col items-center sm:items-start">
+                  <ReCAPTCHA
+                    ref={recaptchaRef}
+                    sitekey={RECAPTCHA_SITE_KEY}
+                  />
+                </div>
+              ) : null}
 
               {/* Submit & Action Buttons */}
               <div className="pt-4 border-t border-stone-100 flex flex-wrap items-center justify-between gap-4">

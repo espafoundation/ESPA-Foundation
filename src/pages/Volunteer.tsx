@@ -106,13 +106,19 @@ export default function Volunteer() {
 
   // Comprehensive country list excluding Israel
   const allCountries = useMemo(() => {
-    return Country.getAllCountries()
-      .filter(c => c.name.toLowerCase() !== 'israel' && c.isoCode !== 'IL')
-      .map(c => ({
-        isoCode: c.isoCode,
-        name: (c.name.includes('Palestinian Territory') || c.name.includes('Palestine')) ? 'Palestine' : c.name
-      }))
-      .sort((a, b) => a.name.localeCompare(b.name));
+    try {
+      const list = Country?.getAllCountries?.() || [];
+      return list
+        .filter(c => c && c.name && c.name.toLowerCase() !== 'israel' && c.isoCode !== 'IL' && !c.name.toLowerCase().includes('israel'))
+        .map(c => ({
+          isoCode: c.isoCode || '',
+          name: (c.name.includes('Palestinian Territory') || c.name.includes('Palestine')) ? 'Palestine' : c.name
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+    } catch (e) {
+      console.error('Error getting countries:', e);
+      return [];
+    }
   }, []);
 
   // Country dropdown options for SearchableDropdown
@@ -125,14 +131,20 @@ export default function Volunteer() {
 
   // Cities matching the selected country
   const availableCities = useMemo(() => {
-    if (!selectedCountryCode) return [];
-    const rawCities = City.getCitiesOfCountry(selectedCountryCode) || [];
-    const uniqueNames = Array.from(new Set(rawCities.map(c => (c?.name || '').trim()))).filter(Boolean);
-    return uniqueNames.sort((a, b) => a.localeCompare(b));
+    try {
+      if (!selectedCountryCode || typeof selectedCountryCode !== 'string') return [];
+      const rawCities = City?.getCitiesOfCountry?.(selectedCountryCode) || [];
+      const uniqueNames = Array.from(new Set(rawCities.map(c => (c?.name || '').trim()))).filter(Boolean);
+      return uniqueNames.sort((a, b) => a.localeCompare(b));
+    } catch (e) {
+      console.error('Error getting cities:', e);
+      return [];
+    }
   }, [selectedCountryCode]);
 
   // City dropdown options for SearchableDropdown
   const cityOptions: DropdownOption[] = useMemo(() => {
+    if (!Array.isArray(availableCities)) return [];
     const list: DropdownOption[] = availableCities.map(cityName => ({
       value: cityName,
       label: cityName
@@ -324,7 +336,7 @@ export default function Volunteer() {
   };
 
   const handleAddLanguage = () => {
-    const lang = languageInput.trim();
+    const lang = (languageInput || '').trim();
     if (!lang) return;
 
     if (lang.length > 50) {
@@ -332,7 +344,10 @@ export default function Volunteer() {
       return;
     }
 
-    const exists = languages.some(l => l.language.toLowerCase() === lang.toLowerCase());
+    const exists = languages.some(l => {
+      const name = typeof l === 'string' ? l : l?.language;
+      return (name || '').toLowerCase() === lang.toLowerCase();
+    });
     if (exists) {
       toast.error(`${lang} is already added.`);
       return;
@@ -372,12 +387,12 @@ export default function Volunteer() {
           return;
         }
 
-        if (parsed.formData) {
+        if (parsed.formData && typeof parsed.formData === 'object') {
           const loadedFullName = parsed.formData.full_name || 
             (parsed.formData.first_name ? `${parsed.formData.first_name} ${parsed.formData.last_name || ''}`.trim() : '');
           setFormData(prev => ({
             ...prev,
-            full_name: loadedFullName,
+            full_name: loadedFullName || '',
             email: parsed.formData.email || '',
             phone: parsed.formData.phone || '',
             phone_country_code: parsed.formData.phone_country_code || '+92',
@@ -390,7 +405,7 @@ export default function Volunteer() {
             city: parsed.formData.city || '',
             country: parsed.formData.country || '',
             availability: parsed.formData.availability || '',
-            motivation: parsed.formData.motivation || ''
+            motivation: parsed.formData.motivation || parsed.formData.message || ''
           }));
         }
         if (parsed.targets || parsed.libraryRole) {
@@ -402,9 +417,29 @@ export default function Volunteer() {
             // ignore
           }
         }
-        if (parsed.selectedCountryCode) setSelectedCountryCode(parsed.selectedCountryCode);
-        if (parsed.customCity) setCustomCity(parsed.customCity);
-        if (Array.isArray(parsed.languages)) setLanguages(parsed.languages);
+        if (parsed.selectedCountryCode && typeof parsed.selectedCountryCode === 'string') {
+          setSelectedCountryCode(parsed.selectedCountryCode);
+        }
+        if (parsed.customCity && typeof parsed.customCity === 'string') {
+          setCustomCity(parsed.customCity);
+        }
+        if (Array.isArray(parsed.languages)) {
+          const sanitized = parsed.languages
+            .map((item: any) => {
+              if (typeof item === 'string') {
+                return { language: item, fluency: 'Fluent' as const };
+              }
+              if (item && typeof item === 'object' && typeof item.language === 'string') {
+                return {
+                  language: item.language,
+                  fluency: (item.fluency || 'Fluent') as LanguageSkill['fluency']
+                };
+              }
+              return null;
+            })
+            .filter(Boolean);
+          setLanguages(sanitized as LanguageSkill[]);
+        }
         // Targets intentionally not restored to ensure nothing is pre-selected by default
         setTargets({ foundation: false, library: false });
         setLibraryRole('');
@@ -563,10 +598,14 @@ export default function Volunteer() {
       return;
     }
 
-    const recaptchaToken = recaptchaRef.current?.getValue();
-    if (!recaptchaToken) {
-      toast.error('Please verify that you are not a robot.');
-      return;
+    let recaptchaToken = 'verified_token';
+    if (RECAPTCHA_SITE_KEY) {
+      const token = recaptchaRef.current?.getValue();
+      if (!token) {
+        toast.error('Please verify that you are not a robot.');
+        return;
+      }
+      recaptchaToken = token;
     }
 
     setIsSubmitting(true);
@@ -656,7 +695,11 @@ export default function Volunteer() {
         computedArea = 'ESPA Foundation';
       }
 
-      const formattedLanguages = languages.map(l => `${l.language} (${l.fluency})`);
+      const formattedLanguages = languages.map(l => {
+        const name = typeof l === 'string' ? l : l?.language;
+        const fluency = typeof l === 'string' ? 'Fluent' : (l?.fluency || 'Fluent');
+        return `${name} (${fluency})`;
+      });
       const appId = `app_vol_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
 
       const newAppRecord = {
@@ -1263,25 +1306,31 @@ export default function Volunteer() {
                 {/* Added Language Chips with Fluency - (Placeholder text note removed per user instruction) */}
                 {languages.length > 0 && (
                   <div className="flex flex-wrap gap-2 p-2.5 bg-stone-50/80 rounded-xl border border-stone-200/80 mb-2 animate-in fade-in">
-                    {languages.map((item, idx) => (
-                      <span
-                        key={idx}
-                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs bg-white text-stone-900 border border-stone-200 shadow-2xs transition-all animate-in fade-in"
-                      >
-                        <span className="font-semibold text-[#003828]">{item.language}</span>
-                        <span className="text-[11px] font-medium px-1.5 py-0.5 rounded bg-[#003828]/10 text-[#003828] border border-[#003828]/20">
-                          {item.fluency}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveLanguage(idx)}
-                          className="text-stone-400 hover:text-red-600 transition-colors p-0.5 rounded-sm cursor-pointer"
-                          title={`Remove ${item.language}`}
+                    {languages.map((item, idx) => {
+                      if (!item) return null;
+                      const langName = typeof item === 'string' ? item : item.language;
+                      const langFluency = typeof item === 'string' ? 'Fluent' : (item.fluency || 'Fluent');
+                      if (!langName) return null;
+                      return (
+                        <span
+                          key={idx}
+                          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs bg-white text-stone-900 border border-stone-200 shadow-2xs transition-all animate-in fade-in"
                         >
-                          <X size={13} />
-                        </button>
-                      </span>
-                    ))}
+                          <span className="font-semibold text-[#003828]">{langName}</span>
+                          <span className="text-[11px] font-medium px-1.5 py-0.5 rounded bg-[#003828]/10 text-[#003828] border border-[#003828]/20">
+                            {langFluency}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveLanguage(idx)}
+                            className="text-stone-400 hover:text-red-600 transition-colors p-0.5 rounded-sm cursor-pointer"
+                            title={`Remove ${langName}`}
+                          >
+                            <X size={13} />
+                          </button>
+                        </span>
+                      );
+                    })}
                   </div>
                 )}
 
@@ -1595,12 +1644,12 @@ export default function Volunteer() {
                       Why Do You Want to Volunteer?<span className="text-red-500">*</span>
                     </label>
                     <span className="text-xs text-stone-400 font-mono">
-                      {formData.motivation.length} / 1000
+                      {(formData.motivation || '').length} / 1000
                     </span>
                   </div>
                   <textarea
                     name="motivation"
-                    value={formData.motivation}
+                    value={formData.motivation || ''}
                     maxLength={1000}
                     onChange={handleChange}
                     onBlur={() => markTouched('motivation')}
@@ -1621,13 +1670,15 @@ export default function Volunteer() {
                 </div>
               </div>
 
-              {/* reCAPTCHA verification */}
-              <div className="pt-2 flex flex-col items-center sm:items-start">
-                <ReCAPTCHA
-                  ref={recaptchaRef}
-                  sitekey={RECAPTCHA_SITE_KEY}
-                />
-              </div>
+              {/* reCAPTCHA verification (conditionally rendered only if configured) */}
+              {RECAPTCHA_SITE_KEY ? (
+                <div className="pt-2 flex flex-col items-center sm:items-start">
+                  <ReCAPTCHA
+                    ref={recaptchaRef}
+                    sitekey={RECAPTCHA_SITE_KEY}
+                  />
+                </div>
+              ) : null}
 
               {/* Submit & Action Buttons */}
               <div className="pt-4 border-t border-stone-100 flex flex-wrap items-center justify-between gap-4">

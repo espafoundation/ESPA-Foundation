@@ -16,8 +16,8 @@ const app = express();
 app.set('trust proxy', 1); // Trust first proxy to fix express-rate-limit issues
 const port = process.env.PORT || 3000;
 
-const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = process.env.SUPABASE_URL || process.env.SUPABASE_UL || process.env.VITE_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 const supabase = (supabaseUrl && supabaseKey) ? createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } }) : null;
 
 // Security Middleware: Helmet for secure HTTP headers
@@ -241,56 +241,6 @@ app.patch('/api/applications/:id', async (req, res) => {
 });
 
 // API Routes
-import Stripe from 'stripe';
-
-let stripeClient: Stripe | null = null;
-export function getStripe(): Stripe {
-  if (!stripeClient) {
-    const key = process.env.STRIPE_SECRET_KEY;
-    if (!key) {
-      throw new Error('STRIPE_SECRET_KEY environment variable is required');
-    }
-    stripeClient = new Stripe(key, { apiVersion: '2023-10-16' as any });
-  }
-  return stripeClient;
-}
-
-app.post('/api/create-checkout-session', apiLimiter, async (req, res) => {
-  try {
-    const stripe = getStripe();
-    const { amount } = req.body; // Expected amount in dollars/euros etc.
-
-    if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
-      return res.status(400).json({ error: 'Valid amount is required' });
-    }
-
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: [
-        {
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: 'ESPA Foundation Donation',
-              description: 'Thank you for supporting our mission.',
-            },
-            unit_amount: Math.round(Number(amount) * 100), // Stripe expects amounts in cents
-          },
-          quantity: 1,
-        },
-      ],
-      mode: 'payment',
-      success_url: `${req.headers.origin || 'http://localhost:3000'}/donate?success=true`,
-      cancel_url: `${req.headers.origin || 'http://localhost:3000'}/donate?canceled=true`,
-    });
-
-    res.json({ url: session.url });
-  } catch (error: any) {
-    console.error('Stripe error:', error.message);
-    res.status(500).json({ error: error.message || 'Failed to create checkout session' });
-  }
-});
-
 app.post('/api/contact', apiLimiter, async (req, res) => {
   const { name, email, message, recaptchaToken } = req.body;
   if (!name || !email || !message || !recaptchaToken) return res.status(400).json({ error: 'All fields are required' });

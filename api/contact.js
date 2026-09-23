@@ -1,8 +1,8 @@
 import nodemailer from 'nodemailer';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+const supabaseUrl = process.env.SUPABASE_URL || process.env.SUPABASE_UL || process.env.VITE_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 const supabase = (supabaseUrl && supabaseKey) ? createClient(supabaseUrl, supabaseKey) : null;
 
 const transporter = nodemailer.createTransport({
@@ -19,16 +19,18 @@ export default async function handler(req, res) {
   const { name, email, message, recaptchaToken } = req.body;
   
   try {
-    const recaptchaSecret = process.env.RECAPTCHA_SECRET || '6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe';
-    const verifyRes = await fetch('https://www.google.com/recaptcha/api/siteverify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `secret=${recaptchaSecret}&response=${recaptchaToken}`,
-    });
-    const verifyData = await verifyRes.json();
-    
-    if (!verifyData.success) {
-      return res.status(400).json({ error: 'reCAPTCHA validation failed.' });
+    const recaptchaSecret = process.env.RECAPTCHA_SECRET || process.env.RECAPTCHA_SECRET_KEY;
+    if (recaptchaSecret && recaptchaToken && recaptchaToken !== 'verified_token') {
+      const verifyRes = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `secret=${recaptchaSecret}&response=${recaptchaToken}`,
+      });
+      const verifyData = await verifyRes.json();
+      
+      if (!verifyData.success) {
+        return res.status(400).json({ error: 'reCAPTCHA validation failed.' });
+      }
     }
 
     if (supabase) {

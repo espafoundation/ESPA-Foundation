@@ -24,8 +24,8 @@ interface SearchableDropdownProps {
 
 export default function SearchableDropdown({
   id,
-  options,
-  value,
+  options = [],
+  value = '',
   onChange,
   placeholder = 'Select an option',
   searchPlaceholder = 'Search...',
@@ -41,21 +41,25 @@ export default function SearchableDropdown({
   const containerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
+  const safeOptions = useMemo(() => Array.isArray(options) ? options : [], [options]);
+
   // Find currently selected option
   const selectedOption = useMemo(() => {
-    return options.find(opt => opt.value === value);
-  }, [options, value]);
+    return safeOptions.find(opt => opt && opt.value === value);
+  }, [safeOptions, value]);
 
   // Filtered options based on search query
   const filteredOptions = useMemo(() => {
     const cleanQuery = (searchQuery || '').toLowerCase().trim();
-    if (!cleanQuery) return options;
-    return options.filter(opt => 
-      (opt?.label || '').toLowerCase().includes(cleanQuery) || 
-      (opt?.sublabel && opt.sublabel.toLowerCase().includes(cleanQuery)) ||
-      (opt?.value || '').toLowerCase().includes(cleanQuery)
+    if (!cleanQuery) return safeOptions;
+    return safeOptions.filter(opt => 
+      opt && (
+        (opt.label || '').toLowerCase().includes(cleanQuery) || 
+        (opt.sublabel && opt.sublabel.toLowerCase().includes(cleanQuery)) ||
+        (opt.value || '').toLowerCase().includes(cleanQuery)
+      )
     );
-  }, [options, searchQuery]);
+  }, [safeOptions, searchQuery]);
 
   // Click outside to close dropdown
   useEffect(() => {

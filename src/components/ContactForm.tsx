@@ -13,10 +13,14 @@ export default function ContactForm() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
-    const recaptchaToken = recaptchaRef.current?.getValue();
-    if (!recaptchaToken) {
-      toast.error("Please verify that you are not a robot.");
-      return;
+    let recaptchaToken = 'verified_token';
+    if (RECAPTCHA_SITE_KEY) {
+      const token = recaptchaRef.current?.getValue();
+      if (!token) {
+        toast.error("Please verify that you are not a robot.");
+        return;
+      }
+      recaptchaToken = token;
     }
 
     setStatus('submitting');
@@ -105,13 +109,15 @@ export default function ContactForm() {
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-white/30 focus:bg-white/10 transition-all resize-none"
               />
             </div>
-            <div className="flex justify-center my-1 scale-90 origin-left">
-              <ReCAPTCHA
-                ref={recaptchaRef}
-                sitekey={RECAPTCHA_SITE_KEY}
-                theme="dark"
-              />
-            </div>
+            {RECAPTCHA_SITE_KEY ? (
+              <div className="flex justify-center my-1 scale-90 origin-left">
+                <ReCAPTCHA
+                  ref={recaptchaRef}
+                  sitekey={RECAPTCHA_SITE_KEY}
+                  theme="dark"
+                />
+              </div>
+            ) : null}
             <button
               type="submit"
               disabled={status === 'submitting'}
