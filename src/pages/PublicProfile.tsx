@@ -10,7 +10,7 @@ export default function PublicProfile() {
   // Look up user from localStorage or mock registry
   const users = (() => {
     try {
-      const stored = localStorage.getItem('ain_users');
+      const stored = localStorage.getItem('espa_users') || localStorage.getItem('ain_users');
       if (stored) return JSON.parse(stored);
     } catch (e) {}
     return [];

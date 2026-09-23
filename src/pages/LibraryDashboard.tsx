@@ -18,6 +18,7 @@ const Portal = ({ children }: { children: React.ReactNode }) => {
   return createPortal(children, document.body);
 };
 import { useAuth } from '../contexts/AuthContext';
+import toast from 'react-hot-toast';
 import { LibraryLogo } from '../components/LibraryLogo';
 import SettingsView from '../components/SettingsView';
 import { getBooks, saveBook, deleteBook, extractDriveId, Book, CATEGORIES } from '../lib/library';
@@ -53,18 +54,20 @@ export default function LibraryDashboard() {
     setBookmarks(newBookmarks);
     
     // update user in localStorage
-    const usersStr = window.localStorage.getItem("ain_users");
+    const usersStr = window.localStorage.getItem("espa_users") || window.localStorage.getItem("ain_users");
     if (usersStr) {
       try {
         const users = JSON.parse(usersStr);
         const userIndex = users.findIndex((u: any) => u.id === user?.id);
         if (userIndex >= 0) {
           users[userIndex].bookmarks = newBookmarks;
-          window.localStorage.setItem("ain_users", JSON.stringify(users));
+          window.localStorage.setItem("espa_users", JSON.stringify(users));
+          window.localStorage.removeItem("ain_users");
           
           const updatedUser = { ...user, bookmarks: newBookmarks };
-          window.localStorage.setItem("ain_currentUser", JSON.stringify(updatedUser));
-          window.dispatchEvent(new Event('ain_user_changed'));
+          window.localStorage.setItem("espa_currentUser", JSON.stringify(updatedUser));
+          window.localStorage.removeItem("ain_currentUser");
+          window.dispatchEvent(new Event('espa_user_changed'));
         }
       } catch (e) {}
     }
@@ -83,7 +86,7 @@ export default function LibraryDashboard() {
 
   useEffect(() => {
     if (showAdminForm && !editingBook?.id) {
-      const draft = window.localStorage.getItem('ain_draft_library_book');
+      const draft = window.localStorage.getItem('espa_draft_library_book') || window.localStorage.getItem('ain_draft_library_book');
       if (draft) {
         try {
           setEditingBook(JSON.parse(draft));
@@ -94,13 +97,13 @@ export default function LibraryDashboard() {
 
   useEffect(() => {
     if (showAdminForm && !editingBook?.id && editingBook && Object.keys(editingBook).length > 0) {
-      window.localStorage.setItem('ain_draft_library_book', JSON.stringify(editingBook));
+      window.localStorage.setItem('espa_draft_library_book', JSON.stringify(editingBook));
     }
   }, [editingBook, showAdminForm]);
 
   const handleSaveBookDraft = () => {
-    window.localStorage.setItem('ain_draft_library_book', JSON.stringify(editingBook || {}));
-    alert("Book draft saved!");
+    window.localStorage.setItem('espa_draft_library_book', JSON.stringify(editingBook || {}));
+    toast.success("Book draft saved!");
   };
 
 
@@ -139,6 +142,7 @@ export default function LibraryDashboard() {
     
     saveBook(newBook);
     setBooks(getBooks());
+    window.localStorage.removeItem('espa_draft_library_book');
     window.localStorage.removeItem('ain_draft_library_book');
     setShowAdminForm(false);
     setEditingBook(null);
@@ -237,8 +241,11 @@ export default function LibraryDashboard() {
             twoFactorConfig={null} 
             setTwoFactorConfig={() => {}} 
             setActiveTab={setActiveTab} 
+            onNavigate={() => {}}
             funds={[]} 
             setFunds={() => {}} 
+            logs={[]}
+            setLogs={() => {}}
           />
         ) : (
           <>
@@ -394,7 +401,7 @@ export default function LibraryDashboard() {
             <p className="text-stone-500 mb-6 text-sm">Are you sure you want to log out of the digital library?</p>
             <div className="flex justify-end gap-3">
               <button onClick={() => setShowLogoutConfirm(false)} className="px-4 py-2 font-semibold text-stone-600 bg-stone-100 hover:bg-stone-200 rounded-full text-sm">Cancel</button>
-              <button onClick={() => { setShowLogoutConfirm(false); window.localStorage.removeItem('ain_currentUser'); window.dispatchEvent(new Event('ain_user_changed')); navigate('/library/login'); }} className="px-4 py-2 font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-full text-sm">Log Out</button>
+              <button onClick={() => { setShowLogoutConfirm(false); window.localStorage.removeItem('espa_currentUser'); window.localStorage.removeItem('ain_currentUser'); window.dispatchEvent(new Event('espa_user_changed')); navigate('/library/login'); }} className="px-4 py-2 font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-full text-sm">Log Out</button>
             </div>
           </div>
         </div>

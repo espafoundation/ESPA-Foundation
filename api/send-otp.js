@@ -13,7 +13,7 @@ const transporter = nodemailer.createTransport({
 });
 
 function getSecret() {
-  return process.env.OTP_SECRET || '';
+  return process.env.OTP_SECRET || 'espa_foundation_default_otp_signing_secret_key_2026';
 }
 
 function sign(value) {

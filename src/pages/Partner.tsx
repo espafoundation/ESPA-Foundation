@@ -483,13 +483,14 @@ export default function Partner() {
       }
 
       // 2. Save to local storage for administrative portal sync with deduplication
-      const apps = JSON.parse(localStorage.getItem('ain_applications') || '[]');
+      const apps = JSON.parse(localStorage.getItem('espa_applications') || localStorage.getItem('ain_applications') || '[]');
       const filtered = apps.filter((a: any) => 
         a.id !== appId && 
         !(a.email && a.email.toLowerCase() === formData.email.toLowerCase() && a.type === 'partner')
       );
       filtered.unshift(newApp);
-      localStorage.setItem('ain_applications', JSON.stringify(filtered));
+      localStorage.setItem('espa_applications', JSON.stringify(filtered));
+      localStorage.removeItem('ain_applications');
       window.dispatchEvent(new Event('storage'));
 
       setIsSubmitted(true);

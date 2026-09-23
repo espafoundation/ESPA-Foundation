@@ -60,7 +60,8 @@ export default function FundsView({ funds, setFunds, users = [], addLog, showToa
       transactions: updatedTransactions
     };
     setFunds(updatedFunds);
-    window.localStorage.setItem('ain_funds', JSON.stringify(updatedFunds));
+    window.localStorage.setItem('espa_funds', JSON.stringify(updatedFunds));
+    window.localStorage.removeItem('ain_funds');
     if (addLog) addLog(`Updated fund transaction details: ${selectedTx.id}`);
     if (showToast) showToast('Transaction updated successfully', 'success');
     setSelectedTx(null);
@@ -74,7 +75,8 @@ export default function FundsView({ funds, setFunds, users = [], addLog, showToa
       transactions: updatedTransactions
     };
     setFunds(updatedFunds);
-    window.localStorage.setItem('ain_funds', JSON.stringify(updatedFunds));
+    window.localStorage.setItem('espa_funds', JSON.stringify(updatedFunds));
+    window.localStorage.removeItem('ain_funds');
     if (addLog) addLog(`Removed fund transaction: ${txId}`);
     if (showToast) showToast('Transaction removed successfully', 'success');
     setSelectedTx(null);
@@ -93,10 +95,10 @@ export default function FundsView({ funds, setFunds, users = [], addLog, showToa
     } else {
       setSelectedMemberModal({
         name: tx.donorName || tx.reason || 'Anonymous Donor',
-        email: tx.donorEmail || (tx.type === 'donation' ? 'donor@ain.org' : 'partner@ain.org'),
+        email: tx.donorEmail || (tx.type === 'donation' ? 'donor@espafoundation.social' : 'partner@espafoundation.social'),
         role: tx.type === 'donation' ? 'Donor' : 'Partner',
         joinDate: tx.date ? new Date(tx.date).toLocaleDateString() : 'Recent',
-        organization: 'AIN Foundation Supporter',
+        organization: 'ESPA Foundation Supporter',
         status: 'Active'
       });
     }
@@ -129,7 +131,7 @@ export default function FundsView({ funds, setFunds, users = [], addLog, showToa
 
   useEffect(() => {
     if (isAdding) {
-      const draft = window.localStorage.getItem('ain_draft_add_fund');
+      const draft = window.localStorage.getItem('espa_draft_add_fund') || window.localStorage.getItem('ain_draft_add_fund');
       if (draft) {
         try {
           const parsed = JSON.parse(draft);
@@ -140,7 +142,7 @@ export default function FundsView({ funds, setFunds, users = [], addLog, showToa
         } catch (e) {}
       }
     } else if (isAllocating) {
-      const draft = window.localStorage.getItem('ain_draft_allocate_fund');
+      const draft = window.localStorage.getItem('espa_draft_allocate_fund') || window.localStorage.getItem('ain_draft_allocate_fund');
       if (draft) {
         try {
           const parsed = JSON.parse(draft);
@@ -154,13 +156,13 @@ export default function FundsView({ funds, setFunds, users = [], addLog, showToa
 
   useEffect(() => {
     if (isAdding && (donorName || donorEmail || amountPKR || amountUSD)) {
-      window.localStorage.setItem('ain_draft_add_fund', JSON.stringify({ donorName, donorEmail, amountPKR, amountUSD }));
+      window.localStorage.setItem('espa_draft_add_fund', JSON.stringify({ donorName, donorEmail, amountPKR, amountUSD }));
     }
   }, [donorName, donorEmail, amountPKR, amountUSD, isAdding]);
 
   useEffect(() => {
     if (isAllocating && (allocationReason || amountPKR || amountUSD)) {
-      window.localStorage.setItem('ain_draft_allocate_fund', JSON.stringify({ allocationReason, amountPKR, amountUSD }));
+      window.localStorage.setItem('espa_draft_allocate_fund', JSON.stringify({ allocationReason, amountPKR, amountUSD }));
     }
   }, [allocationReason, amountPKR, amountUSD, isAllocating]);
 
@@ -169,17 +171,19 @@ export default function FundsView({ funds, setFunds, users = [], addLog, showToa
                   (isAllocating && (allocationReason.trim() !== '' || amountPKR !== '' || amountUSD !== ''));
   
   useEffect(() => {
-    window.ain_isFormDirty = (isAdding || isAllocating) && isDirty;
-    return () => { window.ain_isFormDirty = false; };
+    window.espa_isFormDirty = (isAdding || isAllocating) && isDirty;
+    return () => { window.espa_isFormDirty = false; };
   }, [isAdding, isAllocating, isDirty]);
 
   const [showDiscardModal, setShowDiscardModal] = useState(false);
 
   const confirmDiscard = () => {
+    window.localStorage.removeItem('espa_draft_add_fund');
+    window.localStorage.removeItem('espa_draft_allocate_fund');
     window.localStorage.removeItem('ain_draft_add_fund');
     window.localStorage.removeItem('ain_draft_allocate_fund');
     setDonorName(''); setDonorEmail(''); setAmountPKR(''); setAmountUSD(''); setAllocationReason('');
-    window.ain_isFormDirty = false;
+    window.espa_isFormDirty = false;
     setIsAdding(false); setIsAllocating(false);
     setShowDiscardModal(false);
   };
@@ -193,12 +197,12 @@ export default function FundsView({ funds, setFunds, users = [], addLog, showToa
   };
 
   const handleSaveAddDraft = () => {
-    window.localStorage.setItem('ain_draft_add_fund', JSON.stringify({ donorName, donorEmail, amountPKR, amountUSD }));
+    window.localStorage.setItem('espa_draft_add_fund', JSON.stringify({ donorName, donorEmail, amountPKR, amountUSD }));
     showToast("Add Fund draft saved!", "success");
   };
 
   const handleSaveAllocateDraft = () => {
-    window.localStorage.setItem('ain_draft_allocate_fund', JSON.stringify({ allocationReason, amountPKR, amountUSD }));
+    window.localStorage.setItem('espa_draft_allocate_fund', JSON.stringify({ allocationReason, amountPKR, amountUSD }));
     showToast("Allocate Fund draft saved!", "success");
   };
 
@@ -248,6 +252,7 @@ export default function FundsView({ funds, setFunds, users = [], addLog, showToa
     setDonorEmail('');
     setAmountPKR('');
     setAmountUSD('');
+    window.localStorage.removeItem('espa_draft_add_fund');
     window.localStorage.removeItem('ain_draft_add_fund');
     showToast('Donation added successfully', 'success');
     addLog(`Donation of PKR ${valPKR} / USD ${valUSD} added from ${donorName}`);
@@ -292,6 +297,7 @@ export default function FundsView({ funds, setFunds, users = [], addLog, showToa
     setAllocationReason('');
     setAmountPKR('');
     setAmountUSD('');
+    window.localStorage.removeItem('espa_draft_allocate_fund');
     window.localStorage.removeItem('ain_draft_allocate_fund');
     showToast('Funds allocated successfully', 'success');
     addLog(`Allocated PKR ${valPKR} / USD ${valUSD} for ${allocationReason}`);

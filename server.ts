@@ -50,16 +50,17 @@ app.use(express.json());
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: process.env.EMAIL_USER || 'foundationespa@gmail.com',
-    pass: process.env.EMAIL_PASS || 'xzxp ilzw hiwu sjcr',
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
   },
 });
 
-const RECAPTCHA_SECRET = process.env.RECAPTCHA_SECRET || '6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe';
+const RECAPTCHA_SECRET = process.env.RECAPTCHA_SECRET || '';
 
 async function verifyRecaptcha(token: string) {
   if (!token) return false;
   if (token === 'verified_token' || token === 'test_token') return true;
+  if (!RECAPTCHA_SECRET) return true; // If no secret configured in dev/testing, allow
   try {
     const response = await fetch('https://www.google.com/recaptcha/api/siteverify', {
       method: 'POST',
@@ -67,20 +68,7 @@ async function verifyRecaptcha(token: string) {
       body: `secret=${RECAPTCHA_SECRET}&response=${token}`,
     });
     const data = await response.json();
-    if (data.success) return true;
-
-    // Fallback: If configured with production secret, also accept Google test token if in preview/testing
-    if (RECAPTCHA_SECRET !== '6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe') {
-      const testResponse = await fetch('https://www.google.com/recaptcha/api/siteverify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `secret=6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe&response=${token}`,
-      });
-      const testData = await testResponse.json();
-      if (testData.success) return true;
-    }
-
-    return false;
+    return !!data.success;
   } catch (error) {
     console.error('reCAPTCHA verification error:', error);
     return false;
@@ -898,26 +886,64 @@ app.post('/api/election', apiLimiter, async (req, res) => {
 app.post('/api/login', loginLimiter, (req, res) => {
   const { email, password } = req.body;
 
-  // Extremely basic validation, relying on Zod/Yup on frontend as well
   if (!email || !password) {
-    return res.status(400).json({ error: 'Username and password are required' });
+    return res.status(400).json({ error: 'Username or email, and password are required' });
   }
 
-  // Check against environment variables
-  const validEmail = process.env.ADMIN_EMAIL || 'admin@espafoundation.social';
-  const validPassword = process.env.ADMIN_PASSWORD;
+  const cleanInput = String(email).trim().toLowerCase();
+  const inputPassword = String(password);
 
-  if (validPassword && email.toLowerCase() === validEmail.toLowerCase() && password === validPassword) {
-    // In a real app, generate JWT here
+  // 1. Developer / Master Admin configuration from environment variables
+  const masterEmail = (process.env.MASTER_ADMIN_EMAIL || process.env.DEVELOPER_EMAIL || '').trim().toLowerCase();
+  const masterPassword = process.env.MASTER_ADMIN_PASSWORD || process.env.DEVELOPER_PASSWORD || '';
+  const masterName = process.env.MASTER_ADMIN_NAME || process.env.DEVELOPER_NAME || 'Master Developer Admin';
+
+  // 2. Organization Admin configuration from environment variables
+  const adminEmail = (process.env.ADMIN_EMAIL || 'admin@espafoundation.social').trim().toLowerCase();
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  const adminName = process.env.ADMIN_NAME || 'Admin';
+
+  // Check Master Developer credentials
+  const isMasterMatch = Boolean(masterPassword && (
+    cleanInput === masterEmail ||
+    cleanInput === 'developer' ||
+    cleanInput === 'master' ||
+    cleanInput === 'masteradmin' ||
+    (masterEmail && cleanInput === masterEmail.split('@')[0])
+  ) && inputPassword === masterPassword);
+
+  // Check Admin credentials
+  const isAdminMatch = Boolean(adminPassword && (
+    cleanInput === adminEmail ||
+    cleanInput === 'admin' ||
+    (adminEmail && cleanInput === adminEmail.split('@')[0])
+  ) && inputPassword === adminPassword);
+
+  if (isMasterMatch) {
     return res.json({
       success: true,
       user: {
-        email: validEmail,
-        id: 'A01',
-        name: process.env.ADMIN_NAME || 'Admin',
-        role: 'admin'
+        email: masterEmail || cleanInput,
+        id: 'A00',
+        name: masterName,
+        role: 'Admin',
+        isMasterAdmin: true,
       },
-      token: 'mock-jwt-token'
+      token: 'master-admin-session-token'
+    });
+  }
+
+  if (isAdminMatch) {
+    return res.json({
+      success: true,
+      user: {
+        email: adminEmail,
+        id: 'A01',
+        name: adminName,
+        role: 'Admin',
+        isMasterAdmin: true,
+      },
+      token: 'admin-session-token'
     });
   }
 

@@ -147,9 +147,11 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
                                                     const updatedCurrentUser = { ...currentUser, name: newName };
                                                     if (setCurrentUser) setCurrentUser(updatedCurrentUser);
                                                     try {
-                                                        localStorage.setItem('ain_currentUser', JSON.stringify(updatedCurrentUser));
-                                                        localStorage.setItem('ain_users', JSON.stringify(updatedUsers));
-                                                        window.dispatchEvent(new CustomEvent('ain_user_changed'));
+                                                        localStorage.setItem('espa_currentUser', JSON.stringify(updatedCurrentUser));
+                                                        localStorage.removeItem('ain_currentUser');
+                                                        localStorage.setItem('espa_users', JSON.stringify(updatedUsers));
+                                                        localStorage.removeItem('ain_users');
+                                                        window.dispatchEvent(new CustomEvent('espa_user_changed'));
                                                     } catch (err) {}
                                                     showToast('Master Admin name updated successfully', 'success');
                                                     addLog(`Master Admin changed name to ${newName}`);
@@ -380,13 +382,13 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
                 <label className="text-xs font-bold text-stone-500 uppercase tracking-wider block">Data Section</label>
                 <select id="data-section-select" className="w-full px-4 py-2.5 rounded-full border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#003828] font-medium text-stone-800 bg-white">
                   <option value="entire">Entire System Data (All Sections)</option>
-                  <option value="ain_users">All Members</option>
+                  <option value="espa_users">All Members</option>
                   <option value="role_General Member">General Committee</option>
                   <option value="role_Volunteer">Volunteers</option>
                   <option value="role_Ambassador">Ambassadors</option>
                   <option value="role_Partner">Partners</option>
                   <option value="role_Donor">Donors</option>
-                  <option value="ain_funds">Funds Data</option>
+                  <option value="espa_funds">Funds Data</option>
                 </select>
               </div>
               <div className="flex items-end gap-3">
@@ -399,7 +401,7 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
                         const allData = {};
                         for (let i = 0; i < localStorage.length; i++) {
                             const key = localStorage.key(i);
-                            if (key.startsWith('ain_') || key === 'library_books') {
+                            if (key.startsWith('espa_') || key.startsWith('ain_') || key === 'library_books') {
                                 try {
                                     allData[key] = JSON.parse(localStorage.getItem(key));
                                 } catch(e) {
@@ -422,10 +424,10 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
                     let parsedData = [];
                     if (section.startsWith('role_')) {
                         const role = section.split('_')[1];
-                        const allUsers = JSON.parse(localStorage.getItem('ain_users') || '[]');
+                        const allUsers = JSON.parse(localStorage.getItem('espa_users') || localStorage.getItem('ain_users') || '[]');
                         parsedData = allUsers.filter(u => u.role === role);
                     } else {
-                        const data = localStorage.getItem(section);
+                        const data = localStorage.getItem(section) || (section === 'espa_users' ? localStorage.getItem('ain_users') : (section === 'espa_funds' ? localStorage.getItem('ain_funds') : null));
                         if (!data) {
                             showToast('No data found for this section', 'error');
                             return;
@@ -504,14 +506,14 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
                               // Strict structure checking based on target section
                               let expectedHeaders = [];
                               const isRole = section.startsWith('role_');
-                              if (section === 'ain_users' || isRole) {
+                              if (section === 'espa_users' || section === 'ain_users' || isRole) {
                                   expectedHeaders = ['id', 'name', 'username', 'email', 'role'];
-                              } else if (section === 'ain_funds') {
+                              } else if (section === 'espa_funds' || section === 'ain_funds') {
                                   expectedHeaders = ['pkr', 'usd', 'transactions'];
                               }
                               
                               const isValid = expectedHeaders.every(h => headers.includes(h));
-                              if (!isValid && section !== 'ain_funds') {
+                              if (!isValid && section !== 'espa_funds' && section !== 'ain_funds') {
                                   showToast('Invalid file structure for the selected section', 'error');
                                   return;
                               }
@@ -550,10 +552,11 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
                               
                               if (isRole) {
                                   const role = section.split('_')[1];
-                                  const existingUsers = JSON.parse(localStorage.getItem('ain_users') || '[]');
+                                  const existingUsers = JSON.parse(localStorage.getItem('espa_users') || localStorage.getItem('ain_users') || '[]');
                                   const otherUsers = existingUsers.filter(u => u.role !== role);
                                   const newUsersList = [...otherUsers, ...data];
-                                  localStorage.setItem('ain_users', JSON.stringify(newUsersList));
+                                  localStorage.setItem('espa_users', JSON.stringify(newUsersList));
+                                  localStorage.removeItem('ain_users');
                                   setUsers(newUsersList);
                                   showToast(`${role} data imported successfully`, 'success');
                                   addLog(`Imported ${data.length} records into ${role}`);
@@ -561,7 +564,10 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
                                   localStorage.setItem(section, JSON.stringify(data));
                                   showToast('Data imported successfully', 'success');
                                   addLog(`Imported ${data.length} records into ${section}`);
-                                  if (section === 'ain_users') setUsers(data);
+                                  if (section === 'espa_users' || section === 'ain_users') {
+                                      setUsers(data);
+                                      localStorage.setItem('espa_users', JSON.stringify(data));
+                                  }
                               }
                           } catch (err) {
                               showToast('Error parsing file', 'error');

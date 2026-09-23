@@ -728,7 +728,7 @@ export default function Volunteer() {
 
       // The server/Supabase is the source of truth.
       // Do not save applications to localStorage.
-      window.dispatchEvent(new Event('ain_refresh_applications'));
+      window.dispatchEvent(new Event('espa_refresh_applications'));
 
       // Clear the local storage draft once finalized!
       localStorage.removeItem(STORAGE_KEY);

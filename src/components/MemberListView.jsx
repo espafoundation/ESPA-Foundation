@@ -16,12 +16,12 @@ export default function MemberListView({ title, description, icon: Icon, members
   const [confirm, setConfirm] = useState(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  const draftKey = `ain_draft_${title.toLowerCase()}`;
+  const draftKey = `espa_draft_${title.toLowerCase()}`;
   const [newMember, setNewMember] = useState({ name: '', email: '', phone: '' });
   
   useEffect(() => {
     if (isAddModalOpen) {
-      const savedDraft = window.localStorage.getItem(draftKey);
+      const savedDraft = window.localStorage.getItem(draftKey) || window.localStorage.getItem(`ain_draft_${title.toLowerCase()}`);
       if (savedDraft) {
         try {
           setNewMember(JSON.parse(savedDraft));
@@ -31,21 +31,20 @@ export default function MemberListView({ title, description, icon: Icon, members
   }, [isAddModalOpen, draftKey]);
 
   
-
-  
   const isDirty = Object.values(newMember).some(v => typeof v === 'string' && v.trim() !== '') || (newMember.role && newMember.role !== '');
   
   useEffect(() => {
-    window.ain_isFormDirty = isAddModalOpen && isDirty;
-    return () => { window.ain_isFormDirty = false; };
+    window.espa_isFormDirty = isAddModalOpen && isDirty;
+    return () => { window.espa_isFormDirty = false; };
   }, [isAddModalOpen, isDirty]);
 
   const [showDiscardModal, setShowDiscardModal] = useState(false);
 
   const confirmDiscard = () => {
     window.localStorage.removeItem(draftKey);
+    window.localStorage.removeItem(`ain_draft_${title.toLowerCase()}`);
     setNewMember({ name: '', email: '', phone: '' });
-    window.ain_isFormDirty = false;
+    window.espa_isFormDirty = false;
     setIsAddModalOpen(false);
     setShowDiscardModal(false);
   };
@@ -145,7 +144,10 @@ export default function MemberListView({ title, description, icon: Icon, members
     if (setMembers) {
       setMembers(prev => {
         const next = (prev || []).map(member => String(member.id) === String(editingMember.id) ? updatedMember : member);
-        try { window.localStorage.setItem('ain_users', JSON.stringify(next)); } catch (e) {}
+        try {
+          window.localStorage.setItem('espa_users', JSON.stringify(next));
+          window.localStorage.removeItem('ain_users');
+        } catch (e) {}
         return next;
       });
     } else if (onUpdateRole && updatedMember.role !== editingMember.role) {
@@ -166,7 +168,10 @@ export default function MemberListView({ title, description, icon: Icon, members
     if (setMembers) {
       setMembers(prev => {
         const next = (prev || []).filter(item => String(item.id) !== String(member.id));
-        try { window.localStorage.setItem('ain_users', JSON.stringify(next)); } catch (e) {}
+        try {
+          window.localStorage.setItem('espa_users', JSON.stringify(next));
+          window.localStorage.removeItem('ain_users');
+        } catch (e) {}
         return next;
       });
     }

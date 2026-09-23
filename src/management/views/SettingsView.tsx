@@ -2,7 +2,19 @@ import React, { useState } from 'react';
 import { Settings, Save, Archive, Shield, Key, Info, CheckCircle2, AlertCircle, Mail, Smartphone, QrCode, Globe } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 
-const verifyTOTP = async (code) => code === '123456';
+const verifyTOTP = async (code) => {
+  try {
+    const res = await fetch('/api/verify-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ otp: code })
+    });
+    const data = await res.json();
+    return !!data.valid;
+  } catch (e) {
+    return false;
+  }
+};
 import { ToggleSwitch } from '../components/SharedComponents';
 import { createPortal } from 'react-dom';
 import DraggableModal from '../components/DraggableModal';
@@ -33,23 +45,13 @@ export default function SettingsView({ currentUser, globalUsers, setUsers, showT
     
     const user = globalUsers?.find(u => u.id === currentUser.id);
     if (!user) {
-        if (currentUser.id === 'A01' && (oldPassword === 'adminpass' || oldPassword === '12345' || oldPassword === 'admin')) {
-            showToast('Admin password changed successfully', 'success');
-            setOldPassword('');
-            setNewPassword('');
-            setConfirmPassword('');
-            addLog('Admin changed their password');
-            return;
-        }
         showToast('User not found', 'error');
         return;
     }
     
-    if (user.password !== oldPassword && user.password !== undefined && !(user.password === '' && oldPassword === '12345')) {
-       if (user.password !== oldPassword) {
-           showToast('Incorrect old password', 'error');
-           return;
-       }
+    if (user.password && user.password !== oldPassword) {
+        showToast('Incorrect old password', 'error');
+        return;
     }
     
     const updatedUsers = globalUsers.map(u => u.id === user.id ? { ...u, password: newPassword } : u);
@@ -306,7 +308,7 @@ export default function SettingsView({ currentUser, globalUsers, setUsers, showT
               
               <div className="flex justify-center mb-6">
                 <div className="w-48 h-48 bg-white border-2 border-stone-200 rounded-2xl flex items-center justify-center">
-                  <QRCodeSVG value={`otpauth://totp/AIN%20Management:${currentUser?.email || currentUser?.username}?secret=JBSWY3DPEHPK3PXP&issuer=AIN%20Management`} size={160} />
+                  <QRCodeSVG value={`otpauth://totp/ESPA%20Management:${currentUser?.email || currentUser?.username}?secret=JBSWY3DPEHPK3PXP&issuer=ESPA%20Management`} size={160} />
                 </div>
               </div>
               

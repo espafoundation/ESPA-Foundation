@@ -230,8 +230,12 @@ export default function ApplicationsView({
         } catch (e) {}
       }
     };
+    window.addEventListener('espa_reset_applications_hero', handleResetHero);
     window.addEventListener('ain_reset_applications_hero', handleResetHero);
-    return () => window.removeEventListener('ain_reset_applications_hero', handleResetHero);
+    return () => {
+      window.removeEventListener('espa_reset_applications_hero', handleResetHero);
+      window.removeEventListener('ain_reset_applications_hero', handleResetHero);
+    };
   }, []);
 
   // Sync selectedApp with URL path /portal/application/:id on mount & on popstate
@@ -371,7 +375,8 @@ export default function ApplicationsView({
 
     setApplications(updated);
     try {
-      localStorage.setItem('ain_applications', JSON.stringify(updated));
+      localStorage.setItem('espa_applications', JSON.stringify(updated));
+      localStorage.removeItem('ain_applications');
     } catch (e) {}
 
     // Update selected app if currently viewing it
@@ -402,7 +407,8 @@ export default function ApplicationsView({
                 return u;
               });
               try {
-                localStorage.setItem('ain_users', JSON.stringify(updatedList));
+                localStorage.setItem('espa_users', JSON.stringify(updatedList));
+                localStorage.removeItem('ain_users');
               } catch (e) {}
               return updatedList;
             }
@@ -460,7 +466,8 @@ export default function ApplicationsView({
 
             const updatedList = [newMember, ...list];
             try {
-              localStorage.setItem('ain_users', JSON.stringify(updatedList));
+              localStorage.setItem('espa_users', JSON.stringify(updatedList));
+              localStorage.removeItem('ain_users');
             } catch (e) {}
             return updatedList;
           });
@@ -470,7 +477,8 @@ export default function ApplicationsView({
             const list = Array.isArray(prevUsers) ? prevUsers : [];
             const filtered = list.filter(u => u.applicationId !== targetApp.id);
             try {
-              localStorage.setItem('ain_users', JSON.stringify(filtered));
+              localStorage.setItem('espa_users', JSON.stringify(filtered));
+              localStorage.removeItem('ain_users');
             } catch (e) {}
             return filtered;
           });

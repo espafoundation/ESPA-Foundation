@@ -7,7 +7,10 @@ const supabase = (supabaseUrl && supabaseKey) ? createClient(supabaseUrl, supaba
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
-  auth: { user: 'foundationespa@gmail.com', pass: 'xzxp ilzw hiwu sjcr' },
+  auth: {
+    user: process.env.EMAIL_USER || 'foundationespa@gmail.com',
+    pass: process.env.EMAIL_PASS || process.env.EMAIL_APP_PASSWORD,
+  },
 });
 
 export default async function handler(req, res) {

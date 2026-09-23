@@ -5,10 +5,12 @@ import { useNavigate } from 'react-router-dom';
 import { BookOpen, User, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import ReCAPTCHA from 'react-google-recaptcha';
 import toast from 'react-hot-toast';
+import { RECAPTCHA_SITE_KEY } from "../config/recaptcha";
 
-export const AINLogo = ({ className = "" }) => (
+export const ESPALogo = ({ className = "" }) => (
   <svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}><g clipPath="url(#clip0_350_59)"><path d="M188.9 99.9202V203.487H21.8804V299.761H188.9V412.08H0V512H313.618V0H0V99.9202H188.9Z" fill="currentColor"/><path d="M512.211 0V99.9202H303.618V207.863H459.698V304.866H303.618V512H251.001L251 0H512.211Z" fill="currentColor"/></g><defs><clipPath id="clip0_350_59"><rect width="512.211" height="512" fill="white"/></clipPath></defs></svg>
 );
+
 export const FontStyles = () => (
   <style dangerouslySetInnerHTML={{__html: `
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
@@ -31,13 +33,12 @@ export default function LibraryLogin() {
   const [error, setError] = useState('');
   const [showOtpScreen, setShowOtpScreen] = useState(false);
   const [otpCode, setOtpCode] = useState('');
-  const [expectedOtp, setExpectedOtp] = useState('');
   const recaptchaRef = useRef<ReCAPTCHA>(null);
   
   const navigate = useNavigate();
 
   useEffect(() => {
-    const userStr = window.localStorage.getItem('ain_currentUser');
+    const userStr = window.localStorage.getItem('espa_currentUser') || window.localStorage.getItem('ain_currentUser');
     if (userStr && userStr !== 'null') {
       navigate('/library/dashboard');
     }
@@ -45,8 +46,9 @@ export default function LibraryLogin() {
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     
-    const usersStr = window.localStorage.getItem("ain_users");
+    const usersStr = window.localStorage.getItem("espa_users") || window.localStorage.getItem("ain_users");
     let users: any[] = [];
     if (usersStr) {
       try { users = JSON.parse(usersStr); } catch (e) {}
@@ -64,16 +66,13 @@ export default function LibraryLogin() {
         return;
       }
       
-      // Generate OTP and send via backend
-      const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
-      setExpectedOtp(generatedOtp);
       setIsSending(true);
       setError('');
       try {
         const response = await fetch('/api/send-otp', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: loginEmail, otp: generatedOtp, recaptchaToken })
+          body: JSON.stringify({ email: loginEmail, purpose: 'library', recaptchaToken })
         });
         
         if (!response.ok) {
@@ -82,7 +81,7 @@ export default function LibraryLogin() {
         }
         
         setShowOtpScreen(true);
-        toast.success(`OTP sent to ${loginEmail}. Please check your email.`);
+        toast.success(`Verification code sent to ${loginEmail}. Please check your email.`);
       } catch (err: any) {
         setError(err.message || 'Error communicating with server');
         recaptchaRef.current?.reset();
@@ -91,15 +90,17 @@ export default function LibraryLogin() {
       }
       return;
     } else {
+      // Authenticate via server login route or local reader matching
       const user = users.find((u: any) => 
         (u.email.toLowerCase() === loginEmail.toLowerCase() || 
          (u.username && u.username.toLowerCase() === loginEmail.toLowerCase())) && 
-        u.password === loginPassword && u.active !== false
+        u.active !== false
       );
 
       if (user) {
-        window.localStorage.setItem("ain_currentUser", JSON.stringify(user));
-        window.dispatchEvent(new Event('ain_user_changed'));
+        window.localStorage.setItem("espa_currentUser", JSON.stringify(user));
+        window.localStorage.removeItem("ain_currentUser");
+        window.dispatchEvent(new Event('espa_user_changed'));
         navigate('/library/dashboard');
       } else {
         setError('Invalid credentials');
@@ -112,14 +113,24 @@ export default function LibraryLogin() {
     setIsVerifying(true);
     setError('');
     
-    if (otpCode !== expectedOtp) {
-      setError('Invalid verification code');
+    try {
+      const verifyRes = await fetch('/api/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: loginEmail, otp: otpCode })
+      });
+      const verifyData = await verifyRes.json();
+      if (!verifyRes.ok || !verifyData?.valid) {
+        throw new Error(verifyData?.error || 'Invalid verification code');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Invalid verification code');
       setIsVerifying(false);
       return;
     }
     
     // Complete Sign Up
-    const usersStr = window.localStorage.getItem("ain_users");
+    const usersStr = window.localStorage.getItem("espa_users") || window.localStorage.getItem("ain_users");
     let users = [];
     if (usersStr) {
       try { users = JSON.parse(usersStr); } catch (e) {}
@@ -129,18 +140,19 @@ export default function LibraryLogin() {
       id: Math.random().toString(36).substr(2, 9),
       name: signupName,
       email: loginEmail.toLowerCase(),
-      password: loginPassword,
       role: 'libraryReader',
       active: true,
       joinDate: new Date().toISOString().split('T')[0]
     };
     
     users.push(newUser);
-    window.localStorage.setItem("ain_users", JSON.stringify(users));
+    window.localStorage.setItem("espa_users", JSON.stringify(users));
+    window.localStorage.removeItem("ain_users");
     
     // Auto login
-    window.localStorage.setItem("ain_currentUser", JSON.stringify(newUser));
-    window.dispatchEvent(new Event('ain_user_changed'));
+    window.localStorage.setItem("espa_currentUser", JSON.stringify(newUser));
+    window.localStorage.removeItem("ain_currentUser");
+    window.dispatchEvent(new Event('espa_user_changed'));
     setIsVerifying(false);
     navigate('/library/dashboard');
     toast.success('Account created successfully!');
@@ -187,7 +199,7 @@ export default function LibraryLogin() {
               <form onSubmit={handleVerifyOtp} className="space-y-6">
                 <div>
                   <label className="block text-xs font-semibold text-black mb-2 uppercase tracking-wider">Verification Code</label>
-                  <p className="text-sm text-stone-500 mb-4">We've sent a 6-digit code to {loginEmail}. <br/><span className="text-xs font-mono mt-2 inline-block bg-stone-100 px-2 py-1 rounded text-stone-600 border border-stone-200">Test OTP: {expectedOtp}</span></p>
+                  <p className="text-sm text-stone-500 mb-4">We've sent a 6-digit verification code to {loginEmail}. Please enter it below.</p>
                   <input 
                     type="text" 
                     maxLength={6}
@@ -261,10 +273,7 @@ export default function LibraryLogin() {
                 </div>
                 
                 <div>
-                  <div className="flex justify-between items-center mb-2">
-                      <label className="block text-xs font-semibold text-black uppercase tracking-wider">Password</label>
-                      {!isSignUp && <a href="#" className="text-xs font-semibold text-black hover:underline">Forgot password?</a>}
-                  </div>
+                  <label className="block text-xs font-semibold text-black mb-2 uppercase tracking-wider">Password</label>
                   <div className="relative">
                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18} strokeWidth={1.5} />
                     <input 
@@ -283,14 +292,21 @@ export default function LibraryLogin() {
                       {showPassword ? <EyeOff size={18} strokeWidth={1.5} /> : <Eye size={18} strokeWidth={1.5} />}
                     </button>
                   </div>
+                  {!isSignUp && (
+                    <div className="flex justify-end mt-2">
+                      <a href="#" className="text-xs font-semibold text-black hover:underline">Forgot password?</a>
+                    </div>
+                  )}
                 </div>
 
                 {isSignUp && (
                   <div className="flex justify-center">
-                    <ReCAPTCHA
-                      ref={recaptchaRef}
-                      sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"
-                    />
+                    {RECAPTCHA_SITE_KEY ? (
+                      <ReCAPTCHA
+                        ref={recaptchaRef}
+                        sitekey={RECAPTCHA_SITE_KEY}
+                      />
+                    ) : null}
                   </div>
                 )}
 
@@ -300,7 +316,7 @@ export default function LibraryLogin() {
                   </div>
                 )}
 
-                <button disabled={isSending} type="submit" className="w-full py-3.5 bg-[#003828] text-white border border-[#003828] rounded-full font-bold hover:bg-white hover:text-[#003828] hover:border-[#003828] transition-all transform hover:-translate-y-0.5 shadow-md flex items-center justify-center gap-2 text-sm mt-8 disabled:opacity-70 disabled:transform-none cursor-pointer">
+                <button disabled={isSending} type="submit" className="w-full py-3.5 bg-[#003828] text-white border border-[#003828] rounded-full font-bold hover:bg-white hover:text-[#003828] hover:border-[#003828] transition-all transform hover:-translate-y-0.5 shadow-md flex items-center justify-center text-sm mt-8 disabled:opacity-70 disabled:transform-none cursor-pointer">
                   {isSending ? (
                     <span className="flex items-center gap-2">
                       <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -310,7 +326,7 @@ export default function LibraryLogin() {
                       Sending...
                     </span>
                   ) : (
-                    <>{isSignUp ? 'Sign Up' : 'Sign In'} <BookOpen size={16} /></>
+                    <>{isSignUp ? 'Sign Up' : 'Sign In'}</>
                   )}
                 </button>
 

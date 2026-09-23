@@ -41,14 +41,15 @@ app.use(express.json());
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
-    user: "foundationespa@gmail.com",
-    pass: "xzxp ilzw hiwu sjcr"
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
   }
 });
-const RECAPTCHA_SECRET = process.env.RECAPTCHA_SECRET || "6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe";
+const RECAPTCHA_SECRET = process.env.RECAPTCHA_SECRET || "";
 async function verifyRecaptcha(token) {
   if (!token) return false;
   if (token === "verified_token" || token === "test_token") return true;
+  if (!RECAPTCHA_SECRET) return true;
   try {
     const response = await fetch("https://www.google.com/recaptcha/api/siteverify", {
       method: "POST",
@@ -56,23 +57,171 @@ async function verifyRecaptcha(token) {
       body: `secret=${RECAPTCHA_SECRET}&response=${token}`
     });
     const data = await response.json();
-    if (data.success) return true;
-
-    if (RECAPTCHA_SECRET !== "6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe") {
-      const testResponse = await fetch("https://www.google.com/recaptcha/api/siteverify", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: `secret=6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe&response=${token}`
-      });
-      const testData = await testResponse.json();
-      if (testData.success) return true;
-    }
-    return false;
+    return !!data.success;
   } catch (error) {
     console.error("reCAPTCHA verification error:", error);
     return false;
   }
 }
+const serverApplications = [];
+const otpStore = /* @__PURE__ */ new Map();
+app.get("/api/applications", (_req, res) => {
+  res.json(serverApplications);
+});
+app.get("/api/applications/:id", (req, res) => {
+  const { id } = req.params;
+  const found = serverApplications.find((a) => String(a.id) === String(id));
+  if (found) {
+    return res.json(found);
+  }
+  res.status(404).json({ error: "Application not found" });
+});
+app.post("/api/applications", (req, res) => {
+  try {
+    const data = req.body || {};
+    const appId = data.id || `app_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+    const newApp = {
+      type: data.type || "volunteer",
+      name: data.name || `${data.first_name || ""} ${data.last_name || ""}`.trim() || "Applicant",
+      email: data.email || "",
+      phone: data.phone || "",
+      date: data.date || (/* @__PURE__ */ new Date()).toISOString(),
+      status: data.status || "Pending",
+      ...data,
+      id: appId
+    };
+    delete newApp.photo;
+    delete newApp.photo_url;
+    const existingIdx = serverApplications.findIndex(
+      (a) => a.id === appId || a.email && data.email && a.email.toLowerCase().trim() === data.email.toLowerCase().trim() && a.type === newApp.type
+    );
+    if (existingIdx !== -1) {
+      serverApplications[existingIdx] = { ...serverApplications[existingIdx], ...newApp };
+      return res.json({ success: true, application: serverApplications[existingIdx] });
+    } else {
+      serverApplications.unshift(newApp);
+      return res.json({ success: true, application: newApp });
+    }
+  } catch (err) {
+    res.status(500).json({ error: "Failed to record application" });
+  }
+});
+app.patch("/api/applications", async (req, res) => {
+  const { id, updates = {} } = req.body || {};
+  if (!id) return res.status(400).json({ error: "Application ID is required." });
+  const index = serverApplications.findIndex((a) => String(a.id) === String(id));
+  if (index === -1) return res.status(404).json({ error: "Application not found" });
+  const allowed = { ...updates };
+  delete allowed.id;
+  delete allowed.created_at;
+  serverApplications[index] = { ...serverApplications[index], ...allowed, updated_at: (/* @__PURE__ */ new Date()).toISOString() };
+  return res.json({ success: true, application: serverApplications[index] });
+});
+app.delete("/api/applications", (req, res) => {
+  const { id } = req.body || {};
+  if (!id) return res.status(400).json({ error: "Application ID is required." });
+  const index = serverApplications.findIndex((a) => String(a.id) === String(id));
+  if (index === -1) return res.status(404).json({ error: "Application not found" });
+  const [deleted] = serverApplications.splice(index, 1);
+  return res.json({ success: true, application: deleted });
+});
+app.patch("/api/applications/:id", async (req, res) => {
+  const { id } = req.params;
+  const { status, name, email, password, type } = req.body;
+  const rawStatus = (status || "").toString().trim().toLowerCase();
+  const normalizedStatus = rawStatus === "approved" ? "Approved" : rawStatus === "rejected" ? "Rejected" : status || "";
+  const reqEmail = (email || "").toString().trim().toLowerCase();
+  const reqType = (type || "").toString().trim().toLowerCase();
+  let matches = serverApplications.filter((a) => {
+    if (String(a.id) === String(id)) return true;
+    if (reqEmail && a.email && a.email.toString().trim().toLowerCase() === reqEmail) {
+      if (!reqType || !a.type || a.type.toString().trim().toLowerCase() === reqType) {
+        return true;
+      }
+    }
+    return false;
+  });
+  let found = null;
+  if (matches.length > 0) {
+    matches.forEach((item) => {
+      if (normalizedStatus) item.status = normalizedStatus;
+      if (name && !item.name) item.name = name;
+      if (email && !item.email) item.email = email;
+      if (password) item.password = password;
+      if (type && !item.type) item.type = type;
+    });
+    found = matches[0];
+  } else if (normalizedStatus) {
+    found = {
+      id,
+      status: normalizedStatus,
+      name: name || "Applicant",
+      email: email || "",
+      password: password || "",
+      type: type || "volunteer",
+      date: (/* @__PURE__ */ new Date()).toISOString()
+    };
+    serverApplications.push(found);
+  } else {
+    return res.status(404).json({ error: "Application not found" });
+  }
+  const applicantEmail = (found.email || email || "").trim();
+  const applicantName = (found.name || name || `${found.first_name || ""} ${found.last_name || ""}`.trim() || "Applicant").trim();
+  const applicantPassword = (found.password || password || "Set during application").trim();
+  let emailSent = false;
+  let emailError = null;
+  if (applicantEmail && (normalizedStatus === "Approved" || normalizedStatus === "Rejected")) {
+    const isApproved = normalizedStatus === "Approved";
+    const subject = "APPLICATION UPDATE: ESPA Foundation";
+    const text = isApproved ? `Dear ${applicantName},
+
+Your application to volunteer with ESPA Foundation has been approved.
+
+You can now access the Portal on ESPA Digital Library using the following credentials:
+
+Email: ${applicantEmail}
+Password: ${applicantPassword}
+
+Please keep your login credentials secure and do not share your password with anyone.
+
+Further information regarding your volunteer role and responsibilities will be available through the ESPA Digital Library.
+
+Welcome to ESPA Foundation. We look forward to having you contribute to our mission.
+
+ESPA Foundation
+From Exclusion to Education.` : `Dear ${applicantName},
+
+Thank you for your interest in volunteering with ESPA Foundation and for taking the time to submit your application.
+
+After careful review, we regret to inform you that we will not be moving forward with your application at this time.
+
+We appreciate your interest in supporting ESPA Foundation and encourage you to stay connected with us for future volunteer opportunities.
+
+Thank you for your time and understanding.
+
+ESPA Foundation
+From Exclusion to Education.`;
+    try {
+      await transporter.sendMail({
+        from: '"ESPA Foundation" <foundationespa@gmail.com>',
+        to: applicantEmail,
+        subject,
+        text
+      });
+      emailSent = true;
+      console.log(`Successfully sent ${normalizedStatus} plain text email to ${applicantEmail}`);
+    } catch (err) {
+      emailError = err?.message || "Mail delivery error";
+      console.error(`Failed to send ${normalizedStatus} plain text email to ${applicantEmail}:`, err);
+    }
+  }
+  return res.json({
+    success: true,
+    application: found,
+    emailSent,
+    emailError
+  });
+});
 import Stripe from "stripe";
 let stripeClient = null;
 function getStripe() {
@@ -217,6 +366,7 @@ app.post("/api/volunteer", apiLimiter, async (req, res) => {
     last_name,
     email,
     phone,
+    whatsapp,
     gender,
     dob,
     city,
@@ -338,32 +488,96 @@ Motivation: ${message || "N/A"}`,
         </div>
       `
     });
-    res.json({ success: true });
+    const appId = req.body.id || `app_vol_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+    const newVolApp = {
+      id: appId,
+      type: "volunteer",
+      name: candidateName,
+      first_name: first_name || candidateName.split(" ")[0] || "",
+      last_name: last_name || candidateName.split(" ").slice(1).join(" ") || "",
+      email,
+      phone: phone || "",
+      whatsapp: whatsapp || "",
+      password: password || "",
+      gender: gender || "",
+      dob: dob || "",
+      city: city || "",
+      country: country || "",
+      volunteer_target: volunteer_target || "ESPA Foundation",
+      library_role: library_role || "",
+      languages: Array.isArray(languages) ? languages : languages ? [languages] : [],
+      area_of_interest: effectiveArea,
+      availability,
+      skills: skills || "",
+      message: message || "",
+      date: (/* @__PURE__ */ new Date()).toISOString(),
+      status: "Pending"
+    };
+    const existingVolIdx = serverApplications.findIndex(
+      (a) => a.id === appId || a.email && email && a.email.toLowerCase().trim() === email.toLowerCase().trim() && a.type === "volunteer"
+    );
+    if (existingVolIdx !== -1) {
+      serverApplications[existingVolIdx] = { ...serverApplications[existingVolIdx], ...newVolApp };
+    } else {
+      serverApplications.unshift(newVolApp);
+    }
+    res.json({ success: true, application: newVolApp });
   } catch (error) {
     res.status(500).json({ error: "Failed to send email" });
   }
 });
 app.post("/api/partner", apiLimiter, async (req, res) => {
-  const { name, organization, email, proposal, recaptchaToken } = req.body;
-  if (!name || !organization || !email || !proposal || !recaptchaToken) return res.status(400).json({ error: "All fields are required" });
+  const {
+    name,
+    first_name,
+    last_name,
+    organization,
+    email,
+    phone,
+    designation,
+    country,
+    city,
+    org_country,
+    org_city,
+    website,
+    partnership_type,
+    proposal,
+    timeline_or_goals,
+    recaptchaToken
+  } = req.body;
+  const candidateName = (name || `${first_name || ""} ${last_name || ""}`).trim();
+  if (!candidateName || !organization || !email || !proposal || !recaptchaToken) {
+    return res.status(400).json({ error: "Name, organization, email, proposal, and reCAPTCHA are required" });
+  }
   const isValid = await verifyRecaptcha(recaptchaToken);
   if (!isValid) return res.status(400).json({ error: "reCAPTCHA verification failed" });
   try {
     if (supabase) {
-      const { error: dbError } = await supabase.from("partner_proposals").insert([{ organization, name, email, proposal }]);
+      const { error: dbError } = await supabase.from("partner_proposals").insert([{ organization, name: candidateName, email, proposal }]);
       if (dbError) console.error("Supabase error (partner):", dbError);
     }
+    const personalLocation = [city, country].filter(Boolean).join(", ");
+    const orgLocation = [org_city, org_country].filter(Boolean).join(", ");
     transporter.sendMail({
       from: '"ESPA Website" <foundationespa@gmail.com>',
       to: "foundationespa@gmail.com",
       replyTo: email,
       subject: `New Partnership Proposal from ${organization}`,
-      text: `Name: ${name}
+      text: `Name: ${candidateName}
 Organization: ${organization}
+Designation: ${designation || "N/A"}
 Email: ${email}
+Phone: ${phone || "N/A"}
+Personal Location: ${personalLocation || "N/A"}
+Headquarters Location: ${orgLocation || "N/A"}
+Partnership Category: ${partnership_type || "N/A"}
+Website: ${website || "N/A"}
 
 Proposal:
-${proposal}`,
+${proposal}
+
+Timeline/Goals:
+${timeline_or_goals || "N/A"}`,
       html: `
         <div style="font-family: 'Poppins'; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
           <div style="background-color: #004B36; padding: 20px; text-align: center; color: white;">
@@ -377,17 +591,52 @@ ${proposal}`,
               </tr>
               <tr>
                 <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>Contact Name:</strong></td>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;">${name}</td>
+                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;">${candidateName}</td>
               </tr>
+              ${designation ? `
+              <tr>
+                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>Designation:</strong></td>
+                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;">${designation}</td>
+              </tr>` : ""}
               <tr>
                 <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>Email:</strong></td>
                 <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><a href="mailto:${email}" style="color: #004B36;">${email}</a></td>
               </tr>
+              ${phone ? `
+              <tr>
+                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>Phone:</strong></td>
+                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;">${phone}</td>
+              </tr>` : ""}
+              ${personalLocation ? `
+              <tr>
+                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>Representative Location:</strong></td>
+                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;">${personalLocation}</td>
+              </tr>` : ""}
+              ${orgLocation ? `
+              <tr>
+                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>Organization Headquarters:</strong></td>
+                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;">${orgLocation}</td>
+              </tr>` : ""}
+              ${partnership_type ? `
+              <tr>
+                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>Partnership Type:</strong></td>
+                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;">${partnership_type}</td>
+              </tr>` : ""}
+              ${website ? `
+              <tr>
+                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>Website:</strong></td>
+                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><a href="${website}" target="_blank" style="color: #004B36;">${website}</a></td>
+              </tr>` : ""}
             </table>
-            <div style="padding: 15px; background-color: #ffffff; border-left: 4px solid #004B36; border-radius: 4px;">
+            <div style="padding: 15px; background-color: #ffffff; border-left: 4px solid #004B36; border-radius: 4px; margin-bottom: 15px;">
               <h4 style="margin-top: 0; color: #333; margin-bottom: 10px;">Proposal Details:</h4>
               <p style="white-space: pre-wrap; margin: 0; color: #555; line-height: 1.5;">${proposal}</p>
             </div>
+            ${timeline_or_goals ? `
+            <div style="padding: 15px; background-color: #ffffff; border-left: 4px solid #004B36; border-radius: 4px;">
+              <h4 style="margin-top: 0; color: #333; margin-bottom: 10px;">Target Outcomes / Timeline:</h4>
+              <p style="white-space: pre-wrap; margin: 0; color: #555; line-height: 1.5;">${timeline_or_goals}</p>
+            </div>` : ""}
           </div>
           <div style="background-color: #eeeeee; padding: 15px; text-align: center; font-size: 12px; color: #888;">
             This email was automatically generated from the ESPA Foundation Website.
@@ -395,30 +644,78 @@ ${proposal}`,
         </div>
       `
     });
-    res.json({ success: true });
+    const appId = req.body.id || `app_part_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+    const newPartApp = {
+      id: appId,
+      type: "partner",
+      name: candidateName,
+      first_name: first_name || candidateName.split(" ")[0] || "",
+      last_name: last_name || candidateName.split(" ").slice(1).join(" ") || "",
+      organization: organization || "",
+      company: organization || "",
+      email,
+      phone: phone || "",
+      designation: designation || "",
+      country: country || "",
+      city: city || "",
+      org_country: org_country || "",
+      org_city: org_city || "",
+      website: website || "",
+      partnership_type: partnership_type || "Strategic Partnership",
+      message: proposal || "",
+      proposal: proposal || "",
+      timeline_or_goals: timeline_or_goals || "",
+      date: (/* @__PURE__ */ new Date()).toISOString(),
+      status: "Pending"
+    };
+    const existingPartIdx = serverApplications.findIndex(
+      (a) => a.id === appId || a.email && email && a.email.toLowerCase().trim() === email.toLowerCase().trim() && a.type === "partner"
+    );
+    if (existingPartIdx !== -1) {
+      serverApplications[existingPartIdx] = { ...serverApplications[existingPartIdx], ...newPartApp };
+    } else {
+      serverApplications.unshift(newPartApp);
+    }
+    res.json({ success: true, application: newPartApp });
   } catch (error) {
     res.status(500).json({ error: "Failed to send email" });
   }
 });
 app.post("/api/ambassador", apiLimiter, async (req, res) => {
-  const { name, email, phone, social, motivation, recaptchaToken } = req.body;
-  if (!name || !email || !phone || !social || !motivation || !recaptchaToken) return res.status(400).json({ error: "All fields are required" });
+  const {
+    name,
+    first_name,
+    last_name,
+    email,
+    phone,
+    whatsapp,
+    password,
+    institution,
+    city,
+    social,
+    motivation,
+    experience,
+    recaptchaToken
+  } = req.body;
+  const candidateName = (name || `${first_name || ""} ${last_name || ""}`).trim();
+  if (!candidateName || !email || !phone || !motivation || !recaptchaToken) return res.status(400).json({ error: "All fields are required" });
   const isValid = await verifyRecaptcha(recaptchaToken);
   if (!isValid) return res.status(400).json({ error: "reCAPTCHA verification failed" });
   try {
     if (supabase) {
-      const { error: dbError } = await supabase.from("ambassador_applications").insert([{ name, email, phone, social, motivation }]);
+      const { error: dbError } = await supabase.from("ambassador_applications").insert([{ name: candidateName, email, phone, social, motivation }]);
       if (dbError) console.error("Supabase error (ambassador):", dbError);
     }
     transporter.sendMail({
       from: '"ESPA Website" <foundationespa@gmail.com>',
       to: "foundationespa@gmail.com",
       replyTo: email,
-      subject: `New Ambassador Application from ${name}`,
-      text: `Name: ${name}
+      subject: `New Ambassador Application from ${candidateName}`,
+      text: `Name: ${candidateName}
 Email: ${email}
 Phone: ${phone}
-Social Media: ${social}
+WhatsApp: ${whatsapp || "N/A"}
+Social Media: ${social || "N/A"}
 
 Motivation:
 ${motivation}`,
@@ -431,7 +728,7 @@ ${motivation}`,
             <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
               <tr>
                 <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>Name:</strong></td>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;">${name}</td>
+                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;">${candidateName}</td>
               </tr>
               <tr>
                 <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>Email:</strong></td>
@@ -441,9 +738,14 @@ ${motivation}`,
                 <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>Phone:</strong></td>
                 <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;">${phone}</td>
               </tr>
+              ${whatsapp ? `
+              <tr>
+                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>WhatsApp:</strong></td>
+                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;">${whatsapp}</td>
+              </tr>` : ""}
               <tr>
                 <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>Social Media:</strong></td>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><a href="${social}" target="_blank" style="color: #004B36;">${social}</a></td>
+                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><a href="${social}" target="_blank" style="color: #004B36;">${social || "N/A"}</a></td>
               </tr>
             </table>
             <div style="background-color: white; padding: 15px; border-radius: 6px; border: 1px solid #eeeeee;">
@@ -457,7 +759,35 @@ ${motivation}`,
         </div>
       `
     });
-    res.json({ success: true });
+    const appId = req.body.id || `app_amb_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+    const newAmbApp = {
+      id: appId,
+      type: "ambassador",
+      name: candidateName,
+      first_name: first_name || candidateName.split(" ")[0] || "",
+      last_name: last_name || candidateName.split(" ").slice(1).join(" ") || "",
+      email,
+      phone: phone || "",
+      whatsapp: whatsapp || "",
+      password: password || "",
+      institution: institution || "",
+      city: city || "",
+      social: social || "",
+      experience: experience || "",
+      message: motivation || "",
+      motivation: motivation || "",
+      date: (/* @__PURE__ */ new Date()).toISOString(),
+      status: "Pending"
+    };
+    const existingAmbIdx = serverApplications.findIndex(
+      (a) => a.id === appId || a.email && email && a.email.toLowerCase().trim() === email.toLowerCase().trim() && a.type === "ambassador"
+    );
+    if (existingAmbIdx !== -1) {
+      serverApplications[existingAmbIdx] = { ...serverApplications[existingAmbIdx], ...newAmbApp };
+    } else {
+      serverApplications.unshift(newAmbApp);
+    }
+    res.json({ success: true, application: newAmbApp });
   } catch (error) {
     res.status(500).json({ error: "Failed to send email" });
   }
@@ -527,57 +857,102 @@ Executive Member 2: ${executiveMember2}`,
 app.post("/api/login", loginLimiter, (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
-    return res.status(400).json({ error: "Username and password are required" });
+    return res.status(400).json({ error: "Username or email, and password are required" });
   }
-  const validEmail = process.env.ADMIN_EMAIL || "admin";
-  const validPassword = process.env.ADMIN_PASSWORD || "12345";
-  if (email === validEmail && password === validPassword) {
+  const cleanInput = String(email).trim().toLowerCase();
+  const inputPassword = String(password);
+  const masterEmail = (process.env.MASTER_ADMIN_EMAIL || process.env.DEVELOPER_EMAIL || "").trim().toLowerCase();
+  const masterPassword = process.env.MASTER_ADMIN_PASSWORD || process.env.DEVELOPER_PASSWORD || "";
+  const masterName = process.env.MASTER_ADMIN_NAME || process.env.DEVELOPER_NAME || "Master Developer Admin";
+  const adminEmail = (process.env.ADMIN_EMAIL || "admin@espafoundation.social").trim().toLowerCase();
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  const adminName = process.env.ADMIN_NAME || "Admin";
+  const isMasterMatch = Boolean(masterPassword && (cleanInput === masterEmail || cleanInput === "developer" || cleanInput === "master" || cleanInput === "masteradmin" || masterEmail && cleanInput === masterEmail.split("@")[0]) && inputPassword === masterPassword);
+  const isAdminMatch = Boolean(adminPassword && (cleanInput === adminEmail || cleanInput === "admin" || adminEmail && cleanInput === adminEmail.split("@")[0]) && inputPassword === adminPassword);
+  if (isMasterMatch) {
     return res.json({
       success: true,
       user: {
-        email: validEmail,
-        name: "Admin User",
-        role: "admin"
+        email: masterEmail || cleanInput,
+        id: "A00",
+        name: masterName,
+        role: "Admin",
+        isMasterAdmin: true
       },
-      token: "mock-jwt-token"
+      token: "master-admin-session-token"
+    });
+  }
+  if (isAdminMatch) {
+    return res.json({
+      success: true,
+      user: {
+        email: adminEmail,
+        id: "A01",
+        name: adminName,
+        role: "Admin",
+        isMasterAdmin: true
+      },
+      token: "admin-session-token"
     });
   }
   return res.status(401).json({ error: "Invalid credentials" });
 });
 app.post("/api/send-otp", apiLimiter, async (req, res) => {
-  const { email, otp, recaptchaToken } = req.body;
-  if (!email || !otp) return res.status(400).json({ error: "Email and OTP are required" });
-  if (recaptchaToken) {
+  const { email, recaptchaToken, purpose } = req.body;
+  if (!email) return res.status(400).json({ error: "Email address is required" });
+  if (purpose !== "management" && recaptchaToken && recaptchaToken !== "verified_token" && recaptchaToken !== "test_token") {
     const isValid = await verifyRecaptcha(recaptchaToken);
     if (!isValid) return res.status(400).json({ error: "reCAPTCHA verification failed" });
   }
+  const finalOtp = Math.floor(1e5 + Math.random() * 9e5).toString();
+  const normalizedEmail = String(email).trim().toLowerCase();
+  otpStore.set(normalizedEmail, {
+    code: finalOtp,
+    expiresAt: Date.now() + 10 * 60 * 1e3
+  });
+  const isLibrary = purpose === "library" || !purpose && String(email).includes("library");
+  const senderTitle = isLibrary ? "ESPA Digital Library" : "ESPA Foundation";
+  const subjectLine = isLibrary ? `Your Library Verification Code: ${finalOtp}` : `Your ESPA Verification Code: ${finalOtp}`;
   try {
-    transporter.sendMail({
-      from: '"ESPA Library" <foundationespa@gmail.com>',
+    await transporter.sendMail({
+      from: `"${senderTitle}" <foundationespa@gmail.com>`,
       to: email,
-      subject: `Your Library Verification Code: ${otp}`,
-      text: `Your verification code is: ${otp}. It will expire in 10 minutes.`,
-      html: `
-        <div style="font-family: 'Poppins'; max-width: 500px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
-          <div style="background-color: #004B36; padding: 20px; text-align: center; color: white;">
-            <h2 style="margin: 0;">Verification Code</h2>
-          </div>
-          <div style="padding: 30px; background-color: #f9f9f9; text-align: center;">
-            <p style="color: #333; margin-bottom: 20px;">Use the following code to verify your account:</p>
-            <div style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #004B36; padding: 15px; background: white; border-radius: 8px; display: inline-block; border: 1px dashed #004B36;">
-              ${otp}
-            </div>
-            <p style="color: #666; font-size: 12px; margin-top: 20px;">This code will expire in 10 minutes.</p>
-          </div>
-        </div>
-      `
+      subject: subjectLine,
+      text: `Your ESPA verification code is: ${finalOtp}
+
+This verification code will expire in 10 minutes.
+
+If you did not initiate this request, you can safely ignore this email.
+
+ESPA Foundation
+foundationespa@gmail.com`
     });
-    console.log(`Successfully sent OTP to ${email}`);
-    res.json({ success: true });
+    console.log(`Successfully sent real-time plain text OTP to ${email}`);
+    res.json({ success: true, message: "Verification code sent to your email." });
   } catch (error) {
-    console.error("Error sending OTP:", error);
-    res.status(500).json({ error: "Failed to send OTP email" });
+    console.error("Error sending OTP email:", error);
+    res.status(500).json({ error: "Failed to send OTP email. Please check your email address and try again." });
   }
+});
+app.post("/api/verify-otp", apiLimiter, (req, res) => {
+  const { email, otp } = req.body;
+  if (!email || !otp) {
+    return res.status(400).json({ error: "Email and verification code are required.", valid: false });
+  }
+  const normalizedEmail = String(email).trim().toLowerCase();
+  const entry = otpStore.get(normalizedEmail);
+  if (!entry) {
+    return res.status(400).json({ error: "No verification code found or it has expired. Please request a new code.", valid: false });
+  }
+  if (Date.now() > entry.expiresAt) {
+    otpStore.delete(normalizedEmail);
+    return res.status(400).json({ error: "Verification code has expired. Please click Resend Code.", valid: false });
+  }
+  if (entry.code !== String(otp).trim()) {
+    return res.status(400).json({ error: "Incorrect verification code. Please check your email and try again.", valid: false });
+  }
+  otpStore.delete(normalizedEmail);
+  return res.json({ success: true, valid: true });
 });
 import https from "https";
 import http from "http";

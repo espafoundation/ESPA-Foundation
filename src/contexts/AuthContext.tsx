@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 
 interface AuthContextType {
@@ -13,9 +13,12 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<any | null>(() => {
     try {
-      const stored = window.localStorage.getItem('ain_currentUser');
-      if (stored && stored !== 'null') {
-        return JSON.parse(stored);
+      const stored = window.localStorage.getItem('espa_currentUser') || window.localStorage.getItem('ain_currentUser');
+      if (stored && stored !== 'null' && stored !== 'undefined') {
+        const parsed = JSON.parse(stored);
+        if (parsed && typeof parsed === 'object' && (parsed.id || parsed.email || parsed.username)) {
+          return parsed;
+        }
       }
       return null;
     } catch (e) {
@@ -23,30 +26,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   });
 
-  const syncUser = () => {
+  const syncUser = useCallback(() => {
     try {
-      const stored = window.localStorage.getItem('ain_currentUser');
-      if (stored && stored !== 'null') {
-        setUser(JSON.parse(stored));
-      } else {
-        setUser(null);
+      const stored = window.localStorage.getItem('espa_currentUser') || window.localStorage.getItem('ain_currentUser');
+      let nextUser: any = null;
+      if (stored && stored !== 'null' && stored !== 'undefined') {
+        const parsed = JSON.parse(stored);
+        if (parsed && typeof parsed === 'object' && (parsed.id || parsed.email || parsed.username)) {
+          nextUser = parsed;
+        }
       }
+      setUser((prev: any) => {
+        if (JSON.stringify(prev) === JSON.stringify(nextUser)) {
+          return prev;
+        }
+        return nextUser;
+      });
     } catch (e) {
-      setUser(null);
+      setUser((prev: any) => (prev === null ? prev : null));
     }
-  };
-
-  useEffect(() => {
-    syncUser();
-    window.addEventListener('storage', syncUser);
-    window.addEventListener('ain_user_changed', syncUser);
-    return () => {
-      window.removeEventListener('storage', syncUser);
-      window.removeEventListener('ain_user_changed', syncUser);
-    };
   }, []);
 
-  const isAuthenticated = !!user;
+  useEffect(() => {
+    const handleStorageChange = () => {
+      // Defer execution to avoid setState during another component's render
+      setTimeout(syncUser, 0);
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('espa_user_changed', handleStorageChange);
+    window.addEventListener('ain_user_changed', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('espa_user_changed', handleStorageChange);
+      window.removeEventListener('ain_user_changed', handleStorageChange);
+    };
+  }, [syncUser]);
+
+  const isAuthenticated = !!(user && typeof user === 'object' && (user.id || user.email || user.username));
 
   const login = async (email: string, pass: string) => {
     // Legacy API login (mostly unused now)
@@ -55,8 +72,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     setUser(null);
-    window.localStorage.removeItem('ain_currentUser');
-    window.dispatchEvent(new Event('ain_user_changed'));
+    try {
+      window.localStorage.removeItem('espa_currentUser');
+      window.localStorage.removeItem('ain_currentUser');
+      setTimeout(() => {
+        window.dispatchEvent(new Event('espa_user_changed'));
+      }, 0);
+    } catch (e) {}
     toast.success('Logged out successfully');
   };
 

@@ -180,7 +180,7 @@ export default function SummaryDashboard({ funds, currentUser, setActiveTab }) {
             </div>
             <div className="mt-6 pt-4 border-t border-[#003828]/10 text-xs font-bold text-[#003828] flex items-center gap-1.5">
               <span>Emergency Support:</span>
-              <a href="mailto:volunteer@ainmanagement.com" className="hover:underline font-normal text-stone-600">volunteer@ainmanagement.com</a>
+              <a href="mailto:volunteer@espafoundation.social" className="hover:underline font-normal text-stone-600">volunteer@espafoundation.social</a>
             </div>
           </div>
         </div>
