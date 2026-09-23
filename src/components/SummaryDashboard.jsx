@@ -703,21 +703,21 @@ export default function SummaryDashboard({ funds, currentUser, setActiveTab, use
   const gridCards = [
     // Row 1: Available, Allocated, Donors
     {
-      title: 'Available',
+      title: 'AVAILABLE',
       primary: `PKR ${availablePKR.toLocaleString()}`,
       secondary: `$${availableUSD.toLocaleString()} USD`,
       footerText: 'Ready for Allocation',
       tab: 'funds'
     },
     {
-      title: 'Allocated',
+      title: 'ALLOCATED',
       primary: `PKR ${totalAllocationsPKR.toLocaleString()}`,
       secondary: `$${totalAllocationsUSD.toLocaleString()} USD`,
       footerText: 'Program Disbursements',
       tab: 'funds'
     },
     {
-      title: 'Donors',
+      title: 'DONORS',
       primary: String(donorCount),
       secondary: `${donorCount === 1 ? '1 Donor' : `${donorCount} Donors`} Registered`,
       footerText: 'Philanthropic Patrons',
@@ -725,21 +725,21 @@ export default function SummaryDashboard({ funds, currentUser, setActiveTab, use
     },
     // Row 2: Volunteers, Ambassadors, Partners
     {
-      title: 'Volunteers',
+      title: 'VOLUNTEERS',
       primary: String(volunteerCount),
       secondary: `${volunteerCount === 1 ? '1 Volunteer' : `${volunteerCount} Volunteers`} Registered`,
       footerText: 'Community Service Force',
       tab: 'volunteers'
     },
     {
-      title: 'Ambassadors',
+      title: 'AMBASSADORS',
       primary: String(ambassadorCount),
       secondary: `${ambassadorCount === 1 ? '1 Ambassador' : `${ambassadorCount} Ambassadors`} Enrolled`,
       footerText: 'Youth & Campus Outreach',
       tab: 'ambassadors'
     },
     {
-      title: 'Partners',
+      title: 'PARTNERS',
       primary: String(partnerCount),
       secondary: `${partnerCount === 1 ? '1 Partner' : `${partnerCount} Partners`} Partnered`,
       footerText: 'Corporate & Institutional Alliances',
@@ -768,7 +768,7 @@ export default function SummaryDashboard({ funds, currentUser, setActiveTab, use
           >
             <div>
               <div className="mb-4">
-                <h3 className="text-[16px] font-bold text-stone-800 group-hover:text-[#003828] transition-colors">
+                <h3 className="text-[16px] font-bold text-stone-800 uppercase tracking-wider group-hover:text-[#003828] transition-colors">
                   {card.title}
                 </h3>
               </div>
@@ -780,11 +780,8 @@ export default function SummaryDashboard({ funds, currentUser, setActiveTab, use
               </div>
             </div>
 
-            <div className="mt-5 pt-3 border-t border-stone-100 flex items-center justify-between text-xs font-medium text-stone-400 group-hover:text-[#003828] transition-colors">
+            <div className="mt-5 pt-3 border-t border-stone-100 flex items-center text-xs font-medium text-stone-400 group-hover:text-[#003828] transition-colors">
               <span>{card.footerText}</span>
-              <span className="font-semibold text-[#003828]">
-                Manage
-              </span>
             </div>
           </div>
         ))}
