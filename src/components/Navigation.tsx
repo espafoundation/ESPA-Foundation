@@ -84,42 +84,18 @@ export default function Navigation() {
         <div className="flex items-center gap-2 sm:gap-3">
           <Link to="/donate" className="hidden md:flex text-sm font-medium tracking-wide text-white bg-[#003828] border border-[#003828] px-5 py-2.5 rounded-full hover:bg-white hover:text-[#003828] hover:border-[#003828] transition-all items-center gap-2">Donate</Link>
           {isAuthenticated ? (
-            <div className="relative group hidden md:block">
-              <Link 
-                to={user?.role?.includes("library") ? "/library/dashboard" : "/portal"}
-                onClick={() => {
-                  if (typeof window !== 'undefined') {
-                    window.localStorage.setItem('espa_activeTab', JSON.stringify('dashboard'));
-                    window.localStorage.removeItem('ain_activeTab');
-                  }
-                }}
-                className="text-sm font-medium tracking-wide text-[#003828] bg-white border border-[#003828] px-5 py-2.5 rounded-full hover:bg-[#003828] hover:text-white hover:border-[#003828] transition-all flex items-center gap-1.5"
-              >
-                {getFirstName(user)}
-                <ChevronDown size={14} className="group-hover:rotate-180 transition-transform duration-200" />
-              </Link>
-              <div className="absolute top-full right-0 mt-1.5 w-44 bg-white border border-[#003828]/15 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 py-1.5 flex flex-col overflow-hidden z-[100]">
-                <Link 
-                  to={user?.role?.includes("library") ? "/library/dashboard" : "/portal"}
-                  onClick={() => {
-                    if (typeof window !== 'undefined') {
-                      window.localStorage.setItem('espa_activeTab', JSON.stringify('dashboard'));
-                      window.localStorage.removeItem('ain_activeTab');
-                    }
-                  }}
-                  className="px-4 py-2.5 text-sm text-stone-700 hover:bg-[#003828]/5 hover:text-[#003828] font-medium transition-colors text-left"
-                >
-                  Dashboard
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => logout()}
-                  className="px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 font-medium transition-colors text-left w-full cursor-pointer"
-                >
-                  Log out
-                </button>
-              </div>
-            </div>
+            <Link 
+              to={user?.role?.includes("library") ? "/library/dashboard" : "/portal"}
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  window.localStorage.setItem('espa_activeTab', JSON.stringify('dashboard'));
+                  window.localStorage.removeItem('ain_activeTab');
+                }
+              }}
+              className="hidden md:flex text-sm font-medium tracking-wide text-[#003828] bg-white border border-[#003828] px-5 py-2.5 rounded-full hover:bg-[#003828] hover:text-white hover:border-[#003828] transition-all items-center gap-2"
+            >
+              {getFirstName(user)}
+            </Link>
           ) : (
             <Link to="/portal" className="hidden md:flex text-sm font-medium tracking-wide text-[#003828] bg-white border border-[#003828] px-5 py-2.5 rounded-full hover:bg-[#003828] hover:text-white hover:border-[#003828] transition-all items-center gap-2">
               Login

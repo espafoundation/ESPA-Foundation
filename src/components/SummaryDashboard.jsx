@@ -3,12 +3,12 @@ import {
   LayoutDashboard, Wallet, ArrowRightLeft, Copy, Check, Share2, 
   Globe, HeartHandshake, Briefcase, HandCoins, ExternalLink, 
   Clock, Shield, Award, Users, Download, Calendar, MapPin, 
-  Building, TrendingUp, Sparkles, ChevronRight
+  Building, TrendingUp, Sparkles, ChevronRight, CircleDollarSign
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DonationTrendsChart from './DonationTrendsChart';
 
-export default function SummaryDashboard({ funds, currentUser, setActiveTab }) {
+export default function SummaryDashboard({ funds, currentUser, setActiveTab, users = [], applications = [] }) {
   const role = currentUser?.role || 'Volunteer';
   const mgmtRoles = ['Admin', 'President', 'Vice President', 'General Secretary', 'Joint Secretary', 'Treasurer', 'Executive Member'];
   const isAdmin = mgmtRoles.includes(role);
@@ -599,10 +599,157 @@ export default function SummaryDashboard({ funds, currentUser, setActiveTab }) {
   // =========================================================================
   // 5. EXECUTIVE / ADMIN MANAGEMENT DASHBOARD
   // =========================================================================
-  const totalDonationsPKR = funds?.transactions?.filter(t => t.type === 'donation' && t.currency === 'PKR').reduce((sum, t) => sum + t.amount, 0) || 0;
-  const totalDonationsUSD = funds?.transactions?.filter(t => t.type === 'donation' && t.currency === 'USD').reduce((sum, t) => sum + t.amount, 0) || 0;
-  const totalAllocationsPKR = funds?.transactions?.filter(t => t.type === 'allocation' && t.currency === 'PKR').reduce((sum, t) => sum + t.amount, 0) || 0;
-  const totalAllocationsUSD = funds?.transactions?.filter(t => t.type === 'allocation' && t.currency === 'USD').reduce((sum, t) => sum + t.amount, 0) || 0;
+  const effectiveUsers = useMemo(() => {
+    if (Array.isArray(users) && users.length > 0) return users;
+    try {
+      const stored = localStorage.getItem('espa_users') || localStorage.getItem('ain_users');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  }, [users]);
+
+  const effectiveApplications = useMemo(() => {
+    if (Array.isArray(applications) && applications.length > 0) return applications;
+    try {
+      const stored = localStorage.getItem('espa_applications') || localStorage.getItem('ain_applications');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  }, [applications]);
+
+  // Count registered volunteers
+  const volunteerCount = useMemo(() => {
+    const list = effectiveUsers.filter(u => (u?.role || '').toLowerCase() === 'volunteer');
+    const userEmails = new Set(effectiveUsers.map(u => (u?.email || '').toLowerCase()).filter(Boolean));
+    const userIds = new Set(effectiveUsers.map(u => String(u?.id || '')).filter(Boolean));
+    const approved = effectiveApplications.filter(a => 
+      (a?.type || '').toLowerCase() === 'volunteer' && 
+      (a?.status || '').toLowerCase() === 'approved' &&
+      !userEmails.has((a?.email || '').toLowerCase()) &&
+      !userIds.has(String(a?.id || ''))
+    );
+    return list.length + approved.length;
+  }, [effectiveUsers, effectiveApplications]);
+
+  // Count registered ambassadors
+  const ambassadorCount = useMemo(() => {
+    const list = effectiveUsers.filter(u => (u?.role || '').toLowerCase() === 'ambassador');
+    const userEmails = new Set(effectiveUsers.map(u => (u?.email || '').toLowerCase()).filter(Boolean));
+    const userIds = new Set(effectiveUsers.map(u => String(u?.id || '')).filter(Boolean));
+    const approved = effectiveApplications.filter(a => 
+      (a?.type || '').toLowerCase() === 'ambassador' && 
+      (a?.status || '').toLowerCase() === 'approved' &&
+      !userEmails.has((a?.email || '').toLowerCase()) &&
+      !userIds.has(String(a?.id || ''))
+    );
+    return list.length + approved.length;
+  }, [effectiveUsers, effectiveApplications]);
+
+  // Count registered partners
+  const partnerCount = useMemo(() => {
+    const list = effectiveUsers.filter(u => (u?.role || '').toLowerCase() === 'partner');
+    const userEmails = new Set(effectiveUsers.map(u => (u?.email || '').toLowerCase()).filter(Boolean));
+    const userIds = new Set(effectiveUsers.map(u => String(u?.id || '')).filter(Boolean));
+    const approved = effectiveApplications.filter(a => 
+      (a?.type || '').toLowerCase() === 'partner' && 
+      (a?.status || '').toLowerCase() === 'approved' &&
+      !userEmails.has((a?.email || '').toLowerCase()) &&
+      !userIds.has(String(a?.id || ''))
+    );
+    return list.length + approved.length;
+  }, [effectiveUsers, effectiveApplications]);
+
+  // Financial calculations
+  let totalDonationsPKR = 0;
+  let totalDonationsUSD = 0;
+  let totalAllocationsPKR = 0;
+  let totalAllocationsUSD = 0;
+
+  (funds?.transactions || []).forEach(tx => {
+    const pkrAmt = Number(tx.amountPKR !== undefined ? tx.amountPKR : (tx.currency === 'PKR' ? (tx.amount || 0) : 0)) || 0;
+    const usdAmt = Number(tx.amountUSD !== undefined ? tx.amountUSD : (tx.currency === 'USD' ? (tx.amount || 0) : 0)) || 0;
+
+    if (tx.type === 'donation') {
+      totalDonationsPKR += pkrAmt;
+      totalDonationsUSD += usdAmt;
+    } else if (tx.type === 'allocation') {
+      totalAllocationsPKR += pkrAmt;
+      totalAllocationsUSD += usdAmt;
+    }
+  });
+
+  const availablePKR = Number(funds?.pkr !== undefined ? funds.pkr : (totalDonationsPKR - totalAllocationsPKR)) || 0;
+  const availableUSD = Number(funds?.usd !== undefined ? funds.usd : (totalDonationsUSD - totalAllocationsUSD)) || 0;
+
+  const totalFundsPKR = totalDonationsPKR > 0 ? totalDonationsPKR : (availablePKR + totalAllocationsPKR);
+  const totalFundsUSD = totalDonationsUSD > 0 ? totalDonationsUSD : (availableUSD + totalAllocationsUSD);
+
+  const gridCards = [
+    // Row 1: Funds, Available, Allocated
+    {
+      title: 'Funds',
+      primary: `PKR ${totalFundsPKR.toLocaleString()}`,
+      secondary: `$${totalFundsUSD.toLocaleString()} USD`,
+      footerText: 'Gross Collections & Inflow',
+      tab: 'funds',
+      icon: Wallet,
+      iconBg: 'bg-[#003828]/10',
+      iconColor: 'text-[#003828]'
+    },
+    {
+      title: 'Available',
+      primary: `PKR ${availablePKR.toLocaleString()}`,
+      secondary: `$${availableUSD.toLocaleString()} USD`,
+      footerText: 'Ready for Allocation',
+      tab: 'funds',
+      icon: CircleDollarSign,
+      iconBg: 'bg-emerald-100',
+      iconColor: 'text-emerald-700'
+    },
+    {
+      title: 'Allocated',
+      primary: `PKR ${totalAllocationsPKR.toLocaleString()}`,
+      secondary: `$${totalAllocationsUSD.toLocaleString()} USD`,
+      footerText: 'Program Disbursements',
+      tab: 'funds',
+      icon: ArrowRightLeft,
+      iconBg: 'bg-amber-100',
+      iconColor: 'text-amber-800'
+    },
+    // Row 2: Volunteers, Ambassadors, Partners
+    {
+      title: 'Volunteers',
+      primary: String(volunteerCount),
+      secondary: `${volunteerCount === 1 ? '1 Volunteer' : `${volunteerCount} Volunteers`} Registered`,
+      footerText: 'Community Service Force',
+      tab: 'volunteers',
+      icon: HeartHandshake,
+      iconBg: 'bg-[#003828]/10',
+      iconColor: 'text-[#003828]'
+    },
+    {
+      title: 'Ambassadors',
+      primary: String(ambassadorCount),
+      secondary: `${ambassadorCount === 1 ? '1 Ambassador' : `${ambassadorCount} Ambassadors`} Enrolled`,
+      footerText: 'Youth & Campus Outreach',
+      tab: 'ambassadors',
+      icon: Globe,
+      iconBg: 'bg-sky-100',
+      iconColor: 'text-sky-700'
+    },
+    {
+      title: 'Partners',
+      primary: String(partnerCount),
+      secondary: `${partnerCount === 1 ? '1 Partner' : `${partnerCount} Partners`} Partnered`,
+      footerText: 'Corporate & Institutional Alliances',
+      tab: 'partners',
+      icon: Briefcase,
+      iconBg: 'bg-indigo-100',
+      iconColor: 'text-indigo-700'
+    }
+  ];
 
   return (
     <div className="space-y-8 h-full flex flex-col tracking-tight relative overflow-y-auto pr-1 pb-12">
@@ -615,49 +762,39 @@ export default function SummaryDashboard({ funds, currentUser, setActiveTab }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white rounded-2xl border border-stone-200/60 shadow-sm p-6 flex flex-col items-center justify-center text-center">
-          <Wallet size={32} className="text-[#003828] mb-4" />
-          <h2 className="text-xl font-bold text-stone-500 mb-2">Current Funds (PKR)</h2>
-          <div className="text-4xl font-bold text-stone-900">PKR {(funds?.pkr || 0).toLocaleString()}</div>
-        </div>
-        <div className="bg-white rounded-2xl border border-stone-200/60 shadow-sm p-6 flex flex-col items-center justify-center text-center">
-          <Wallet size={32} className="text-[#003828] mb-4" />
-          <h2 className="text-xl font-bold text-stone-500 mb-2">Current Funds (USD)</h2>
-          <div className="text-4xl font-bold text-stone-900">${(funds?.usd || 0).toLocaleString()}</div>
-        </div>
-        
-        <div className="bg-stone-50 rounded-2xl border border-stone-200/60 shadow-sm p-6">
-          <h2 className="text-lg font-bold text-stone-900 mb-4 flex items-center gap-2">
-            <ArrowRightLeft size={20} className="text-stone-400" /> Total Donations
-          </h2>
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <span className="text-stone-600 font-medium">PKR</span>
-              <span className="text-stone-900 font-bold">PKR {(totalDonationsPKR || 0).toLocaleString()}</span>
+      {/* 6 Grids in 3x2: Funds, Available, Allocated, Volunteers, Ambassadors, Partners */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {gridCards.map((card, idx) => (
+          <div
+            key={idx}
+            onClick={() => setActiveTab?.(card.tab)}
+            className="bg-white rounded-2xl border border-stone-200/80 shadow-2xs hover:shadow-md hover:border-[#003828]/40 transition-all p-6 flex flex-col justify-between cursor-pointer group"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-xs font-bold uppercase tracking-wider text-stone-500 group-hover:text-[#003828] transition-colors">
+                  {card.title}
+                </span>
+                <div className={`w-10 h-10 rounded-xl ${card.iconBg} ${card.iconColor} flex items-center justify-center transition-transform group-hover:scale-105 shadow-2xs`}>
+                  <card.icon size={20} />
+                </div>
+              </div>
+              <div className="text-3xl font-extrabold text-stone-900 tracking-tight">
+                {card.primary}
+              </div>
+              <div className="text-sm font-semibold text-stone-500 mt-1">
+                {card.secondary}
+              </div>
             </div>
-            <div className="flex justify-between">
-              <span className="text-stone-600 font-medium">USD</span>
-              <span className="text-stone-900 font-bold">${(totalDonationsUSD || 0).toLocaleString()}</span>
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-stone-50 rounded-2xl border border-stone-200/60 shadow-sm p-6">
-          <h2 className="text-lg font-bold text-stone-900 mb-4 flex items-center gap-2">
-            <ArrowRightLeft size={20} className="text-stone-400" /> Total Allocations
-          </h2>
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <span className="text-stone-600 font-medium">PKR</span>
-              <span className="text-stone-900 font-bold">PKR {(totalAllocationsPKR || 0).toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-stone-600 font-medium">USD</span>
-              <span className="text-stone-900 font-bold">${(totalAllocationsUSD || 0).toLocaleString()}</span>
+
+            <div className="mt-5 pt-3 border-t border-stone-100 flex items-center justify-between text-xs font-medium text-stone-400 group-hover:text-[#003828] transition-colors">
+              <span>{card.footerText}</span>
+              <span className="flex items-center gap-1 font-semibold group-hover:translate-x-0.5 transition-transform text-[#003828]">
+                Manage <ChevronRight size={13} />
+              </span>
             </div>
           </div>
-        </div>
+        ))}
       </div>
 
       {funds?.transactions && <DonationTrendsChart transactions={funds.transactions} />}

@@ -1471,7 +1471,7 @@ export default function ManagementPortal() {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'dashboard': return <SummaryDashboard funds={funds} currentUser={currentUser} setActiveTab={setActiveTab} />;
+      case 'dashboard': return <SummaryDashboard funds={funds} currentUser={currentUser} setActiveTab={setActiveTab} users={users} applications={applications} />;
       case 'general': return <MemberListView key="General Committee" title="Board Members" description="Core office bearers and registered board members of the NGO." icon={Users} members={users.filter(u => ['President', 'Vice President', 'General Secretary', 'Joint Secretary', 'Treasurer', 'Executive Member', 'General Member'].includes(u.role))} setMembers={setUsers} onUpdateRole={handleUpdateRole} onAddMember={(newM) => setUsers(prev => [newM, ...prev])} showToast={showToast} />;
       case 'volunteers': return <MemberListView key="Volunteers" title="Volunteers" description="List of all registered Volunteers." icon={HeartHandshake} members={users.filter(u => u.role === 'Volunteer')} setMembers={setUsers} onUpdateRole={handleUpdateRole} onAddMember={(newM) => setUsers(prev => [newM, ...prev])} showToast={showToast} />;
       case 'ambassadors': return <MemberListView key="Ambassadors" title="Ambassadors" description="List of all registered Ambassadors." icon={Globe} members={users.filter(u => u.role === 'Ambassador')} setMembers={setUsers} onUpdateRole={handleUpdateRole} onAddMember={(newM) => setUsers(prev => [newM, ...prev])} showToast={showToast} />;
