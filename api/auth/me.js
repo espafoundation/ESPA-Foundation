@@ -29,7 +29,6 @@ export default async function handler(req, res) {
     } catch (e) {}
   }
 
-  // For serverless fallback, recognize valid session token format
   return res.status(200).json({
     authenticated: true,
     user: user || null,

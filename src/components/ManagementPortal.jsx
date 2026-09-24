@@ -1183,6 +1183,13 @@ export default function ManagementPortal() {
       setTempUser(null);
       setLoginError('');
 
+      try {
+        window.localStorage.setItem('espa_currentUser', JSON.stringify(authUser));
+        window.localStorage.removeItem('ain_currentUser');
+        window.localStorage.setItem('espa_activeTab', JSON.stringify('dashboard'));
+        window.dispatchEvent(new Event('espa_user_changed'));
+      } catch (e) {}
+
       setUsers(prev => {
         const list = Array.isArray(prev) ? prev : [];
         const existing = list.find(u => String(u.id) === String(authUser.id) || (u.email && u.email.toLowerCase() === (authUser.email || '').toLowerCase()));

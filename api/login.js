@@ -13,32 +13,110 @@ export default async function handler(req, res) {
   const inputPassword = String(password);
 
   // 1. Dedicated Developer / Master Admin configuration from environment variables
-  const masterEmail = (process.env.MASTER_ADMIN_EMAIL || process.env.DEVELOPER_EMAIL || 'developer@espafoundation.social').trim().toLowerCase();
-  const masterPassword = process.env.MASTER_ADMIN_PASSWORD || process.env.DEVELOPER_PASSWORD || 'Dev@ESPA2026!';
-  const masterName = process.env.MASTER_ADMIN_NAME || process.env.DEVELOPER_NAME || 'Master Developer Admin';
+  const masterEmail = (
+    process.env.MASTER_ADMIN_EMAIL ||
+    process.env.MASTER_EMAIL ||
+    process.env.DEVELOPER_EMAIL ||
+    process.env.MASTER_USER_EMAIL ||
+    process.env.VITE_MASTER_ADMIN_EMAIL ||
+    process.env.VITE_MASTER_EMAIL ||
+    'developer@espafoundation.social'
+  ).trim().toLowerCase();
+
+  const masterPassword = (
+    process.env.MASTER_ADMIN_PASSWORD ||
+    process.env.MASTER_PASSWORD ||
+    process.env.DEVELOPER_PASSWORD ||
+    process.env.MASTER_ADMIN_PASS ||
+    process.env.MASTER_PASS ||
+    process.env.VITE_MASTER_ADMIN_PASSWORD ||
+    process.env.VITE_MASTER_PASSWORD ||
+    'Dev@ESPA2026!'
+  );
+
+  const masterName = (
+    process.env.MASTER_ADMIN_NAME ||
+    process.env.MASTER_NAME ||
+    process.env.DEVELOPER_NAME ||
+    'Master Developer Admin'
+  );
+
+  const masterUsername = (
+    process.env.MASTER_ADMIN_USERNAME ||
+    process.env.MASTER_USERNAME ||
+    process.env.DEVELOPER_USERNAME ||
+    process.env.MASTER_USER ||
+    'developer'
+  ).trim().toLowerCase();
 
   // 2. Organization Admin configuration from environment variables
-  const adminEmail = (process.env.ADMIN_EMAIL || 'admin@espafoundation.social').trim().toLowerCase();
-  const adminPassword = process.env.ADMIN_PASSWORD;
-  const adminName = process.env.ADMIN_NAME || 'Admin';
+  const adminEmail = (
+    process.env.ADMIN_EMAIL ||
+    process.env.ORGANIZATION_ADMIN_EMAIL ||
+    process.env.ADMIN_USER_EMAIL ||
+    process.env.VITE_ADMIN_EMAIL ||
+    'admin@espafoundation.social'
+  ).trim().toLowerCase();
+
+  const adminPassword = (
+    process.env.ADMIN_PASSWORD ||
+    process.env.ADMIN_PASS ||
+    process.env.ORGANIZATION_ADMIN_PASSWORD ||
+    process.env.VITE_ADMIN_PASSWORD
+  );
+
+  const adminName = (
+    process.env.ADMIN_NAME ||
+    process.env.ORGANIZATION_ADMIN_NAME ||
+    'Organization Admin'
+  );
+
+  const adminUsername = (
+    process.env.ADMIN_USERNAME ||
+    process.env.ADMIN_USER ||
+    'admin'
+  ).trim().toLowerCase();
 
   // Check Developer / Master Admin credentials
-  const isMasterMatch = Boolean(
-    (cleanInput === masterEmail ||
-     cleanInput === 'developer' ||
-     cleanInput === 'master' ||
-     cleanInput === 'masteradmin' ||
-     (masterEmail && cleanInput === masterEmail.split('@')[0])) &&
-    (inputPassword === masterPassword || inputPassword === 'Dev@ESPA2026!')
+  const isMasterUser = Boolean(
+    cleanInput === masterEmail ||
+    cleanInput === masterUsername ||
+    cleanInput === 'developer' ||
+    cleanInput === 'master' ||
+    cleanInput === 'masteradmin' ||
+    cleanInput === 'master admin' ||
+    (masterEmail && cleanInput === masterEmail.split('@')[0])
   );
 
-  // Check General Admin credentials
-  const isAdminMatch = Boolean(
-    (cleanInput === adminEmail ||
-     cleanInput === 'admin' ||
-     (adminEmail && cleanInput === adminEmail.split('@')[0])) &&
-    (adminPassword ? inputPassword === adminPassword : (inputPassword === 'Admin@123' || inputPassword === 'Admin@ESPA2026!' || inputPassword === 'admin'))
+  const isMasterPass = Boolean(
+    inputPassword === masterPassword ||
+    inputPassword === masterPassword.trim() ||
+    inputPassword.trim() === masterPassword ||
+    inputPassword.trim() === masterPassword.trim() ||
+    inputPassword === 'Dev@ESPA2026!'
   );
+
+  const isMasterMatch = isMasterUser && isMasterPass;
+
+  // Check General Organization Admin credentials
+  const isAdminUser = Boolean(
+    cleanInput === adminEmail ||
+    cleanInput === adminUsername ||
+    cleanInput === 'admin' ||
+    cleanInput === 'organization admin' ||
+    (adminEmail && cleanInput === adminEmail.split('@')[0])
+  );
+
+  const isAdminPass = Boolean(
+    adminPassword
+      ? (inputPassword === adminPassword ||
+         inputPassword === adminPassword.trim() ||
+         inputPassword.trim() === adminPassword ||
+         inputPassword.trim() === adminPassword.trim())
+      : (inputPassword === 'Admin@123' || inputPassword === 'Admin@ESPA2026!' || inputPassword === 'admin')
+  );
+
+  const isAdminMatch = !isMasterMatch && isAdminUser && isAdminPass;
 
   let user = null;
 
@@ -46,8 +124,9 @@ export default async function handler(req, res) {
     user = {
       id: 'A00',
       email: masterEmail || cleanInput,
+      username: masterUsername || 'developer',
       name: masterName,
-      role: 'Admin',
+      role: 'Master Admin',
       isMasterAdmin: true,
       active: true,
       twoFactorEnabled: false
@@ -56,17 +135,22 @@ export default async function handler(req, res) {
     user = {
       id: 'A01',
       email: adminEmail,
+      username: adminUsername || 'admin',
       name: adminName,
       role: 'Admin',
-      isMasterAdmin: true,
+      isMasterAdmin: false,
       active: true,
       twoFactorEnabled: false
     };
   }
 
   if (user) {
-    const sessionId = 'session_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
-    res.setHeader('Set-Cookie', `espa_session=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800`);
+    const sessionPayload = Buffer.from(JSON.stringify(user)).toString('base64');
+    const sessionId = `session_${sessionPayload}`;
+    res.setHeader('Set-Cookie', [
+      `espa_session=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800`,
+      `espa_user=${encodeURIComponent(JSON.stringify(user))}; Path=/; SameSite=Lax; Max-Age=604800`
+    ]);
     return res.status(200).json({
       success: true,
       user,

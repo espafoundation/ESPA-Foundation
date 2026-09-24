@@ -131,7 +131,12 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
                     </div>
                     <div className="flex-1 text-center sm:text-left w-full">
                         {(() => {
-                            const isMasterAdmin = currentUser?.role === 'Admin' || currentUser?.username === 'admin' || currentUser?.id === 'A01';
+                            const isMasterAdmin = Boolean(
+                              currentUser?.isMasterAdmin === true || 
+                              currentUser?.id === 'A00' || 
+                              (currentUser?.role && currentUser.role.toLowerCase() === 'master admin') || 
+                              (currentUser?.username && currentUser.username.toLowerCase() === 'developer')
+                            );
                             if (isMasterAdmin) {
                                 return (
                                     <div>
@@ -704,7 +709,7 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
                 <h3 className="text-xl font-bold text-stone-900 mb-2">System Archives</h3>
                 <p className="text-sm text-stone-500 font-medium">Access and restore previously deleted or archived system records.</p>
               </div>
-              {(currentUser?.role === 'Admin' || currentUser?.id === 'A01') && (
+              {(currentUser?.isMasterAdmin === true || currentUser?.id === 'A00' || (currentUser?.role && currentUser.role.toLowerCase() === 'master admin') || (currentUser?.username && currentUser.username.toLowerCase() === 'developer')) && (
                 <button type="button" onClick={() => setConfirm({ title: 'Reset Activity Log', message: 'This will permanently clear the activity log. Only the Master Admin can do this. Continue?', confirmText: 'Reset Log', type: 'danger', action: () => { setLogs([]); addLog('Master Admin reset the activity log'); showToast('Activity log reset.', 'success'); } })} className="text-left bg-white rounded-3xl border border-rose-200 shadow-sm p-8 flex flex-col hover:border-rose-400 hover:shadow-md transition-all cursor-pointer group">
                   <div className="w-12 h-12 bg-rose-50 rounded-full flex items-center justify-center mb-6"><Trash2 size={24} className="text-rose-600" /></div>
                   <h3 className="text-xl font-bold text-stone-900 mb-2">Reset Activity Log</h3>
