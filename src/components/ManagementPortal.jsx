@@ -1096,19 +1096,16 @@ export default function ManagementPortal() {
   }, [users]);
 
   const startTwoFactor = async (user) => {
-    // Only prompt for 2FA if the specific user has explicitly turned on 2FA on their account
-    if (!user?.twoFactorEnabled) {
+    // Only prompt for 2FA if the specific user has explicitly turned on 2FA on their account and in twoFactorConfig
+    const emailOn = Boolean(twoFactorConfig?.emailEnabled && (twoFactorConfig?.enabled || user?.twoFactorEmailEnabled || user?.twoFactorEnabled));
+    const authOn = Boolean(twoFactorConfig?.authEnabled && twoFactorConfig?.authSecret && (twoFactorConfig?.enabled || user?.twoFactorTotpEnabled || user?.twoFactorEnabled));
+    
+    // If not toggled on, strictly bypass OTP and log in directly
+    if (!user?.twoFactorEnabled || (!emailOn && !authOn)) {
       setCurrentUser(user);
       setActiveTab('dashboard');
-      addLog(`${user.name} logged in`);
-      return;
-    }
-
-    const emailOn = Boolean(twoFactorConfig?.emailEnabled || user?.twoFactorEmailEnabled);
-    const authOn = Boolean((twoFactorConfig?.authEnabled && twoFactorConfig?.authSecret) || user?.twoFactorTotpEnabled);
-    if (!emailOn && !authOn) {
-      setCurrentUser(user);
-      setActiveTab('dashboard');
+      setRequires2FA(false);
+      setTempUser(null);
       addLog(`${user.name} logged in`);
       return;
     }
@@ -1168,8 +1165,13 @@ export default function ManagementPortal() {
         active: true
       };
 
-      // Only enter 2FA if the specific user has explicitly turned on 2FA
-      if (data.requires2FA && authUser.twoFactorEnabled) {
+      // Strictly NO OTP is asked if 2FA is not toggled on
+      const isTwoFactorToggledOn = Boolean(
+        (data.requires2FA || authUser.twoFactorEnabled) &&
+        (twoFactorConfig?.enabled && (twoFactorConfig?.emailEnabled || twoFactorConfig?.authEnabled))
+      );
+
+      if (isTwoFactorToggledOn) {
         await startTwoFactor(authUser);
         return;
       }

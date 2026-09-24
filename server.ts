@@ -908,6 +908,7 @@ app.post('/api/login', loginLimiter, async (req, res) => {
   let matchedUser: any = null;
 
   if (isMasterMatch) {
+    const existing = serverUsers.find(u => u.id === 'A00' || (u.email && u.email.toLowerCase() === masterEmail));
     matchedUser = {
       id: 'A00',
       email: masterEmail || cleanInput,
@@ -916,9 +917,12 @@ app.post('/api/login', loginLimiter, async (req, res) => {
       role: 'Admin',
       isMasterAdmin: true,
       active: true,
-      twoFactorEnabled: false
+      twoFactorEnabled: Boolean(existing?.twoFactorEnabled),
+      twoFactorEmailEnabled: Boolean(existing?.twoFactorEmailEnabled),
+      twoFactorTotpEnabled: Boolean(existing?.twoFactorTotpEnabled)
     };
   } else if (isAdminMatch) {
+    const existing = serverUsers.find(u => u.id === 'A01' || (u.email && u.email.toLowerCase() === adminEmail) || (u.username && u.username.toLowerCase() === 'admin'));
     matchedUser = {
       id: 'A01',
       email: adminEmail,
@@ -927,7 +931,9 @@ app.post('/api/login', loginLimiter, async (req, res) => {
       role: 'Admin',
       isMasterAdmin: true,
       active: true,
-      twoFactorEnabled: false
+      twoFactorEnabled: Boolean(existing?.twoFactorEnabled),
+      twoFactorEmailEnabled: Boolean(existing?.twoFactorEmailEnabled),
+      twoFactorTotpEnabled: Boolean(existing?.twoFactorTotpEnabled)
     };
   } else {
     // Check registered members in serverUsers
@@ -995,7 +1001,7 @@ app.post('/api/login', loginLimiter, async (req, res) => {
     message: 'Authenticated successfully',
     user: matchedUser,
     token: sessionId,
-    requires2FA: false
+    requires2FA: Boolean(matchedUser.twoFactorEnabled)
   });
 });
 

@@ -260,12 +260,25 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
                               .then(async r => { const d = await r.json(); if (!r.ok) throw new Error(d?.error || 'Unable to send verification code.'); showToast('Verification code sent to your email.', 'success'); })
                               .catch(err => { setVerificationError(err.message || 'Unable to send verification code.'); });
                           } else {
-                            setTwoFactorConfig({...twoFactorConfig, emailEnabled: false, enabled: Boolean(twoFactorConfig.authEnabled), requireForLogin: Boolean(twoFactorConfig.authEnabled)});
-                            if (!twoFactorConfig.authEnabled) {
-                              if (currentUser) currentUser.twoFactorEnabled = false;
-                              if (setUsers && globalUsers) {
-                                setUsers(globalUsers.map(u => u.id === currentUser?.id ? { ...u, twoFactorEnabled: false } : u));
-                              }
+                            const newAuthEnabled = Boolean(twoFactorConfig?.authEnabled);
+                            setTwoFactorConfig({
+                              ...twoFactorConfig, 
+                              emailEnabled: false, 
+                              enabled: newAuthEnabled, 
+                              requireForLogin: newAuthEnabled
+                            });
+                            if (currentUser) {
+                              currentUser.twoFactorEnabled = newAuthEnabled;
+                              currentUser.twoFactorEmailEnabled = false;
+                              if (!newAuthEnabled) currentUser.twoFactorTotpEnabled = false;
+                            }
+                            if (setUsers && globalUsers) {
+                              setUsers(globalUsers.map(u => u.id === currentUser?.id ? { 
+                                ...u, 
+                                twoFactorEnabled: newAuthEnabled,
+                                twoFactorEmailEnabled: false,
+                                ...(newAuthEnabled ? {} : { twoFactorTotpEnabled: false })
+                              } : u));
                             }
                             showToast('Email 2FA disabled', 'info');
                             addLog(`Email 2FA disabled for ${currentUser.name}`);
@@ -288,12 +301,25 @@ export default function SettingsView({ currentUser, setCurrentUser, globalUsers,
                             if (!twoFactorConfig?.authSecret) setTwoFactorConfig({...twoFactorConfig, authSecret: randomBase32Secret()});
                             setIsAuthModalOpen(true);
                           } else {
-                            setTwoFactorConfig({...twoFactorConfig, authEnabled: false, enabled: Boolean(twoFactorConfig.emailEnabled), requireForLogin: Boolean(twoFactorConfig.emailEnabled)});
-                            if (!twoFactorConfig.emailEnabled) {
-                              if (currentUser) currentUser.twoFactorEnabled = false;
-                              if (setUsers && globalUsers) {
-                                setUsers(globalUsers.map(u => u.id === currentUser?.id ? { ...u, twoFactorEnabled: false } : u));
-                              }
+                            const newEmailEnabled = Boolean(twoFactorConfig?.emailEnabled);
+                            setTwoFactorConfig({
+                              ...twoFactorConfig, 
+                              authEnabled: false, 
+                              enabled: newEmailEnabled, 
+                              requireForLogin: newEmailEnabled
+                            });
+                            if (currentUser) {
+                              currentUser.twoFactorEnabled = newEmailEnabled;
+                              currentUser.twoFactorTotpEnabled = false;
+                              if (!newEmailEnabled) currentUser.twoFactorEmailEnabled = false;
+                            }
+                            if (setUsers && globalUsers) {
+                              setUsers(globalUsers.map(u => u.id === currentUser?.id ? { 
+                                ...u, 
+                                twoFactorEnabled: newEmailEnabled,
+                                twoFactorTotpEnabled: false,
+                                ...(newEmailEnabled ? {} : { twoFactorEmailEnabled: false })
+                              } : u));
                             }
                             showToast('Authenticator 2FA disabled', 'info');
                             addLog(`Authenticator 2FA disabled for ${currentUser.name}`);

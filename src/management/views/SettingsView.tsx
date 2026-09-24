@@ -308,7 +308,7 @@ export default function SettingsView({ currentUser, globalUsers, setUsers, showT
               
               <div className="flex justify-center mb-6">
                 <div className="w-48 h-48 bg-white border-2 border-stone-200 rounded-2xl flex items-center justify-center">
-                  <QRCodeSVG value={`otpauth://totp/ESPA%20Management:${currentUser?.email || currentUser?.username}?secret=JBSWY3DPEHPK3PXP&issuer=ESPA%20Management`} size={160} />
+                  <QRCodeSVG value={`otpauth://totp/ESPA%20Management:${encodeURIComponent(currentUser?.email || currentUser?.username || '')}?secret=${twoFactorConfig?.authSecret || ''}&issuer=ESPA%20Management`} size={160} />
                 </div>
               </div>
               
