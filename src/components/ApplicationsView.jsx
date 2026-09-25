@@ -46,64 +46,32 @@ export function CopyableDetail({
   displayValue, 
   actionIcon, 
   onActionClick, 
-  className = "",
-  showToast
+  className = ""
 }) {
-  const [copied, setCopied] = useState(false);
-
   if (!value || value === 'N/A' || value === 'Not specified') return null;
-
-  const handleCopy = async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const str = String(value).trim();
-    let success = false;
-    try {
-      if (navigator?.clipboard?.writeText) {
-        await navigator.clipboard.writeText(str);
-        success = true;
-      }
-    } catch (err) {}
-
-    if (!success) {
-      try {
-        const textarea = document.createElement('textarea');
-        textarea.value = str;
-        textarea.style.position = 'fixed';
-        textarea.style.left = '-9999px';
-        textarea.style.top = '-9999px';
-        document.body.appendChild(textarea);
-        textarea.focus();
-        textarea.select();
-        success = document.execCommand('copy');
-        document.body.removeChild(textarea);
-      } catch (err) {
-        console.error('Failed to copy to clipboard:', err);
-      }
-    }
-
-    setCopied(true);
-    if (showToast) {
-      showToast(`${label || 'Detail'} copied to clipboard!`, 'success');
-    }
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   return (
     <div 
-      onClick={handleCopy}
-      title={value ? `Click to copy ${label || 'detail'}` : undefined}
-      className={`p-3.5 bg-stone-50 hover:bg-emerald-50/50 rounded-2xl border border-stone-200/60 hover:border-emerald-300 transition-all cursor-pointer group relative active:scale-[0.99] select-none ${className}`}
+      className={`p-3.5 bg-stone-50 rounded-2xl border border-stone-200/60 transition-all select-text ${className}`}
     >
       <div className="flex items-center justify-between gap-1 mb-1">
-        <span className="text-[11px] font-bold text-stone-400 group-hover:text-emerald-800 uppercase tracking-wider block transition-colors">
+        <span className="text-[11px] font-bold text-stone-400 uppercase tracking-wider block">
           {label}
         </span>
-        <div className="flex items-center gap-1.5 shrink-0">
-          {copied && <span className="text-[10px] font-bold text-emerald-800">Copied</span>}
-        </div>
+        {actionIcon && (
+          <button 
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onActionClick) onActionClick(e);
+            }}
+            className="p-1 hover:bg-stone-200/60 rounded text-stone-500 hover:text-stone-800 transition-colors"
+          >
+            {actionIcon}
+          </button>
+        )}
       </div>
-      <div className="font-semibold text-stone-900 group-hover:text-[#003828] text-sm break-words transition-colors">
+      <div className="font-semibold text-stone-900 text-sm break-words select-text">
         {displayValue || value}
       </div>
     </div>
@@ -964,19 +932,16 @@ export default function ApplicationsView({
             <div className="bg-white rounded-3xl p-6 sm:p-7 border border-stone-200/80 shadow-2xs">
               <div className="flex items-center gap-2 pb-3 mb-4 border-b border-stone-100 text-emerald-900 font-bold text-sm uppercase tracking-wider">
                 <MessageSquare size={16} className="text-emerald-900" />
-                <h3>{selectedApp.type === 'partner' ? 'Partnership Proposal Statement' : 'Motivation & Statement of Intent'}</h3>
+                <h3>MOTIVATION & STATEMENT OF INTENT</h3>
               </div>
-              <CopyableDetail 
-                label="Click anywhere to copy statement"
-                value={selectedApp.message || selectedApp.motivation || selectedApp.proposal}
-                displayValue={
-                  <div className="text-stone-800 leading-relaxed text-sm whitespace-pre-wrap font-serif sm:font-sans">
-                    "{selectedApp.message || selectedApp.motivation || selectedApp.proposal}"
-                  </div>
-                }
-                showToast={showToast}
-                className="bg-stone-50/80 hover:bg-emerald-50/40 p-4"
-              />
+              <div className="bg-stone-50 rounded-2xl border border-stone-200/60 p-4">
+                <span className="text-[11px] font-bold text-stone-400 uppercase tracking-wider block mb-2">
+                  REASON FOR VOLUNTEERING WITH US
+                </span>
+                <div className="text-stone-800 leading-relaxed text-sm whitespace-pre-wrap select-text">
+                  {selectedApp.message || selectedApp.motivation || selectedApp.proposal}
+                </div>
+              </div>
             </div>
           )}
         </div>
