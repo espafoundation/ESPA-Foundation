@@ -33,10 +33,10 @@ export default function handler(req, res) {
     return res.status(405).json({ error: 'Method Not Allowed', valid: false });
   }
 
-  const { email, otp } = req.body || {};
+  const { email, otp, verificationToken } = req.body || {};
   if (!getSecret()) return res.status(500).json({ error: 'OTP_SECRET is not configured.', valid: false });
   const normalizedEmail = String(email || '').trim().toLowerCase();
-  const submittedOtp = String(otp || '').trim();
+  const submittedOtp = String(otp || '').replace(/\D/g, '').trim();
 
   if (!normalizedEmail || !submittedOtp) {
     return res.status(400).json({
@@ -46,7 +46,7 @@ export default function handler(req, res) {
   }
 
   const cookies = parseCookies(req.headers.cookie || '');
-  const cookie = cookies[COOKIE_NAME];
+  const cookie = verificationToken || cookies[COOKIE_NAME];
 
   if (!cookie) {
     return res.status(400).json({

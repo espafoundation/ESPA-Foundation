@@ -235,18 +235,7 @@ const sendEmailNotification = async (to, subject, text) => {
       body: JSON.stringify({
         to,
         subject,
-        text,
-        html: `<div style="font-family: sans-serif; color: #1c1917; padding: 20px; max-width: 600px; margin: 0 auto; border: 1px solid #e7e5e4; border-radius: 8px;">
-                 <div style="text-align: center; margin-bottom: 20px;">
-                   <img src="cid:logo" alt="ESPA Foundation" width="180" style="display: inline-block;" />
-                 </div>
-                 <div style="background-color: #f5f5f4; padding: 20px; border-radius: 6px; margin-bottom: 20px;">
-                   ${text.replace(/\n/g, '<br/>')}
-                 </div>
-                 <div style="text-align: center; color: #78716c; font-size: 12px;">
-                   &copy; 2026 ESPA Foundation. All Rights Reserved.
-                 </div>
-               </div>`
+        text
       })
     });
     const data = await response.json();

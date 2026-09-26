@@ -77,7 +77,7 @@ export default async function handler(req, res) {
       from: `"${senderTitle}" <${process.env.EMAIL_USER || 'foundationespa@gmail.com'}>`,
       to: normalizedEmail,
       subject,
-      text: `Your verification code is: ${otp}\n\nThis verification code will expire in 10 minutes.\n\nIf you did not request this code, you can safely ignore this email.\n\nESPA Foundation\nfoundationespa@gmail.com`,
+      text: `Your ESPA verification code is: ${otp}\n\nThis verification code will expire in 10 minutes.\n\nIf you did not initiate this request, you can safely ignore this email.\n\nESPA Foundation\nFrom Exclusion to Education`,
     });
 
     const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
@@ -89,6 +89,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       success: true,
       message: 'Verification code sent to your email.',
+      verificationToken: cookieValue,
     });
   } catch (error) {
     console.error('Error sending OTP:', error);

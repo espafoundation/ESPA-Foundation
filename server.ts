@@ -89,6 +89,45 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+const EMAIL_FOOTER = 'ESPA Foundation\nFrom Exclusion to Education';
+
+async function sendSystemEmail({
+  to,
+  from = '"ESPA Website" <foundationespa@gmail.com>',
+  replyTo,
+  subject,
+  text
+}: {
+  to: string;
+  from?: string;
+  replyTo?: string;
+  subject: string;
+  text: string;
+}) {
+  const finalText = text.includes('From Exclusion to Education')
+    ? text
+    : `${text.trim()}\n\n${EMAIL_FOOTER}`;
+
+  if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+    try {
+      const info = await transporter.sendMail({
+        from,
+        to,
+        replyTo,
+        subject,
+        text: finalText
+      });
+      return { success: true, info };
+    } catch (err: any) {
+      console.error(`[SMTP Error] Failed to send email to ${to}:`, err.message);
+      throw err;
+    }
+  } else {
+    console.log(`[SMTP Not Configured / Dev Mode] Email to: ${to} | Subject: "${subject}"\n${finalText}\n----------------------------------------`);
+    return { success: true, simulated: true };
+  }
+}
+
 const RECAPTCHA_SECRET = process.env.RECAPTCHA_SECRET || '';
 
 async function verifyRecaptcha(token: string) {
@@ -112,12 +151,44 @@ async function verifyRecaptcha(token: string) {
 // In-memory persistent applications store
 const serverApplications: any[] = [];
 
-// In-memory persistent OTP store for real-time verification (10 min expiry)
+// Robust OTP Store & HMAC Token Engine (Multi-container & cross-process resilient)
 interface OtpEntry {
   code: string;
   expiresAt: number;
 }
-const otpStore = new Map<string, OtpEntry>();
+const otpStore = new Map<string, OtpEntry[]>();
+
+const OTP_SECRET = process.env.OTP_SECRET || 'espa_foundation_default_otp_signing_secret_key_2026';
+
+function signOtpPayload(email: string, otp: string, expiresAt: number) {
+  const payload = Buffer.from(JSON.stringify({ 
+    email: email.toLowerCase().trim(), 
+    otp: String(otp).replace(/\D/g, '').trim(), 
+    expiresAt 
+  }), 'utf8').toString('base64url');
+  const signature = crypto.createHmac('sha256', OTP_SECRET).update(payload).digest('base64url');
+  return `${payload}.${signature}`;
+}
+
+function verifyOtpToken(token: string, submittedEmail: string, submittedOtp: string): boolean {
+  if (!token || typeof token !== 'string') return false;
+  const separator = token.lastIndexOf('.');
+  if (separator <= 0) return false;
+  const payload = token.slice(0, separator);
+  const signature = token.slice(separator + 1);
+  const expectedSig = crypto.createHmac('sha256', OTP_SECRET).update(payload).digest('base64url');
+  if (signature.length !== expectedSig.length) return false;
+  try {
+    if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSig))) return false;
+    const data = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+    if (data.email !== submittedEmail.toLowerCase().trim()) return false;
+    if (Date.now() > Number(data.expiresAt)) return false;
+    if (String(data.otp).trim() !== String(submittedOtp).trim()) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 // Applications API Endpoints
 app.get('/api/applications', (_req, res) => {
@@ -166,31 +237,14 @@ app.post('/api/applications', (req, res) => {
   }
 });
 
-app.patch('/api/applications', async (req, res) => {
-  const { id, updates = {} } = req.body || {};
-  if (!id) return res.status(400).json({ error: 'Application ID is required.' });
-  const index = serverApplications.findIndex(a => String(a.id) === String(id));
-  if (index === -1) return res.status(404).json({ error: 'Application not found' });
-  const allowed = { ...updates };
-  delete allowed.id;
-  delete allowed.created_at;
-  serverApplications[index] = { ...serverApplications[index], ...allowed, updated_at: new Date().toISOString() };
-  return res.json({ success: true, application: serverApplications[index] });
-});
-
-app.delete('/api/applications', (req, res) => {
-  const { id } = req.body || {};
-  if (!id) return res.status(400).json({ error: 'Application ID is required.' });
-  const index = serverApplications.findIndex(a => String(a.id) === String(id));
-  if (index === -1) return res.status(404).json({ error: 'Application not found' });
-  const [deleted] = serverApplications.splice(index, 1);
-  return res.json({ success: true, application: deleted });
-});
-
-
-app.patch('/api/applications/:id', async (req, res) => {
-  const { id } = req.params;
-  const { status, name, email, password, type } = req.body;
+async function processApplicationStatusChange(req: any, res: any) {
+  const id = req.params?.id || req.body?.id;
+  const body = req.body || {};
+  const status = body.status || body.updates?.status;
+  const name = body.name || body.updates?.name;
+  const email = body.email || body.updates?.email;
+  const password = body.password || body.updates?.password;
+  const type = body.type || body.updates?.type;
   
   const rawStatus = (status || '').toString().trim().toLowerCase();
   const normalizedStatus = rawStatus === 'approved' 
@@ -202,7 +256,7 @@ app.patch('/api/applications/:id', async (req, res) => {
 
   // Find all matching applications by ID or (email + type)
   let matches = serverApplications.filter(a => {
-    if (String(a.id) === String(id)) return true;
+    if (id && String(a.id) === String(id)) return true;
     if (reqEmail && a.email && a.email.toString().trim().toLowerCase() === reqEmail) {
       if (!reqType || !a.type || a.type.toString().trim().toLowerCase() === reqType) {
         return true;
@@ -219,11 +273,15 @@ app.patch('/api/applications/:id', async (req, res) => {
       if (email && !item.email) item.email = email;
       if (password) item.password = password;
       if (type && !item.type) item.type = type;
+      if (body.updates) {
+        Object.assign(item, body.updates);
+      }
+      item.updated_at = new Date().toISOString();
     });
     found = matches[0];
   } else if (normalizedStatus) {
     found = { 
-      id, 
+      id: id || `app_${Date.now()}`, 
       status: normalizedStatus, 
       name: name || 'Applicant', 
       email: email || '', 
@@ -248,18 +306,18 @@ app.patch('/api/applications/:id', async (req, res) => {
     const subject = 'APPLICATION UPDATE: ESPA Foundation';
 
     const text = isApproved
-      ? `Dear ${applicantName},\n\nYour application to volunteer with ESPA Foundation has been approved.\n\nYou can now access the Portal on ESPA Digital Library using the following credentials:\n\nEmail: ${applicantEmail}\nPassword: ${applicantPassword}\n\nPlease keep your login credentials secure and do not share your password with anyone.\n\nFurther information regarding your volunteer role and responsibilities will be available through the ESPA Digital Library.\n\nWelcome to ESPA Foundation. We look forward to having you contribute to our mission.\n\nESPA Foundation\nFrom Exclusion to Education.`
-      : `Dear ${applicantName},\n\nThank you for your interest in volunteering with ESPA Foundation and for taking the time to submit your application.\n\nAfter careful review, we regret to inform you that we will not be moving forward with your application at this time.\n\nWe appreciate your interest in supporting ESPA Foundation and encourage you to stay connected with us for future volunteer opportunities.\n\nThank you for your time and understanding.\n\nESPA Foundation\nFrom Exclusion to Education.`;
+      ? `Dear ${applicantName},\n\nYour application to volunteer with ESPA Foundation has been approved.\n\nYou can now access the Portal on ESPA Digital Library using the following credentials:\n\nEmail: ${applicantEmail}\nPassword: ${applicantPassword}\n\nPlease keep your login credentials secure and do not share your password with anyone.\n\nFurther information regarding your volunteer role and responsibilities will be available through the ESPA Digital Library.\n\nWelcome to ESPA Foundation. We look forward to having you contribute to our mission.\n\nESPA Foundation\nFrom Exclusion to Education`
+      : `Dear ${applicantName},\n\nThank you for your interest in volunteering with ESPA Foundation and for taking the time to submit your application.\n\nAfter careful review, we regret to inform you that we will not be moving forward with your application at this time.\n\nWe appreciate your interest in supporting ESPA Foundation and encourage you to stay connected with us for future volunteer opportunities.\n\nThank you for your time and understanding.\n\nESPA Foundation\nFrom Exclusion to Education`;
 
     try {
-      await transporter.sendMail({
+      await sendSystemEmail({
         from: '"ESPA Foundation" <foundationespa@gmail.com>',
         to: applicantEmail,
         subject,
         text
       });
       emailSent = true;
-      console.log(`Successfully sent ${normalizedStatus} plain text email to ${applicantEmail}`);
+      console.log(`Successfully processed ${normalizedStatus} plain text email for ${applicantEmail}`);
     } catch (err: any) {
       emailError = err?.message || 'Mail delivery error';
       console.error(`Failed to send ${normalizedStatus} plain text email to ${applicantEmail}:`, err);
@@ -272,6 +330,18 @@ app.patch('/api/applications/:id', async (req, res) => {
     emailSent, 
     emailError 
   });
+}
+
+app.patch('/api/applications', (req, res) => processApplicationStatusChange(req, res));
+app.patch('/api/applications/:id', (req, res) => processApplicationStatusChange(req, res));
+
+app.delete('/api/applications', (req, res) => {
+  const { id } = req.body || {};
+  if (!id) return res.status(400).json({ error: 'Application ID is required.' });
+  const index = serverApplications.findIndex(a => String(a.id) === String(id));
+  if (index === -1) return res.status(404).json({ error: 'Application not found' });
+  const [deleted] = serverApplications.splice(index, 1);
+  return res.json({ success: true, application: deleted });
 });
 
 // API Routes
@@ -290,81 +360,16 @@ app.post('/api/contact', apiLimiter, async (req, res) => {
       if (dbError) console.error('Supabase error (contact):', dbError);
     }
 
-    transporter.sendMail({
+    await sendSystemEmail({
       from: '"ESPA Website" <foundationespa@gmail.com>',
       to: 'foundationespa@gmail.com',
       replyTo: email,
       subject: `New Contact Form Submission from ${name}`,
-      text: `Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}`,
-      html: `
-<!DOCTYPE html>
-<html>
-<head>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-</head>
-<body style="margin: 0; padding: 20px; background-color: #f3f4f6;">
-<div style="font-family: 'Poppins'; max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-  
-  <!-- Text-Based Logo Header -->
-  <div style="background-color: #ffffff; padding: 35px 20px; text-align: center; border-bottom: 1px solid #f3f4f6;">
-    <div style="color: #004B36; margin: 0; padding: 0;">
-      <div style="font-family: 'Poppins'; font-weight: 700; font-size: 50px; line-height: 1; margin: 0; letter-spacing: -1px;">ESPA</div>
-      <div style="font-family: 'Poppins'; font-weight: 400; font-size: 32px; line-height: 1; margin: 0;">Foundation</div>
-    </div>
-  </div>
-
-  <!-- Content -->
-  <div style="padding: 40px 30px;">
-    <div style="margin-bottom: 25px;">
-      <p style="margin: 0 0 6px 0; color: #6b7280; font-size: 12px; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Name</p>
-      <p style="margin: 0; color: #111827; font-size: 16px; padding: 14px; background-color: #f9fafb; border-radius: 8px; border: 1px solid #f3f4f6;">${name}</p>
-    </div>
-
-    <div style="margin-bottom: 25px;">
-      <p style="margin: 0 0 6px 0; color: #6b7280; font-size: 12px; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Email Address</p>
-      <p style="margin: 0; color: #111827; font-size: 16px; padding: 14px; background-color: #f9fafb; border-radius: 8px; border: 1px solid #f3f4f6;">${email}</p>
-    </div>
-
-    <div style="margin-bottom: 20px;">
-      <p style="margin: 0 0 6px 0; color: #6b7280; font-size: 12px; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Message</p>
-      <p style="margin: 0; color: #111827; font-size: 15px; line-height: 1.7; padding: 16px; background-color: #f9fafb; border-radius: 8px; border: 1px solid #f3f4f6; white-space: pre-wrap;">${message}</p>
-    </div>
-  </div>
-
-  <!-- Green Footer -->
-  <div style="background-color: #004B36; padding: 40px 30px; text-align: center; color: #ffffff;">
-    
-    <!-- Social Icons (Stroke only) -->
-    <div style="margin-bottom: 25px;">
-      <a href="https://www.linkedin.com/company/espafoundation/" target="_blank" style="display: inline-block; margin: 0 12px; text-decoration: none;">
-        <img src="https://img.icons8.com/ios/50/ffffff/linkedin.png" alt="LinkedIn" style="width: 28px; height: 28px; display: block; opacity: 0.9;" />
-      </a>
-      <a href="https://www.instagram.com/espafoundation/" target="_blank" style="display: inline-block; margin: 0 12px; text-decoration: none;">
-        <img src="https://img.icons8.com/ios/50/ffffff/instagram-new.png" alt="Instagram" style="width: 28px; height: 28px; display: block; opacity: 0.9;" />
-      </a>
-    </div>
-
-    <!-- Divider -->
-    <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.15); margin: 0 auto 25px auto; width: 70%;" />
-
-    <!-- Links -->
-    <div style="margin-bottom: 25px;">
-      <a href="https://espafoundation.org/privacy" style="color: #ffffff; text-decoration: none; font-size: 13px; margin: 0 15px; font-weight: 500; border-bottom: 1px solid rgba(255,255,255,0.3); padding-bottom: 2px;">Privacy Policy</a>
-      <a href="https://espafoundation.org/terms" style="color: #ffffff; text-decoration: none; font-size: 13px; margin: 0 15px; font-weight: 500; border-bottom: 1px solid rgba(255,255,255,0.3); padding-bottom: 2px;">Terms of Service</a>
-    </div>
-
-    <!-- Copyright -->
-    <p style="margin: 0; color: rgba(255,255,255,0.6); font-size: 12px; font-weight: 400;">
-      &copy; 2026 ESPA Foundation. All Rights Reserved.
-    </p>
-  </div>
-</div>
-</body>
-</html>
-      `
+      text: `Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}\n\nESPA Foundation\nFrom Exclusion to Education`
     });
     res.json({ success: true });
   } catch (error) {
+    console.error('Contact route error:', error);
     res.status(500).json({ error: 'Failed to send email' });
   }
 });
@@ -417,82 +422,12 @@ app.post('/api/volunteer', apiLimiter, async (req, res) => {
       if (dbError) console.error('Supabase error (volunteer):', dbError);
     }
 
-    transporter.sendMail({
+    await sendSystemEmail({
       from: '"ESPA Website" <foundationespa@gmail.com>',
       to: 'foundationespa@gmail.com',
       replyTo: email,
       subject: `New Volunteer Application: ${candidateName} (${volunteer_target || 'Foundation'})`,
-      text: `Name: ${candidateName}\nEmail: ${email}\nPhone: ${phone || 'N/A'}\nGender: ${gender || 'N/A'}\nDate of Birth: ${dob || 'N/A'}\nCity: ${city || 'N/A'}\nCountry: ${country || 'N/A'}\nVolunteering With: ${volunteer_target || 'Foundation'}\nLibrary Position: ${library_role || 'N/A'}\nLanguages: ${languagesList}\nAvailability: ${availability}${skills ? `\nSkills: ${skills}` : ''}\nMotivation: ${message || 'N/A'}`,
-      html: `
-        <div style="font-family: 'Poppins', Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
-          <div style="background-color: #004B36; padding: 20px; text-align: center; color: white;">
-            <h2 style="margin: 0; font-size: 22px;">New Volunteer Application</h2>
-            <p style="margin: 5px 0 0 0; opacity: 0.9; font-size: 14px;">${volunteer_target || 'ESPA Foundation'}</p>
-          </div>
-          <div style="padding: 20px; background-color: #f9f9f9;">
-            <table style="width: 100%; border-collapse: collapse;">
-              <tr>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>Name:</strong></td>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;">${candidateName}</td>
-              </tr>
-              <tr>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>Email:</strong></td>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><a href="mailto:${email}" style="color: #004B36;">${email}</a></td>
-              </tr>
-              <tr>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>Phone:</strong></td>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;">${phone || 'N/A'}</td>
-              </tr>
-              <tr>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>Gender:</strong></td>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;">${gender || 'N/A'}</td>
-              </tr>
-              <tr>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>Date of Birth:</strong></td>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;">${dob || 'N/A'}</td>
-              </tr>
-              <tr>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>City / Location:</strong></td>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;">${city || 'N/A'}</td>
-              </tr>
-              <tr>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>Country:</strong></td>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;">${country || 'N/A'}</td>
-              </tr>
-              <tr>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>Volunteering For:</strong></td>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee; font-weight: bold; color: #004B36;">${volunteer_target || 'ESPA Foundation'}</td>
-              </tr>
-              ${library_role ? `
-              <tr>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>Library Position:</strong></td>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee; font-weight: bold;">${library_role}</td>
-              </tr>` : ''}
-              <tr>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>Languages:</strong></td>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;">${languagesList}</td>
-              </tr>
-              <tr>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>Availability:</strong></td>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;">${availability}</td>
-              </tr>
-              ${skills ? `
-              <tr>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>Skills:</strong></td>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;">${skills}</td>
-              </tr>` : ''}
-              ${message ? `
-              <tr>
-                <td style="padding: 10px 0;"><strong>Motivation:</strong></td>
-                <td style="padding: 10px 0; white-space: pre-wrap;">${message}</td>
-              </tr>` : ''}
-            </table>
-          </div>
-          <div style="background-color: #eeeeee; padding: 15px; text-align: center; font-size: 12px; color: #888;">
-            This email was automatically generated from the ESPA Foundation Website.
-          </div>
-        </div>
-      `
+      text: `Name: ${candidateName}\nEmail: ${email}\nPhone: ${phone || 'N/A'}\nGender: ${gender || 'N/A'}\nDate of Birth: ${dob || 'N/A'}\nCity: ${city || 'N/A'}\nCountry: ${country || 'N/A'}\nVolunteering With: ${volunteer_target || 'Foundation'}\nLibrary Position: ${library_role || 'N/A'}\nLanguages: ${languagesList}\nAvailability: ${availability}${skills ? `\nSkills: ${skills}` : ''}\nMotivation: ${message || 'N/A'}\n\nESPA Foundation\nFrom Exclusion to Education`
     });
     // Store application in serverApplications
     const appId = req.body.id || `app_vol_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
@@ -577,77 +512,12 @@ app.post('/api/partner', apiLimiter, async (req, res) => {
     const personalLocation = [city, country].filter(Boolean).join(', ');
     const orgLocation = [org_city, org_country].filter(Boolean).join(', ');
 
-    transporter.sendMail({
+    await sendSystemEmail({
       from: '"ESPA Website" <foundationespa@gmail.com>',
       to: 'foundationespa@gmail.com',
       replyTo: email,
       subject: `New Partnership Proposal from ${organization}`,
-      text: `Name: ${candidateName}\nOrganization: ${organization}\nDesignation: ${designation || 'N/A'}\nEmail: ${email}\nPhone: ${phone || 'N/A'}\nPersonal Location: ${personalLocation || 'N/A'}\nHeadquarters Location: ${orgLocation || 'N/A'}\nPartnership Category: ${partnership_type || 'N/A'}\nWebsite: ${website || 'N/A'}\n\nProposal:\n${proposal}\n\nTimeline/Goals:\n${timeline_or_goals || 'N/A'}`,
-      html: `
-        <div style="font-family: 'Poppins'; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
-          <div style="background-color: #004B36; padding: 20px; text-align: center; color: white;">
-            <h2 style="margin: 0;">New Partnership Proposal</h2>
-          </div>
-          <div style="padding: 20px; background-color: #f9f9f9;">
-            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-              <tr>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>Organization:</strong></td>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;">${organization}</td>
-              </tr>
-              <tr>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>Contact Name:</strong></td>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;">${candidateName}</td>
-              </tr>
-              ${designation ? `
-              <tr>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>Designation:</strong></td>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;">${designation}</td>
-              </tr>` : ''}
-              <tr>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>Email:</strong></td>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><a href="mailto:${email}" style="color: #004B36;">${email}</a></td>
-              </tr>
-              ${phone ? `
-              <tr>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>Phone:</strong></td>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;">${phone}</td>
-              </tr>` : ''}
-              ${personalLocation ? `
-              <tr>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>Representative Location:</strong></td>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;">${personalLocation}</td>
-              </tr>` : ''}
-              ${orgLocation ? `
-              <tr>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>Organization Headquarters:</strong></td>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;">${orgLocation}</td>
-              </tr>` : ''}
-              ${partnership_type ? `
-              <tr>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>Partnership Type:</strong></td>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;">${partnership_type}</td>
-              </tr>` : ''}
-              ${website ? `
-              <tr>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>Website:</strong></td>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><a href="${website}" target="_blank" style="color: #004B36;">${website}</a></td>
-              </tr>` : ''}
-            </table>
-            <div style="padding: 15px; background-color: #ffffff; border-left: 4px solid #004B36; border-radius: 4px; margin-bottom: 15px;">
-              <h4 style="margin-top: 0; color: #333; margin-bottom: 10px;">Proposal Details:</h4>
-              <p style="white-space: pre-wrap; margin: 0; color: #555; line-height: 1.5;">${proposal}</p>
-            </div>
-            ${timeline_or_goals ? `
-            <div style="padding: 15px; background-color: #ffffff; border-left: 4px solid #004B36; border-radius: 4px;">
-              <h4 style="margin-top: 0; color: #333; margin-bottom: 10px;">Target Outcomes / Timeline:</h4>
-              <p style="white-space: pre-wrap; margin: 0; color: #555; line-height: 1.5;">${timeline_or_goals}</p>
-            </div>` : ''}
-          </div>
-          <div style="background-color: #eeeeee; padding: 15px; text-align: center; font-size: 12px; color: #888;">
-            This email was automatically generated from the ESPA Foundation Website.
-          </div>
-        </div>
-      `
+      text: `Name: ${candidateName}\nOrganization: ${organization}\nDesignation: ${designation || 'N/A'}\nEmail: ${email}\nPhone: ${phone || 'N/A'}\nPersonal Location: ${personalLocation || 'N/A'}\nHeadquarters Location: ${orgLocation || 'N/A'}\nPartnership Category: ${partnership_type || 'N/A'}\nWebsite: ${website || 'N/A'}\n\nProposal:\n${proposal}\n\nTimeline/Goals:\n${timeline_or_goals || 'N/A'}\n\nESPA Foundation\nFrom Exclusion to Education`
     });
     // Store partner application in serverApplications
     const appId = req.body.id || `app_part_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
@@ -721,51 +591,12 @@ app.post('/api/ambassador', apiLimiter, async (req, res) => {
       if (dbError) console.error('Supabase error (ambassador):', dbError);
     }
 
-    transporter.sendMail({
+    await sendSystemEmail({
       from: '"ESPA Website" <foundationespa@gmail.com>',
       to: 'foundationespa@gmail.com',
       replyTo: email,
       subject: `New Ambassador Application from ${candidateName}`,
-      text: `Name: ${candidateName}\nEmail: ${email}\nPhone: ${phone}\nWhatsApp: ${whatsapp || 'N/A'}\nSocial Media: ${social || 'N/A'}\n\nMotivation:\n${motivation}`,
-      html: `
-        <div style="font-family: 'Poppins'; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
-          <div style="background-color: #004B36; padding: 20px; text-align: center; color: white;">
-            <h2 style="margin: 0;">New Ambassador Application</h2>
-          </div>
-          <div style="padding: 20px; background-color: #f9f9f9;">
-            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-              <tr>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>Name:</strong></td>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;">${candidateName}</td>
-              </tr>
-              <tr>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>Email:</strong></td>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><a href="mailto:${email}" style="color: #004B36;">${email}</a></td>
-              </tr>
-              <tr>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>Phone:</strong></td>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;">${phone}</td>
-              </tr>
-              ${whatsapp ? `
-              <tr>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>WhatsApp:</strong></td>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;">${whatsapp}</td>
-              </tr>` : ''}
-              <tr>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><strong>Social Media:</strong></td>
-                <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;"><a href="${social}" target="_blank" style="color: #004B36;">${social || 'N/A'}</a></td>
-              </tr>
-            </table>
-            <div style="background-color: white; padding: 15px; border-radius: 6px; border: 1px solid #eeeeee;">
-              <h4 style="margin-top: 0; color: #004B36;">Motivation</h4>
-              <p style="white-space: pre-wrap; font-size: 14px; line-height: 1.6; color: #333;">${motivation}</p>
-            </div>
-          </div>
-          <div style="background-color: #eeeeee; padding: 15px; text-align: center; font-size: 12px; color: #888;">
-            This email was automatically generated from the ESPA Foundation Website.
-          </div>
-        </div>
-      `
+      text: `Name: ${candidateName}\nEmail: ${email}\nPhone: ${phone}\nWhatsApp: ${whatsapp || 'N/A'}\nSocial Media: ${social || 'N/A'}\n\nMotivation:\n${motivation}\n\nESPA Foundation\nFrom Exclusion to Education`
     });
     // Store ambassador application in serverApplications
     const appId = req.body.id || `app_amb_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
@@ -841,29 +672,38 @@ app.post('/api/election', apiLimiter, async (req, res) => {
       return res.status(500).json({ error: 'Supabase credentials missing on server' });
     }
 
-    transporter.sendMail({
+    await sendSystemEmail({
       from: '"ESPA Website" <foundationespa@gmail.com>',
       to: 'foundationespa@gmail.com',
       subject: `New Election Ballot Submitted by ${voterName}`,
-      text: `Voter Name: ${voterName}\n\nPresident: ${president}\nVice President: ${vicePresident}\nGeneral Secretary: ${generalSecretary}\nJoint Secretary: ${jointSecretary}\nTreasurer: ${treasurer}\nExecutive Member 1: ${executiveMember1}\nExecutive Member 2: ${executiveMember2}`,
-      html: `
-        <h3>New Election Ballot</h3>
-        <p><strong>Voter Name:</strong> ${voterName}</p>
-        <hr />
-        <p><strong>President:</strong> ${president}</p>
-        <p><strong>Vice President:</strong> ${vicePresident}</p>
-        <p><strong>General Secretary:</strong> ${generalSecretary}</p>
-        <p><strong>Joint Secretary:</strong> ${jointSecretary}</p>
-        <p><strong>Treasurer:</strong> ${treasurer}</p>
-        <p><strong>Executive Member 1:</strong> ${executiveMember1}</p>
-        <p><strong>Executive Member 2:</strong> ${executiveMember2}</p>
-      `
+      text: `Voter Name: ${voterName}\n\nPresident: ${president}\nVice President: ${vicePresident}\nGeneral Secretary: ${generalSecretary}\nJoint Secretary: ${jointSecretary}\nTreasurer: ${treasurer}\nExecutive Member 1: ${executiveMember1}\nExecutive Member 2: ${executiveMember2}\n\nESPA Foundation\nFrom Exclusion to Education`
     });
 
     res.json({ success: true, message: 'Votes submitted successfully' });
   } catch (error) {
     console.error('Election error:', error);
     res.status(500).json({ error: 'Failed to process votes' });
+  }
+});
+
+// General Plain Text Email Notification Endpoint
+app.post('/api/send-email', apiLimiter, async (req, res) => {
+  const { to, subject, text } = req.body || {};
+  if (!to || !subject || !text) {
+    return res.status(400).json({ error: 'Recipient (to), subject, and text are required' });
+  }
+
+  try {
+    await sendSystemEmail({
+      from: '"ESPA Foundation" <foundationespa@gmail.com>',
+      to,
+      subject,
+      text
+    });
+    res.json({ success: true, message: 'Email processed successfully' });
+  } catch (error: any) {
+    console.error('Error in /api/send-email:', error);
+    res.status(500).json({ error: error?.message || 'Failed to send email' });
   }
 });
 
@@ -1137,7 +977,7 @@ app.get('/api/users', (_req, res) => {
 
 
 app.post('/api/send-otp', apiLimiter, async (req, res) => {
-  const { email, recaptchaToken, purpose } = req.body;
+  const { email, recaptchaToken, purpose } = req.body || {};
   
   if (!email) return res.status(400).json({ error: 'Email address is required' });
   
@@ -1147,15 +987,21 @@ app.post('/api/send-otp', apiLimiter, async (req, res) => {
     if (!isValid) return res.status(400).json({ error: 'reCAPTCHA verification failed' });
   }
 
-  // Generate 6-digit random numeric OTP if not provided
+  // Generate 6-digit random numeric OTP
   const finalOtp = Math.floor(100000 + Math.random() * 900000).toString();
   const normalizedEmail = String(email).trim().toLowerCase();
+  const expiresAt = Date.now() + 15 * 60 * 1000; // 15 minutes window
 
-  // Store OTP in-memory with 10-minute expiry
-  otpStore.set(normalizedEmail, {
+  // Store OTP in-memory (supports multiple active codes within expiry so resend doesn't break previous emails)
+  const activeEntries = (otpStore.get(normalizedEmail) || []).filter(e => Date.now() < e.expiresAt);
+  activeEntries.push({
     code: finalOtp,
-    expiresAt: Date.now() + 10 * 60 * 1000
+    expiresAt
   });
+  otpStore.set(normalizedEmail, activeEntries);
+
+  // Generate cryptographic signed token (cross-container and process-restart resilient)
+  const verificationToken = signOtpPayload(normalizedEmail, finalOtp, expiresAt);
 
   const isLibrary = purpose === 'library' || (!purpose && String(email).includes('library'));
   const senderTitle = isLibrary ? 'ESPA Digital Library' : 'ESPA Foundation';
@@ -1164,14 +1010,26 @@ app.post('/api/send-otp', apiLimiter, async (req, res) => {
     : `Your ESPA Verification Code: ${finalOtp}`;
 
   try {
-    await transporter.sendMail({
+    await sendSystemEmail({
       from: `"${senderTitle}" <foundationespa@gmail.com>`,
       to: email,
       subject: subjectLine,
-      text: `Your ESPA verification code is: ${finalOtp}\n\nThis verification code will expire in 10 minutes.\n\nIf you did not initiate this request, you can safely ignore this email.\n\nESPA Foundation\nfoundationespa@gmail.com`
+      text: `Your ESPA verification code is: ${finalOtp}\n\nThis verification code will expire in 10 minutes.\n\nIf you did not initiate this request, you can safely ignore this email.\n\nESPA Foundation\nFrom Exclusion to Education`
     });
-    console.log(`Successfully sent real-time plain text OTP to ${email}`);
-    res.json({ success: true, message: 'Verification code sent to your email.' });
+    console.log(`Successfully processed plain text OTP for ${email}: ${finalOtp}`);
+
+    // Set cookie as well for backward compatibility & mobile support
+    const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
+    res.setHeader(
+      'Set-Cookie',
+      `espa_otp=${verificationToken}; HttpOnly; Path=/; Max-Age=900; SameSite=Lax${secure}`
+    );
+
+    res.json({ 
+      success: true, 
+      message: 'Verification code sent to your email.',
+      verificationToken
+    });
   } catch (error) {
     console.error('Error sending OTP email:', error);
     res.status(500).json({ error: 'Failed to send OTP email. Please check your email address and try again.' });
@@ -1179,29 +1037,56 @@ app.post('/api/send-otp', apiLimiter, async (req, res) => {
 });
 
 app.post('/api/verify-otp', apiLimiter, (req, res) => {
-  const { email, otp } = req.body;
+  const { email, otp, verificationToken } = req.body || {};
   if (!email || !otp) {
     return res.status(400).json({ error: 'Email and verification code are required.', valid: false });
   }
+
   const normalizedEmail = String(email).trim().toLowerCase();
-  const entry = otpStore.get(normalizedEmail);
+  const cleanOtp = String(otp).replace(/\D/g, '').trim();
 
-  if (!entry) {
-    return res.status(400).json({ error: 'No verification code found or it has expired. Please request a new code.', valid: false });
+  if (!cleanOtp) {
+    return res.status(400).json({ error: 'Please enter a valid numeric verification code.', valid: false });
   }
 
-  if (Date.now() > entry.expiresAt) {
-    otpStore.delete(normalizedEmail);
-    return res.status(400).json({ error: 'Verification code has expired. Please click Resend Code.', valid: false });
+  // 1. Check in-memory active list for this email
+  const activeEntries = (otpStore.get(normalizedEmail) || []).filter(e => Date.now() < e.expiresAt);
+  const matchedIndex = activeEntries.findIndex(e => e.code === cleanOtp);
+
+  // 2. Check signed token from request body or cookie
+  const token = verificationToken || req.cookies?.espa_otp;
+  const tokenValid = token ? verifyOtpToken(token, normalizedEmail, cleanOtp) : false;
+
+  if (matchedIndex !== -1 || tokenValid) {
+    // Valid OTP! Clear consumed entry
+    if (matchedIndex !== -1) {
+      activeEntries.splice(matchedIndex, 1);
+      if (activeEntries.length === 0) {
+        otpStore.delete(normalizedEmail);
+      } else {
+        otpStore.set(normalizedEmail, activeEntries);
+      }
+    }
+    // Clear cookie
+    res.setHeader(
+      'Set-Cookie',
+      `espa_otp=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`
+    );
+    return res.json({ success: true, valid: true });
   }
 
-  if (entry.code !== String(otp).trim()) {
-    return res.status(400).json({ error: 'Incorrect verification code. Please check your email and try again.', valid: false });
+  // If no match found: check whether there are any active codes for this email
+  if (activeEntries.length === 0 && !token) {
+    return res.status(400).json({ 
+      error: 'No verification code found or it has expired. Please click Resend Code.', 
+      valid: false 
+    });
   }
 
-  // Successfully verified! Consume code so it cannot be re-used
-  otpStore.delete(normalizedEmail);
-  return res.json({ success: true, valid: true });
+  return res.status(400).json({ 
+    error: 'Incorrect verification code. Please check your email and try again.', 
+    valid: false 
+  });
 });
 
 // Serve static files

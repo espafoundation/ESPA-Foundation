@@ -319,14 +319,21 @@ export default function ApplicationsView({
     if (isProcessingStatus) return;
     const nextStatus = normalizeStatus(newStatusRaw);
     const target = applications.find(a => String(a.id) === String(id)) || selectedApp;
-    setConfirm({ title: `${nextStatus} Application`, message: `Are you sure you want to ${nextStatus.toLowerCase()} this application?`, confirmText: nextStatus, type: nextStatus === 'Rejected' ? 'danger' : 'confirm', action: () => performUpdateStatus(id, nextStatus, target) });
+    setConfirm({ 
+      title: `${nextStatus} Application`, 
+      message: `Are you sure you want to ${nextStatus.toLowerCase()} the application from ${target?.name || 'this applicant'}? ${nextStatus === 'Approved' ? 'An approval email with credentials will be dispatched.' : 'A notification email will be sent.'}`, 
+      confirmText: nextStatus, 
+      type: nextStatus === 'Rejected' ? 'danger' : 'confirm', 
+      action: () => performUpdateStatus(id, nextStatus, target) 
+    });
   };
 
   const performUpdateStatus = async (id, newStatus, targetApp) => {
     if (isProcessingStatus) return;
     setIsProcessingStatus(true);
-    const targetEmail = (targetApp?.email || selectedApp?.email || '').toLowerCase().trim();
-    const targetType = ((targetApp?.type || selectedApp?.type || '')).toLowerCase().trim();
+    const target = targetApp || applications.find(a => String(a.id) === String(id)) || selectedApp;
+    const targetEmail = (target?.email || selectedApp?.email || '').toLowerCase().trim();
+    const targetType = ((target?.type || selectedApp?.type || '')).toLowerCase().trim();
 
     // Optimistically update applications list across all matching records
     const updated = (applications || []).map(app => {
@@ -353,23 +360,23 @@ export default function ApplicationsView({
     }
 
     // Sync to user directory
-    if (targetApp && setUsers) {
-      const type = (targetApp.type || '').toLowerCase();
+    if (target && setUsers) {
+      const type = (target.type || '').toLowerCase();
       const targetRole = type === 'volunteer' ? 'Volunteer' : (type === 'ambassador' ? 'Ambassador' : (type === 'partner' ? 'Partner' : null));
 
       if (targetRole) {
         if (newStatus === 'Approved') {
           setUsers(prevUsers => {
             const list = Array.isArray(prevUsers) ? prevUsers : [];
-            const appEmail = (targetApp.email || '').toLowerCase().trim();
+            const appEmail = (target.email || '').toLowerCase().trim();
             const exists = list.some(u => 
-              u.applicationId === targetApp.id || 
+              u.applicationId === target.id || 
               (appEmail && u.email && u.email.toLowerCase().trim() === appEmail && u.role === targetRole)
             );
 
             if (exists) {
               const updatedList = list.map(u => {
-                if (u.applicationId === targetApp.id || (appEmail && u.email && u.email.toLowerCase().trim() === appEmail && u.role === targetRole)) {
+                if (u.applicationId === target.id || (appEmail && u.email && u.email.toLowerCase().trim() === appEmail && u.role === targetRole)) {
                   return { ...u, active: true, status: 'Active' };
                 }
                 return u;
@@ -383,52 +390,52 @@ export default function ApplicationsView({
 
             const prefix = type === 'volunteer' ? 'V' : (type === 'ambassador' ? 'AM' : 'PA');
             const newMember = {
-              id: `${prefix}_${targetApp.id}`,
-              applicationId: targetApp.id,
+              id: `${prefix}_${target.id}`,
+              applicationId: target.id,
               name: type === 'partner' 
-                ? (targetApp.organization || targetApp.company || targetApp.name || 'Partner Organization')
-                : (targetApp.name || `${targetApp.first_name || ''} ${targetApp.last_name || ''}`.trim() || 'Member'),
-              email: targetApp.email || '',
-              phone: targetApp.phone || '',
-              whatsapp: targetApp.whatsapp || '',
+                ? (target.organization || target.company || target.name || 'Partner Organization')
+                : (target.name || `${target.first_name || ''} ${target.last_name || ''}`.trim() || 'Member'),
+              email: target.email || '',
+              phone: target.phone || '',
+              whatsapp: target.whatsapp || '',
               photo: '',
               role: targetRole,
-              username: (targetApp.email ? targetApp.email.split('@')[0] : `${type}_${targetApp.id}`),
-              password: targetApp.password || '',
+              username: (target.email ? target.email.split('@')[0] : `${type}_${target.id}`),
+              password: target.password || '',
               active: true,
               status: 'Active',
-              dateAdded: targetApp.date || new Date().toISOString(),
-              joinDate: targetApp.date ? new Date(targetApp.date).toLocaleDateString() : new Date().toLocaleDateString(),
-              city: targetApp.city || '',
-              country: targetApp.country || '',
-              location: [targetApp.city, targetApp.country].filter(Boolean).join(', '),
-              gender: targetApp.gender || '',
-              dob: targetApp.dob || '',
-              volunteer_target: targetApp.volunteer_target || 'ESPA Foundation',
-              library_role: targetApp.library_role || '',
-              languages: targetApp.languages || [],
-              area_of_interest: targetApp.area_of_interest || targetApp.volunteer_target || '',
-              interests: targetApp.area_of_interest || targetApp.volunteer_target || '',
-              availability: targetApp.availability || '',
-              skills: targetApp.skills || '',
-              institution: targetApp.institution || targetApp.company || '',
-              department: targetApp.department || '',
-              current_status: targetApp.current_status || '',
-              social: targetApp.social || '',
-              socialMedia: targetApp.social || '',
-              experience: targetApp.experience || '',
-              influenceArea: targetApp.department || 'Education & Youth',
-              profession: targetApp.current_status || 'Ambassador Fellow',
-              organization: targetApp.organization || targetApp.company || '',
-              company: targetApp.organization || targetApp.company || '',
-              representative: targetApp.name || '',
-              designation: targetApp.designation || 'Representative',
-              website: targetApp.website || '',
-              partnership_type: targetApp.partnership_type || 'Strategic Partner',
-              partnershipType: targetApp.partnership_type || 'Strategic Partner',
-              timeline_or_goals: targetApp.timeline_or_goals || '',
-              proposal: targetApp.proposal || targetApp.message || '',
-              motivation: targetApp.message || targetApp.motivation || '',
+              dateAdded: target.date || new Date().toISOString(),
+              joinDate: target.date ? new Date(target.date).toLocaleDateString() : new Date().toLocaleDateString(),
+              city: target.city || '',
+              country: target.country || '',
+              location: [target.city, target.country].filter(Boolean).join(', '),
+              gender: target.gender || '',
+              dob: target.dob || '',
+              volunteer_target: target.volunteer_target || 'ESPA Foundation',
+              library_role: target.library_role || '',
+              languages: target.languages || [],
+              area_of_interest: target.area_of_interest || target.volunteer_target || '',
+              interests: target.area_of_interest || target.volunteer_target || '',
+              availability: target.availability || '',
+              skills: target.skills || '',
+              institution: target.institution || target.company || '',
+              department: target.department || '',
+              current_status: target.current_status || '',
+              social: target.social || '',
+              socialMedia: target.social || '',
+              experience: target.experience || '',
+              influenceArea: target.department || 'Education & Youth',
+              profession: target.current_status || 'Ambassador Fellow',
+              organization: target.organization || target.company || '',
+              company: target.organization || target.company || '',
+              representative: target.name || '',
+              designation: target.designation || 'Representative',
+              website: target.website || '',
+              partnership_type: target.partnership_type || 'Strategic Partner',
+              partnershipType: target.partnership_type || 'Strategic Partner',
+              timeline_or_goals: target.timeline_or_goals || '',
+              proposal: target.proposal || target.message || '',
+              motivation: target.message || target.motivation || '',
               history: `Approved application reflected in ${targetRole}s on ${new Date().toLocaleDateString()}`
             };
 
@@ -443,7 +450,7 @@ export default function ApplicationsView({
         } else {
           setUsers(prevUsers => {
             const list = Array.isArray(prevUsers) ? prevUsers : [];
-            const filtered = list.filter(u => u.applicationId !== targetApp.id);
+            const filtered = list.filter(u => u.applicationId !== target.id);
             try {
               localStorage.setItem('espa_users', JSON.stringify(filtered));
               localStorage.removeItem('ain_users');
@@ -465,18 +472,18 @@ export default function ApplicationsView({
         body: JSON.stringify({
           id,
           status: newStatus,
-          name: targetApp?.name || `${targetApp?.first_name || ''} ${targetApp?.last_name || ''}`.trim(),
-          email: targetApp?.email,
-          password: targetApp?.password,
-          type: targetApp?.type
+          name: target?.name || `${target?.first_name || ''} ${target?.last_name || ''}`.trim(),
+          email: target?.email,
+          password: target?.password,
+          type: target?.type
         })
       });
       const data = await response.json();
       if (data?.emailSent) {
         if (showToast) {
           showToast(newStatus === 'Approved'
-            ? `Application approved! Credentials emailed to ${targetApp?.email}.`
-            : `Application rejected. Update email sent to ${targetApp?.email}.`,
+            ? `Application approved! Credentials emailed to ${target?.email}.`
+            : `Application rejected. Update email sent to ${target?.email}.`,
             'success'
           );
         }
@@ -946,6 +953,15 @@ export default function ApplicationsView({
           )}
         </div>
       </div>
+      <ConfirmModal
+        isOpen={Boolean(confirm)}
+        title={confirm?.title || ''}
+        message={confirm?.message || ''}
+        confirmText={confirm?.confirmText || 'Confirm'}
+        type={confirm?.type || 'danger'}
+        onClose={() => setConfirm(null)}
+        onConfirm={() => { const action = confirm?.action; setConfirm(null); if (action) action(); }}
+      />
       </>
     );
   }
@@ -1043,6 +1059,24 @@ export default function ApplicationsView({
                       </td>
                       <td className="w-[18%] px-6 py-4 text-center" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-center gap-1">
+                          {isPending && (
+                            <>
+                              <button 
+                                onClick={() => handleUpdateStatus(app.id, 'Approved')} 
+                                className="p-2 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 rounded-full transition-colors cursor-pointer" 
+                                title="Approve Application"
+                              >
+                                <Check size={18} strokeWidth={2.5} />
+                              </button>
+                              <button 
+                                onClick={() => handleUpdateStatus(app.id, 'Rejected')} 
+                                className="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-full transition-colors cursor-pointer" 
+                                title="Reject Application"
+                              >
+                                <X size={18} strokeWidth={2.5} />
+                              </button>
+                            </>
+                          )}
                           <button onClick={() => openEditModal(app)} className="p-2 text-stone-400 hover:text-[#003828] hover:bg-[#003828]/10 rounded-full transition-colors cursor-pointer" title="Edit entire application"><Edit size={18} /></button>
                           <button onClick={() => handleDeleteApplication(app)} className="p-2 text-stone-400 hover:text-rose-700 hover:bg-rose-50 rounded-full transition-colors cursor-pointer" title="Delete application"><Trash2 size={18} /></button>
                         </div>

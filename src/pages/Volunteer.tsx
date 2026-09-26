@@ -77,6 +77,7 @@ export default function Volunteer() {
   const [isFinalizing, setIsFinalizing] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [cachedRecaptchaToken, setCachedRecaptchaToken] = useState<string | null>(null);
+  const [verificationToken, setVerificationToken] = useState<string>('');
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   // Password visibility states
@@ -522,9 +523,26 @@ export default function Volunteer() {
     return () => clearInterval(interval);
   }, [resendCooldown]);
 
-  // OTP digit handlers
+  // OTP digit handlers (with mobile keyboard auto-fill and paste support)
   const handleOtpChange = (index: number, val: string) => {
-    const digit = val.replace(/\D/g, '').slice(-1);
+    const cleaned = val.replace(/\D/g, '');
+    if (cleaned.length > 1) {
+      // Auto-fill from mobile keyboard or multi-digit paste into this box
+      const digits = cleaned.slice(0, 6).split('');
+      const newOtp = [...enteredOtp];
+      for (let i = 0; i < digits.length; i++) {
+        if (index + i < 6) {
+          newOtp[index + i] = digits[i];
+        }
+      }
+      setEnteredOtp(newOtp);
+      setOtpError('');
+      const nextIdx = Math.min(index + digits.length, 5);
+      otpInputRefs.current[nextIdx]?.focus();
+      return;
+    }
+
+    const digit = cleaned.slice(-1);
     const newOtp = [...enteredOtp];
     newOtp[index] = digit;
     setEnteredOtp(newOtp);
@@ -564,6 +582,7 @@ export default function Volunteer() {
       const response = await fetch('/api/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
         body: JSON.stringify({
           email: formData.email,
           recaptchaToken: cachedRecaptchaToken || 'verified_token',
@@ -574,6 +593,10 @@ export default function Volunteer() {
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
         throw new Error(data.error || 'Failed to resend verification code');
+      }
+
+      if (data.verificationToken) {
+        setVerificationToken(data.verificationToken);
       }
 
       setEnteredOtp(['', '', '', '', '', '']);
@@ -616,6 +639,7 @@ export default function Volunteer() {
       const response = await fetch('/api/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
         body: JSON.stringify({
           email: formData.email,
           recaptchaToken,
@@ -626,6 +650,10 @@ export default function Volunteer() {
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
         throw new Error(data.error || 'Failed to send verification code. Please check your email address.');
+      }
+
+      if (data.verificationToken) {
+        setVerificationToken(data.verificationToken);
       }
 
       setEnteredOtp(['', '', '', '', '', '']);
@@ -645,7 +673,7 @@ export default function Volunteer() {
   };
 
   const handleFinalizeAccount = async () => {
-    const fullOtp = enteredOtp.join('').trim();
+    const fullOtp = enteredOtp.join('').replace(/\D/g, '').trim();
     if (fullOtp.length < 6) {
       setOtpError('Please enter all 6 digits of the verification code.');
       return;
@@ -659,9 +687,11 @@ export default function Volunteer() {
       const verifyRes = await fetch('/api/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
         body: JSON.stringify({
           email: formData.email,
-          otp: fullOtp
+          otp: fullOtp,
+          verificationToken
         })
       });
 
