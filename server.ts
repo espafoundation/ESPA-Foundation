@@ -96,13 +96,15 @@ async function sendSystemEmail({
   from = '"ESPA Website" <foundationespa@gmail.com>',
   replyTo,
   subject,
-  text
+  text,
+  html
 }: {
   to: string;
   from?: string;
   replyTo?: string;
   subject: string;
   text: string;
+  html?: string;
 }) {
   const finalText = text.includes('From Exclusion to Education')
     ? text
@@ -115,7 +117,8 @@ async function sendSystemEmail({
         to,
         replyTo,
         subject,
-        text: finalText
+        text: finalText,
+        ...(html ? { html } : {})
       });
       return { success: true, info };
     } catch (err: any) {
@@ -309,12 +312,17 @@ async function processApplicationStatusChange(req: any, res: any) {
       ? `Dear ${applicantName},\n\nYour application to volunteer with ESPA Foundation has been approved.\n\nYou can now access the Portal on ESPA Digital Library using the following credentials:\n\nEmail: ${applicantEmail}\nPassword: ${applicantPassword}\n\nPlease keep your login credentials secure and do not share your password with anyone.\n\nFurther information regarding your volunteer role and responsibilities will be available through the ESPA Digital Library.\n\nWelcome to ESPA Foundation. We look forward to having you contribute to our mission.\n\nESPA Foundation\nFrom Exclusion to Education`
       : `Dear ${applicantName},\n\nThank you for your interest in volunteering with ESPA Foundation and for taking the time to submit your application.\n\nAfter careful review, we regret to inform you that we will not be moving forward with your application at this time.\n\nWe appreciate your interest in supporting ESPA Foundation and encourage you to stay connected with us for future volunteer opportunities.\n\nThank you for your time and understanding.\n\nESPA Foundation\nFrom Exclusion to Education`;
 
+    const html = isApproved
+      ? `<!DOCTYPE html><html><body><p>Dear ${applicantName},</p><p>Your application to volunteer with ESPA Foundation has been approved.</p><p>You can now access the Portal on <a href="https://library.espafoundation.social/portal">ESPA Digital Library</a> using the following credentials:</p><p>Email: ${applicantEmail}<br>Password: ${applicantPassword}</p><p>Please keep your login credentials secure and do not share your password with anyone.</p><p>Further information regarding your volunteer role and responsibilities will be available through the ESPA Digital Library.</p><p>Welcome to ESPA Foundation. We look forward to having you contribute to our mission.</p><p>ESPA Foundation<br>From Exclusion to Education</p></body></html>`
+      : undefined;
+
     try {
       await sendSystemEmail({
         from: process.env.EMAIL_USER ? `"ESPA Foundation" <${process.env.EMAIL_USER}>` : '"ESPA Foundation" <foundationespa@gmail.com>',
         to: applicantEmail,
         subject,
-        text
+        text,
+        ...(html ? { html } : {})
       });
       emailSent = true;
       console.log(`Successfully processed ${normalizedStatus} plain text email for ${applicantEmail}`);
