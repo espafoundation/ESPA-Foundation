@@ -646,9 +646,8 @@ export default function ApplicationsView({
                 </div>
               </div>
 
-              {/* Exact name ke samne right side pe: Approve and Reject buttons (disappear when Approved or Rejected) */}
-              {isPending && (
-                <div className="flex items-center gap-2.5 shrink-0 w-full sm:w-auto justify-end">
+              {/* Approve and Reject stay available so every click can trigger a fresh response/email. */}
+              <div className="flex items-center gap-2.5 shrink-0 w-full sm:w-auto justify-end">
                   <button
                     type="button"
                     disabled={isProcessingStatus}
@@ -670,7 +669,6 @@ export default function ApplicationsView({
                     {isProcessingStatus ? 'Processing...' : 'Reject'}
                   </button>
                 </div>
-              )}
 
             </div>
 
@@ -1059,8 +1057,7 @@ export default function ApplicationsView({
                       </td>
                       <td className="w-[18%] px-6 py-4 text-center" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-center gap-1">
-                          {isPending && (
-                            <>
+                          <>
                               <button 
                                 onClick={() => handleUpdateStatus(app.id, 'Approved')} 
                                 className="p-2 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 rounded-full transition-colors cursor-pointer" 
@@ -1075,8 +1072,7 @@ export default function ApplicationsView({
                               >
                                 <X size={18} strokeWidth={2.5} />
                               </button>
-                            </>
-                          )}
+                          </>
                           <button onClick={() => openEditModal(app)} className="p-2 text-stone-400 hover:text-[#003828] hover:bg-[#003828]/10 rounded-full transition-colors cursor-pointer" title="Edit entire application"><Edit size={18} /></button>
                           <button onClick={() => handleDeleteApplication(app)} className="p-2 text-stone-400 hover:text-rose-700 hover:bg-rose-50 rounded-full transition-colors cursor-pointer" title="Delete application"><Trash2 size={18} /></button>
                         </div>

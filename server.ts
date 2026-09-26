@@ -311,7 +311,7 @@ async function processApplicationStatusChange(req: any, res: any) {
 
     try {
       await sendSystemEmail({
-        from: '"ESPA Foundation" <foundationespa@gmail.com>',
+        from: process.env.EMAIL_USER ? `"ESPA Foundation" <${process.env.EMAIL_USER}>` : '"ESPA Foundation" <foundationespa@gmail.com>',
         to: applicantEmail,
         subject,
         text
@@ -695,7 +695,7 @@ app.post('/api/send-email', apiLimiter, async (req, res) => {
 
   try {
     await sendSystemEmail({
-      from: '"ESPA Foundation" <foundationespa@gmail.com>',
+      from: process.env.EMAIL_USER ? `"ESPA Foundation" <${process.env.EMAIL_USER}>` : '"ESPA Foundation" <foundationespa@gmail.com>',
       to,
       subject,
       text
