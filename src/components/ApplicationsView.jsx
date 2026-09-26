@@ -478,18 +478,27 @@ export default function ApplicationsView({
           type: target?.type
         })
       });
-      const data = await response.json();
-      if (data?.emailSent) {
-        if (showToast) {
-          showToast(newStatus === 'Approved'
-            ? `Application approved! Credentials emailed to ${target?.email}.`
-            : `Application rejected. Update email sent to ${target?.email}.`,
-            'success'
-          );
-        }
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data?.emailSent) {
+        throw new Error(
+          data?.emailError ||
+          data?.error ||
+          `The ${newStatus.toLowerCase()} action could not send the email.`
+        );
+      }
+
+      if (showToast) {
+        showToast(newStatus === 'Approved'
+          ? `Application approved and email sent to ${target?.email}.`
+          : `Application rejected and email sent to ${target?.email}.`,
+          'success'
+        );
       }
     } catch (e) {
-      console.error('Error updating application status:', e);
+      console.error('Error updating application status/email:', e);
+      if (showToast) {
+        showToast(e?.message || 'Application update/email failed.', 'error');
+      }
     } finally {
       setIsProcessingStatus(false);
     }
