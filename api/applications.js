@@ -37,8 +37,13 @@ const normalizeStatus = (value) => {
 };
 
 async function sendDecisionEmail({ to, name, password, status }) {
-  if (!process.env.EMAIL_USER || !(process.env.EMAIL_PASS || process.env.EMAIL_APP_PASSWORD)) {
-    throw new Error('EMAIL_USER or EMAIL_PASS is missing in Vercel Production environment.');
+  if (
+    !process.env.EMAIL_USER ||
+    !(process.env.EMAIL_PASS || process.env.EMAIL_APP_PASSWORD)
+  ) {
+    throw new Error(
+      'EMAIL_USER or EMAIL_PASS is missing in Vercel Production environment.'
+    );
   }
 
   const normalizedStatus = normalizeStatus(status);
@@ -64,6 +69,7 @@ You can now access the Portal on ESPA Digital Library using the following creden
 
 Email: ${applicantEmail}
 Password: ${password || 'Set during application'}
+Portal: https://library.espafoundation.social/portal
 
 Please keep your login credentials secure and do not share your password with anyone.
 
@@ -98,16 +104,23 @@ From Exclusion to Education`;
 
 async function getTableRows(table) {
   if (!supabase) return [];
+
   const { data, error } = await supabase.from(table).select('*');
+
   if (error) {
-    console.warn(`Applications GET: could not read ${table}:`, error.message);
+    console.warn(
+      `Applications GET: could not read ${table}:`,
+      error.message
+    );
     return [];
   }
+
   return Array.isArray(data) ? data : [];
 }
 
 function mapApplication(row, type) {
   if (!row) return null;
+
   return {
     ...row,
     id: row.id || `${type}_${row.email || row.created_at || Date.now()}`,
@@ -144,18 +157,22 @@ async function updateApplicationStatus({ id, email, type, status }) {
   if (!supabase) return null;
 
   const normalizedType = String(type || '').trim().toLowerCase();
-  const tables = normalizedType && TABLES[normalizedType]
-    ? [normalizedType]
-    : Object.keys(TABLES);
+
+  const tables =
+    normalizedType && TABLES[normalizedType]
+      ? [normalizedType]
+      : Object.keys(TABLES);
 
   for (const currentType of tables) {
     const table = TABLES[currentType];
 
-    // Prefer application ID when available.
     if (id) {
       const byId = await supabase
         .from(table)
-        .update({ status, updated_at: new Date().toISOString() })
+        .update({
+          status,
+          updated_at: new Date().toISOString(),
+        })
         .eq('id', id)
         .select('*')
         .maybeSingle();
@@ -165,12 +182,13 @@ async function updateApplicationStatus({ id, email, type, status }) {
       }
     }
 
-    // Fall back to applicant email. This also supports tables whose
-    // application records were created without the same ID.
     if (email) {
       const byEmail = await supabase
         .from(table)
-        .update({ status, updated_at: new Date().toISOString() })
+        .update({
+          status,
+          updated_at: new Date().toISOString(),
+        })
         .eq('email', String(email).trim().toLowerCase())
         .select('*')
         .maybeSingle();
@@ -192,29 +210,50 @@ export default async function handler(req, res) {
 
     if (req.method === 'PATCH') {
       const body = req.body || {};
+
       const id = body.id || body.updates?.id;
-      const status = normalizeStatus(body.status || body.updates?.status);
-      const email = String(body.email || body.updates?.email || '').trim().toLowerCase();
-      const type = String(body.type || body.updates?.type || '').trim().toLowerCase();
+
+      const status = normalizeStatus(
+        body.status || body.updates?.status
+      );
+
+      const email = String(
+        body.email || body.updates?.email || ''
+      )
+        .trim()
+        .toLowerCase();
+
+      const type = String(
+        body.type || body.updates?.type || ''
+      )
+        .trim()
+        .toLowerCase();
+
       const name =
         body.name ||
         body.updates?.name ||
         `${body.first_name || ''} ${body.last_name || ''}`.trim() ||
         'Applicant';
-      const password = body.password || body.updates?.password || '';
+
+      const password =
+        body.password ||
+        body.updates?.password ||
+        '';
 
       if (!['Approved', 'Rejected'].includes(status)) {
-        return res.status(400).json({ error: 'Status must be Approved or Rejected.' });
+        return res.status(400).json({
+          error: 'Status must be Approved or Rejected.',
+        });
       }
 
       if (!id && !email) {
-        return res.status(400).json({ error: 'Application ID or applicant email is required.' });
+        return res.status(400).json({
+          error: 'Application ID or applicant email is required.',
+        });
       }
 
-      // The email is intentionally sent on EVERY Approved/Rejected request.
-      // This means Approved -> Approve again and Rejected -> Reject again
-      // both dispatch a fresh email.
       let updatedApplication = null;
+
       try {
         updatedApplication = await updateApplicationStatus({
           id,
@@ -223,12 +262,20 @@ export default async function handler(req, res) {
           status,
         });
       } catch (dbError) {
-        console.error('Application status update warning:', dbError);
+        console.error(
+          'Application status update warning:',
+          dbError
+        );
       }
 
-      const applicantEmail = updatedApplication?.email || email;
-      const applicantName = updatedApplication?.name || name;
-      const applicantPassword = updatedApplication?.password || password;
+      const applicantEmail =
+        updatedApplication?.email || email;
+
+      const applicantName =
+        updatedApplication?.name || name;
+
+      const applicantPassword =
+        updatedApplication?.password || password;
 
       let emailSent = false;
       let emailError = null;
@@ -240,10 +287,17 @@ export default async function handler(req, res) {
           password: applicantPassword,
           status,
         });
+
         emailSent = true;
       } catch (mailError) {
-        emailError = mailError?.message || 'Email delivery failed.';
-        console.error('Application decision email failed:', mailError);
+        emailError =
+          mailError?.message ||
+          'Email delivery failed.';
+
+        console.error(
+          'Application decision email failed:',
+          mailError
+        );
       }
 
       if (!emailSent) {
@@ -258,14 +312,15 @@ export default async function handler(req, res) {
 
       return res.status(200).json({
         success: true,
-        application: updatedApplication || {
-          id,
-          type,
-          name: applicantName,
-          email: applicantEmail,
-          password: applicantPassword,
-          status,
-        },
+        application:
+          updatedApplication || {
+            id,
+            type,
+            name: applicantName,
+            email: applicantEmail,
+            password: applicantPassword,
+            status,
+          },
         emailSent: true,
         emailError: null,
       });
@@ -273,31 +328,47 @@ export default async function handler(req, res) {
 
     if (req.method === 'POST') {
       if (!supabase) {
-        return res.status(500).json({ error: 'Supabase is not configured.' });
+        return res.status(500).json({
+          error: 'Supabase is not configured.',
+        });
       }
 
       const body = req.body || {};
-      const type = String(body.type || 'volunteer').trim().toLowerCase();
+
+      const type = String(
+        body.type || 'volunteer'
+      )
+        .trim()
+        .toLowerCase();
+
       const table = TABLES[type];
 
       if (!table) {
-        return res.status(400).json({ error: 'Unsupported application type.' });
+        return res.status(400).json({
+          error: 'Unsupported application type.',
+        });
       }
 
       const payload = {
         ...body,
-        status: normalizeStatus(body.status || 'Pending'),
+        status: normalizeStatus(
+          body.status || 'Pending'
+        ),
         updated_at: new Date().toISOString(),
       };
 
       const { data, error } = await supabase
         .from(table)
-        .upsert(payload, { onConflict: 'id' })
+        .upsert(payload, {
+          onConflict: 'id',
+        })
         .select('*')
         .maybeSingle();
 
       if (error) {
-        return res.status(500).json({ error: error.message });
+        return res.status(500).json({
+          error: error.message,
+        });
       }
 
       return res.status(200).json({
@@ -308,42 +379,81 @@ export default async function handler(req, res) {
 
     if (req.method === 'DELETE') {
       if (!supabase) {
-        return res.status(500).json({ error: 'Supabase is not configured.' });
+        return res.status(500).json({
+          error: 'Supabase is not configured.',
+        });
       }
 
       const body = req.body || {};
+
       const id = body.id;
-      const email = String(body.email || '').trim().toLowerCase();
-      const type = String(body.type || '').trim().toLowerCase();
-      const types = type && TABLES[type] ? [type] : Object.keys(TABLES);
+
+      const email = String(body.email || '')
+        .trim()
+        .toLowerCase();
+
+      const type = String(body.type || '')
+        .trim()
+        .toLowerCase();
+
+      const types =
+        type && TABLES[type]
+          ? [type]
+          : Object.keys(TABLES);
 
       for (const currentType of types) {
         const table = TABLES[currentType];
-        const query = supabase.from(table).delete();
+
+        const query = supabase
+          .from(table)
+          .delete();
 
         const result = id
-          ? await query.eq('id', id).select('*').maybeSingle()
+          ? await query
+              .eq('id', id)
+              .select('*')
+              .maybeSingle()
           : email
-            ? await query.eq('email', email).select('*').maybeSingle()
+            ? await query
+                .eq('email', email)
+                .select('*')
+                .maybeSingle()
             : null;
 
         if (result?.data) {
           return res.status(200).json({
             success: true,
-            application: mapApplication(result.data, currentType),
+            application: mapApplication(
+              result.data,
+              currentType
+            ),
           });
         }
       }
 
-      return res.status(404).json({ error: 'Application not found.' });
+      return res.status(404).json({
+        error: 'Application not found.',
+      });
     }
 
-    res.setHeader('Allow', 'GET, POST, PATCH, DELETE');
-    return res.status(405).json({ error: 'Method Not Allowed' });
+    res.setHeader(
+      'Allow',
+      'GET, POST, PATCH, DELETE'
+    );
+
+    return res.status(405).json({
+      error: 'Method Not Allowed',
+    });
   } catch (error) {
-    console.error('Applications API error:', error);
+    console.error(
+      'Applications API error:',
+      error
+    );
+
     return res.status(500).json({
-      error: error?.message || 'Internal server error.',
+      error:
+        error?.message ||
+        'Internal server error.',
     });
   }
 }
