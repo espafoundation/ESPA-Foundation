@@ -46,30 +46,26 @@ export function CopyableDetail({
   displayValue, 
   actionIcon, 
   onActionClick, 
+  showToast,
   className = ""
 }) {
   if (!value || value === 'N/A' || value === 'Not specified') return null;
 
   return (
     <div 
-      className={`p-3.5 bg-stone-50 rounded-2xl border border-stone-200/60 transition-all select-text ${className}`}
+      className={`p-3.5 bg-stone-50 rounded-2xl border border-stone-200/60 transition-all select-text cursor-pointer hover:border-stone-300 ${className}`}
+      onClick={() => {
+        try {
+          navigator.clipboard?.writeText?.(String(value));
+          if (showToast) showToast(`${label} copied to clipboard!`, 'success');
+        } catch (e) {}
+      }}
+      title="Click to copy"
     >
       <div className="flex items-center justify-between gap-1 mb-1">
         <span className="text-[11px] font-bold text-stone-400 uppercase tracking-wider block">
           {label}
         </span>
-        {actionIcon && (
-          <button 
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (onActionClick) onActionClick(e);
-            }}
-            className="p-1 hover:bg-stone-200/60 rounded text-stone-500 hover:text-stone-800 transition-colors"
-          >
-            {actionIcon}
-          </button>
-        )}
       </div>
       <div className="font-semibold text-stone-900 text-sm break-words select-text">
         {displayValue || value}
@@ -464,40 +460,7 @@ export default function ApplicationsView({
 
     if (addLog) addLog(`Updated application ${id} status to ${newStatus}`);
 
-    // Status is persisted through the portal's local application store.
-    // Do not call /api/applications here; that endpoint was removed from the project.
-    try {
-      const finalApplications = (updated || []).map(app => {
-        const sameId = String(app.id) === String(id);
-        const sameEmailType =
-          targetEmail &&
-          app.email &&
-          app.email.toLowerCase().trim() === targetEmail &&
-          (!targetType || (app.type || '').toLowerCase().trim() === targetType);
-
-        return (sameId || sameEmailType)
-          ? { ...app, status: newStatus }
-          : app;
-      });
-
-      setApplications(finalApplications);
-      localStorage.setItem('espa_applications', JSON.stringify(finalApplications));
-      localStorage.removeItem('ain_applications');
-
-      if (showToast) {
-        showToast(
-          newStatus === 'Approved'
-            ? 'Application approved successfully.'
-            : 'Application rejected successfully.',
-          'success'
-        );
-      }
-    } catch (e) {
-      console.error('Error saving application status:', e);
-      if (showToast) showToast('Could not save the application status.', 'error');
-    } finally {
-      setIsProcessingStatus(false);
-    }
+    setIsProcessingStatus(false);
   };
 
   const getTypeIcon = (type) => {
