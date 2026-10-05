@@ -764,6 +764,15 @@ export default function ApplicationsView({
                   showToast={showToast}
                 />
               )}
+
+              {selectedApp.password && (
+                <CopyableDetail 
+                  label="Portal Password" 
+                  value={selectedApp.password} 
+                  displayValue={<span className="font-mono bg-stone-100 px-1.5 py-0.5 rounded text-stone-800">{selectedApp.password}</span>}
+                  showToast={showToast}
+                />
+              )}
             </div>
           </div>
 

@@ -63,19 +63,13 @@ async function sendDecisionEmail({ to, name, password, status }) {
   const text = approved
     ? `Dear ${applicantName},
 
-Your application to volunteer with ESPA Foundation has been approved.
+Thank you for your interest in volunteering with ESPA Foundation and for taking the time to submit your application.
 
-You can now access the Portal on ESPA Digital Library using the following credentials:
+We are pleased to inform you that your volunteer application has been accepted. We appreciate your willingness to contribute your time, skills, and efforts towards our mission of helping deserving children access education.
 
-Email: ${applicantEmail}
-Password: ${password || 'Set during application'}
-Portal: https://library.espafoundation.social/portal
+We look forward to having you as part of the ESPA Foundation volunteer community. Further details regarding your role, responsibilities, and next steps will be shared with you shortly.
 
-Please keep your login credentials secure and do not share your password with anyone.
-
-Further information regarding your volunteer role and responsibilities will be available through the ESPA Digital Library.
-
-Welcome to ESPA Foundation. We look forward to having you contribute to our mission.
+Welcome to ESPA Foundation, and thank you for choosing to be part of the journey.
 
 ESPA Foundation
 From Exclusion to Education`
